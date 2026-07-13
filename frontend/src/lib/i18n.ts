@@ -102,6 +102,8 @@ const D: Dict = {
   category: { en: "Category", pt: "Categoria" },
   publisher: { en: "Publisher", pt: "Publicador" },
   price: { en: "Price", pt: "Preço" },
+  archs_label: { en: "Architectures", pt: "Arquiteturas" },
+  arch_amd64_only: { en: "x86-64 only", pt: "só x86-64" },
   install: { en: "Install", pt: "Instalar" },
   coming_soon: { en: "Coming soon", pt: "Em breve" },
   runs_at: { en: "Runs at", pt: "Roda em" },

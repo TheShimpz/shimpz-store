@@ -83,7 +83,11 @@ else
 fi
 
 # ── build + boot ─────────────────────────────────────────────────────────────
-say "Building the Capsule (first run compiles from source — a few minutes)…"
+if [ "$(uname -m)" != "x86_64" ]; then
+    say "Apple Silicon / ARM detected — the brain (which bundles amd64-only Chrome) builds under"
+    say "emulation. The FIRST build is slow (10–30 min); grab a coffee. Runtime is fine after."
+fi
+say "Building the Capsule (first run compiles from source)…"
 ( cd "$SHIMPZ_HOME" && docker compose --env-file .env up -d --build ) || die "compose up failed (see the log above)"
 
 # ── wait for the panel to answer ─────────────────────────────────────────────

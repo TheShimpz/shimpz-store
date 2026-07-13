@@ -15,6 +15,7 @@
       <div class="flex items-center gap-2">
         <span class="truncate text-[15px] font-semibold">{app.name}</span>
         {#if !app.available}<span class="badge">{tr("coming_soon", lang)}</span>{/if}
+        {#if app.archs.length === 1 && app.archs[0] === "amd64"}<span class="badge" title={tr("arch_amd64_only", lang)}>x86-64</span>{/if}
       </div>
       <p class="mt-1 line-clamp-2 text-sm dim">{t(app.tagline, lang)}</p>
     </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { t, DRIVER_BY_ID, APP_BY_ID, relatedApps, type App, type Locale } from "$lib/catalog";
+  import { t, DRIVER_BY_ID, APP_BY_ID, relatedApps, ARCH_LABEL, type App, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
@@ -157,6 +157,14 @@
         <div class="flex items-center justify-between text-sm"><span class="dim">{tr("category", lang)}</span><a class="transition hover:text-[var(--color-primary)]" href={u.category(lang, app.category)}>{app.category}</a></div>
         <div class="flex items-center justify-between text-sm"><span class="dim">{tr("publisher", lang)}</span><span>{app.publisher}</span></div>
         <div class="flex items-center justify-between text-sm"><span class="dim">{tr("price", lang)}</span><span>{t(app.price, lang)}</span></div>
+        <div class="flex items-center justify-between gap-3 text-sm">
+          <span class="dim">{tr("archs_label", lang)}</span>
+          <span class="flex flex-wrap justify-end gap-1.5">
+            {#each app.archs as a (a)}
+              <span class="badge" style="border-color:color-mix(in oklab, var(--color-primary) 40%, var(--color-border-strong))" title={ARCH_LABEL[a]}>{a}</span>
+            {/each}
+          </span>
+        </div>
         <div class="border-t hair pt-4">
           {#if app.available}
             <button class="btn-primary w-full" onclick={install}>{tr("install", lang)}</button>

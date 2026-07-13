@@ -122,6 +122,13 @@ export const DRIVER_BY_ID = new Map(DRIVERS.map((d) => [d.id, d]));
 export type AppCategory = "Marketing" | "Content" | "Commerce" | "Automation" | "AI";
 export const APP_CATEGORIES: AppCategory[] = ["Marketing", "Content", "Commerce", "Automation", "AI"];
 
+// The CPU architectures a Shimpz's image supports. A Capsule runs the agent native to its host
+// (Apple Silicon = arm64, most servers = amd64), so a Shimpz must declare which arch(es) it ships —
+// an amd64-only one (e.g. the Chrome-based browser) can't install on an arm64 Capsule.
+export type Arch = "amd64" | "arm64";
+export const ARCHS: Arch[] = ["amd64", "arm64"];
+export const ARCH_LABEL: Record<Arch, string> = { amd64: "x86-64", arm64: "ARM64 · Apple Silicon" };
+
 export interface App {
   id: string;
   name: string;
@@ -133,6 +140,7 @@ export interface App {
   dependsOn: string[]; // app ids it needs installed
   publisher: string;
   price: I18n;
+  archs: Arch[]; // CPU architectures this Shimpz's image supports (declared on its store page)
   available: boolean; // true = a REAL deployable artifact exists in the capsule-driver marketplace registry
 }
 
@@ -145,7 +153,17 @@ export const APPS: App[] = [
       pt: "O lugar único onde seus apps pedem aprovação, reportam resultados e te alertam — com botões e voz, e sobrevive a restart.",
     },
     permissions: ["bus"], dependsOn: [], publisher: "Shimpz",
-    price: { en: "Free", pt: "Grátis" }, available: true,
+    price: { en: "Free", pt: "Grátis" }, archs: ["amd64", "arm64"], available: true,
+  },
+  {
+    id: "undetectable-browser", name: "Undetectable Browser", category: "Automation", icon: "🕶️",
+    tagline: { en: "Drive a real Chrome, undetectably.", pt: "Dirige um Chrome real, indetectável." },
+    spec: {
+      en: "A real, headful Google Chrome your Capsule drives via CDP with human-like input — logs into sites and stays logged in, isolated from your credentials. Because it bundles Google Chrome (which ships for x86-64 only), this Shimpz is amd64-only.",
+      pt: "Um Google Chrome real e headful que sua Capsule dirige via CDP com input humano — loga em sites e continua logado, isolado das suas credenciais. Por embutir o Google Chrome (que só existe para x86-64), este Shimpz é amd64-only.",
+    },
+    permissions: ["browser"], dependsOn: [], publisher: "Shimpz",
+    price: { en: "Paid · via ShimpzPay", pt: "Pago · via ShimpzPay" }, archs: ["amd64"], available: false,
   },
 ];
 
