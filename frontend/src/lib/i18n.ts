@@ -1,0 +1,85 @@
+// UI-chrome translations (the catalog content carries its own en/pt in catalog.ts).
+import type { Locale } from "$lib/catalog";
+
+type Dict = Record<string, Record<Locale, string>>;
+
+const D: Dict = {
+  brand_tag: { en: "app marketplace for your Capsule", pt: "marketplace de apps pra sua Capsule" },
+  nav_apps: { en: "Apps", pt: "Apps" },
+  nav_drivers: { en: "Drivers", pt: "Drivers" },
+  home_title: { en: "Shimpz — app marketplace", pt: "Shimpz — marketplace de apps" },
+  home_desc: {
+    en: "Install apps into your own Capsule — each an isolated capability package with clear permissions.",
+    pt: "Instale apps na sua própria Capsule — cada um um pacote de capacidade isolado com permissões claras.",
+  },
+  hero_h1_a: { en: "Install", pt: "Instale" },
+  hero_h1_b: { en: "apps", pt: "apps" },
+  hero_h1_c: { en: "into your Capsule.", pt: "na sua Capsule." },
+  hero_p: {
+    en: "Every app is an isolated capability package — its own rules and skills, running inside your Capsule: a sealed, private environment. It asks for exactly the permissions it needs, and nothing more.",
+    pt: "Todo app é um pacote de capacidade isolado — regras e skills próprias, rodando dentro da sua Capsule: um ambiente selado e privado. Ele pede exatamente as permissões que precisa, e nada além.",
+  },
+  browse_apps: { en: "Browse apps", pt: "Ver apps" },
+  explore_drivers: { en: "Explore drivers", pt: "Explorar drivers" },
+  create_capsule: { en: "Create your Capsule", pt: "Criar sua Capsule" },
+  capsule_title: { en: "Create a Capsule — Shimpz", pt: "Criar uma Capsule — Shimpz" },
+  capsule_lead: {
+    en: "A Capsule is your own sealed, isolated environment — its own agent, its own database, its own network. Name it, and we spin one up from scratch.",
+    pt: "Uma Capsule é seu ambiente próprio, selado e isolado — agente próprio, banco próprio, rede própria. Dê um nome e a gente sobe uma do zero.",
+  },
+  capsule_name_label: { en: "Name your Capsule", pt: "Dê um nome à sua Capsule" },
+  capsule_name_ph: { en: "e.g. my-workspace", pt: "ex.: meu-espaco" },
+  capsule_submit: { en: "Create Capsule", pt: "Criar Capsule" },
+  capsule_submitting: { en: "Requesting…", pt: "Solicitando…" },
+  capsule_ok: {
+    en: "Request received — your Capsule is queued. Finish setup in the admin console.",
+    pt: "Pedido recebido — sua Capsule está na fila. Conclua a configuração no console do admin.",
+  },
+  capsule_err: { en: "Could not send the request. Try again.", pt: "Não deu pra enviar o pedido. Tente de novo." },
+  my_capsules: { en: "My Capsules", pt: "Minhas Capsules" },
+  log_in: { en: "Log in", pt: "Entrar" },
+  sign_up: { en: "Sign up", pt: "Cadastrar" },
+  log_out: { en: "Log out", pt: "Sair" },
+  username: { en: "Username", pt: "Usuário" },
+  password: { en: "Password", pt: "Senha" },
+  current: { en: "Current", pt: "Atual" },
+  destroy: { en: "Destroy", pt: "Destruir" },
+  no_capsules: { en: "No Capsules yet. Create one above.", pt: "Nenhuma Capsule ainda. Crie uma acima." },
+  all_apps: { en: "All apps", pt: "Todos os apps" },
+  categories: { en: "Categories", pt: "Categorias" },
+  drivers_title: { en: "Drivers", pt: "Drivers" },
+  drivers_lead: {
+    en: "Drivers are the platform capabilities an app can be granted — the audited sidecars that hold a secret so your apps never do. An app lists the drivers it needs as its permissions.",
+    pt: "Drivers são as capacidades da plataforma que um app pode receber — os sidecars auditados que seguram um segredo pra que seus apps nunca segurem. Um app lista os drivers que precisa como suas permissões.",
+  },
+  apps_lead: {
+    en: "Installable products for your Capsule. Open any app to see, in plain language, what it does — and exactly which permissions and apps it needs.",
+    pt: "Produtos instaláveis pra sua Capsule. Abra qualquer app pra ver, em linguagem simples, o que ele faz — e exatamente quais permissões e apps ele precisa.",
+  },
+  what_it_does: { en: "What it does", pt: "O que faz" },
+  permissions: { en: "Permissions", pt: "Permissões" },
+  permissions_hint: { en: "the drivers this app is granted", pt: "os drivers que este app recebe" },
+  depends_on: { en: "Depends on", pt: "Depende de" },
+  depends_hint: { en: "other apps installed alongside it", pt: "outros apps instalados junto" },
+  no_deps: { en: "No app dependencies.", pt: "Sem dependências de apps." },
+  used_by: { en: "Apps using this driver", pt: "Apps que usam este driver" },
+  grants_title: { en: "What it grants", pt: "O que ele concede" },
+  category: { en: "Category", pt: "Categoria" },
+  publisher: { en: "Publisher", pt: "Publicador" },
+  price: { en: "Price", pt: "Preço" },
+  install: { en: "Install", pt: "Instalar" },
+  coming_soon: { en: "Coming soon", pt: "Em breve" },
+  runs_at: { en: "Runs at", pt: "Roda em" },
+  related: { en: "Related apps", pt: "Apps relacionados" },
+  home: { en: "Home", pt: "Início" },
+  back_all_apps: { en: "All apps", pt: "Todos os apps" },
+  requesting: { en: "Requesting…", pt: "Solicitando…" },
+  install_ok: { en: "Request received — we'll get it into your Capsule.", pt: "Pedido recebido — vamos colocar na sua Capsule." },
+  install_err: { en: "Could not send the request. Try again.", pt: "Não deu pra enviar o pedido. Tente de novo." },
+  footer: {
+    en: "apps install into your own Capsule · payments via ShimpzPay",
+    pt: "apps instalam na sua própria Capsule · pagamentos via ShimpzPay",
+  },
+};
+
+export const tr = (key: string, l: Locale): string => D[key]?.[l] ?? D[key]?.en ?? key;

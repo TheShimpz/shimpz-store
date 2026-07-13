@@ -1,13 +1,32 @@
-name = "shimpz"
-title = "Shimpz"
-version = "0.1.0"
-summary = "The Shimpz app marketplace — browse and install apps into your Shimpz."
+# What this Shimpz app is and what it needs. The toolchain reads this: `shimpz-app deploy` resolves [needs]
+# and the admin marketplace surfaces it. Full spec: docs/build-a-shimpz-app.md.
+name = "shimpz-store"
+title = "Shimpz Store"
+summary = ""
 
-# The store is the platform's own front door, published at shimpz.com. It's free, server-rendered, and
-# reaches no external host (the catalog is in-process for the MVP) — so no [needs], no [billing], no
-# egress. It evolves layer-by-layer (accounts, DB-backed catalog, publish pipeline) without changing this.
+[needs]
+# native = ["openai"]          # native integrations that must be ENABLED — see docs for the full list
+# apps   = ["other-app"]       # other Shimpz apps this one needs — installed automatically so you REUSE them
+# calls  = ["other-backend"]   # service APIs to reuse (sync) — wired as declared reach (--calls)
+# egress = ["api.example.com"] # external hosts you may reach — apps have NO internet by default
 
-[[run]]
-name = "shimpz"
-port = 3200
-command = ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200"]
+[provides]
+skill = "shimpz/SKILL.md"       # agent-facing skill this app ships (scaffolded)
+
+# [grants]  — scoped permissions (ONLY ones the platform actually enforces; see docs).
+# consume = ["other-app.topic"]   # READ another app's bus topic (a narrow, audited ACL)
+# publish = "own"                  # may be published ONLY at shimpz-store.grid.shimpz.com
+# dns     = "own"                  # may manage DNS ONLY under shimpz-store.grid.shimpz.com
+
+# [billing]  — charge for this app (payment is locked to ShimpzPay; omit for a free app).
+# pay = "shimpzpay"               # the ONLY accepted rail
+# price = 9.90                     # per period, > 0
+# period = "monthly"               # monthly | yearly | once
+
+# [[run]]  — declare this to make `shimpz-app install shimpz-store` deploy the whole app (+ its deps) in one command.
+# name = "shimpz-store-backend"
+# port = 3101
+# command = ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3101"]
+
+[config]
+# GREETING = { default = "Hi", help = "Shown to end users" }   # your app's OWN settings (UPPER_SNAKE)

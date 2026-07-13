@@ -1,0 +1,164 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* ── Shimpz design system — CYBERPUNK: neon duotone, chamfered HUD panels, scanlines, glitch, mono type ──
+   Synthesised from the genre's conventions (not a clone of any one site). Body stays Inter for readability. */
+@theme {
+  --color-bg: #0a0a0f;        /* void */
+  --color-bg-soft: #07070c;
+  --color-card: #0e0f18;
+  --color-card-2: #12131f;
+  --color-elevated: #171a2b;
+  --color-border: #1f2438;
+  --color-border-strong: #2f3963;
+  --color-fg: #e9edfb;        /* cool near-white (high contrast) */
+  --color-muted: #9aa3c6;     /* cool muted — ~AA on void */
+  --color-muted-2: #6b7398;
+  /* neon */
+  --color-cyan: #00f0ff;
+  --color-magenta: #ff2a6d;
+  --color-yellow: #fcee0a;
+  --color-green: #05ffa1;
+  --color-primary: #00f0ff;
+  --color-primary-2: #ff2a6d;
+
+  --cut: 10px;                /* chamfer size */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* ── base ─────────────────────────────────────────────────────────────────────────────────────── */
+html { color-scheme: dark; -webkit-text-size-adjust: 100%; }
+body {
+  position: relative;
+  background:
+    radial-gradient(70rem 45rem at 82% -12%, rgba(0, 240, 255, 0.10), transparent 60%),
+    radial-gradient(60rem 42rem at 4% -6%, rgba(255, 42, 109, 0.10), transparent 58%),
+    linear-gradient(var(--color-bg), var(--color-bg));
+  /* faint tech grid */
+  background-image:
+    radial-gradient(70rem 45rem at 82% -12%, rgba(0, 240, 255, 0.10), transparent 60%),
+    radial-gradient(60rem 42rem at 4% -6%, rgba(255, 42, 109, 0.10), transparent 58%),
+    repeating-linear-gradient(0deg, rgba(120, 160, 255, 0.035) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, rgba(120, 160, 255, 0.035) 0 1px, transparent 1px 46px);
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
+}
+/* CRT scanlines — subtle, fixed, non-interactive */
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 60; opacity: 0.5;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+}
+::selection { background: color-mix(in oklab, var(--color-cyan) 34%, transparent); }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+
+@layer components {
+  .wrap { @apply mx-auto w-full max-w-6xl px-5; }
+  .dim { color: var(--color-muted); }
+  .hair { border-color: var(--color-border); }
+  .mono { font-family: var(--font-mono); }
+
+  h1, h2, h3 { font-family: var(--font-mono); letter-spacing: -0.01em; }
+
+  .gradient-text {
+    background: linear-gradient(100deg, var(--color-cyan), var(--color-magenta));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 14px rgba(0, 240, 255, 0.25));
+  }
+  .kicker {
+    @apply text-xs font-semibold uppercase;
+    font-family: var(--font-mono); letter-spacing: 0.22em; color: var(--color-cyan);
+  }
+
+  /* chamfered HUD surfaces: clip-path notch + inset neon hairline; glow via drop-shadow (respects clip) */
+  .card {
+    @apply relative block p-5;
+    background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 16%, var(--color-border));
+    transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 60%, transparent);
+    filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.28));
+  }
+  .panel {
+    @apply relative p-5;
+    background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 18%, var(--color-border));
+  }
+
+  /* octagonal neon app-icon tile (fill via --g1/--g2; angular cut + inner white edge + glow) */
+  .app-icon {
+    @apply relative grid shrink-0 place-items-center overflow-hidden text-white;
+    --c: 22%;
+    clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    background: linear-gradient(150deg, var(--g1, var(--color-cyan)), var(--g2, var(--color-magenta)));
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14) inset;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  .app-icon::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 48%); }
+
+  /* buttons — angular, mono, uppercase, neon */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold uppercase transition;
+    font-family: var(--font-mono); letter-spacing: 0.06em; color: #041016;
+    background: linear-gradient(100deg, var(--color-cyan), var(--color-magenta));
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .btn-primary:hover { filter: brightness(1.08) drop-shadow(0 0 12px rgba(0, 240, 255, 0.5)); }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold uppercase transition;
+    font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--color-cyan);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 55%, transparent);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .btn-ghost:hover { box-shadow: inset 0 0 0 1px var(--color-cyan); filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4)); }
+
+  /* chips / badges — mono, neon outline */
+  .chip {
+    @apply inline-flex items-center gap-1.5 border px-3.5 py-1.5 text-xs font-semibold uppercase transition;
+    font-family: var(--font-mono); letter-spacing: 0.08em; border-color: var(--color-border-strong); color: var(--color-muted);
+  }
+  .chip:hover { color: var(--color-cyan); border-color: color-mix(in oklab, var(--color-cyan) 55%, var(--color-border-strong)); }
+  .chip.is-active { color: #041016; border-color: transparent; background: linear-gradient(100deg, var(--color-cyan), var(--color-magenta)); }
+  .badge {
+    @apply inline-flex items-center border px-2.5 py-0.5 text-xs font-medium uppercase;
+    font-family: var(--font-mono); letter-spacing: 0.06em; border-color: var(--color-border-strong); color: var(--color-muted);
+  }
+  .badge-price { color: var(--color-cyan); border-color: color-mix(in oklab, var(--color-cyan) 40%, var(--color-border-strong)); }
+
+  /* permission / dependency row */
+  .perm {
+    @apply flex items-center gap-3 p-3 transition;
+    background: var(--color-card);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .perm:hover { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 50%, transparent); background: var(--color-card-2); }
+
+  /* glitch wordmark (chromatic aberration) — subtle, disabled for reduced motion */
+  .glitch { position: relative; display: inline-block; }
+  .glitch::before, .glitch::after {
+    content: attr(data-text); position: absolute; inset: 0; pointer-events: none; opacity: 0.85;
+  }
+  .glitch::before { color: var(--color-cyan); transform: translate(-1.2px, 0); clip-path: inset(0 0 52% 0); }
+  .glitch::after { color: var(--color-magenta); transform: translate(1.2px, 0); clip-path: inset(52% 0 0 0); }
+  @media (prefers-reduced-motion: no-preference) {
+    .glitch:hover::before { animation: glx-a 0.5s steps(2, end) infinite; }
+    .glitch:hover::after { animation: glx-b 0.5s steps(2, end) infinite; }
+  }
+  @keyframes glx-a { 0%,100% { transform: translate(-1.2px,0) } 50% { transform: translate(-2.6px,1px) } }
+  @keyframes glx-b { 0%,100% { transform: translate(1.2px,0) } 50% { transform: translate(2.6px,-1px) } }
+}
