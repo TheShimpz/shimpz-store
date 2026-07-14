@@ -7,16 +7,18 @@ connected at /ws. Deploy it SEPARATELY from the API, on its own port:
     shimpz-app deploy shimpz-store-ws <ws-port> -- uv run uvicorn app.ws:app --host 0.0.0.0 --port <ws-port>
 
 and publish it with the fullstack form `shimpz-publish <fqdn> <web> public <api> <ws-port>` — the
-frontend connects to the RELATIVE /ws (src/lib/ws.ts), same code in dev (vite proxy) and live (Caddy)."""
+frontend connects to the RELATIVE /ws (src/lib/ws.ts), same code in dev (vite proxy) and live (Caddy).
+"""
 
 import asyncio
 import contextlib
 from contextlib import asynccontextmanager
 
+import shimpzbus
 import structlog
+from aiokafka.errors import KafkaError
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-import shimpzbus
 from app.logconf import setup
 
 setup("shimpz-store-ws")
@@ -51,7 +53,7 @@ async def _pump() -> None:
                 await _fanout(event)
         except asyncio.CancelledError:
             raise  # shutdown — never swallow cancellation
-        except Exception:  # noqa: BLE001 — reconnect boundary: any broker/network error lands here; loud, then retry
+        except (KafkaError, OSError, RuntimeError, ValueError):
             log.exception("ws_pump_error", topic=TOPIC)
             await asyncio.sleep(3)
 
