@@ -17,6 +17,7 @@
   let selected = $state("");
   let error = $state("");
   let busy = $state(false);
+  let modelSelectionAvailable = $state(false);
 
   let createOpen = $state(false); // the "Create Capsule" modal (creation is no longer inline on the page)
   let destroyTarget = $state<any>(null);
@@ -72,6 +73,9 @@
     try {
       const me = await (await fetch("/api/me")).json();
       if (me.authenticated) {
+        const brainsResponse = await fetch("/api/brains").catch(() => null);
+        const brainsResult = await brainsResponse?.json().catch(() => null);
+        modelSelectionAvailable = Boolean(brainsResponse?.ok && Array.isArray(brainsResult?.brains));
         selected = localStorage.getItem(SEL_KEY) ?? "";
         await refresh();
         phase = "ready";
@@ -88,10 +92,12 @@
     busy = true;
     error = "";
     try {
+      const payload: Record<string, string> = { name: capName.trim(), brain };
+      if (modelSelectionAvailable) payload.model = model.trim();
       const r = await fetch("/api/capsules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: capName.trim(), brain, model: model.trim() }),
+        body: JSON.stringify(payload),
       });
       if (r.ok) {
         capName = "";
@@ -197,7 +203,9 @@
               <span class="app-icon grid shrink-0 place-items-center" style="--g1:var(--color-cyan);--g2:var(--color-magenta);width:34px;height:34px;font-size:16px">⬡</span>
               <span class="min-w-0 flex-1">
                 <span class="block font-semibold">{c.name || c.id}</span>
-                <span class="mono block truncate text-xs dim">{c.id} · {c.status} · {tr("brain_label", lang)}: {c.brain ?? "claude-code"} · {tr("model_label", lang)}: {c.model || tr("model_default", lang)}</span>
+                <span class="mono block truncate text-xs dim">
+                  {c.id} · {c.status} · {tr("brain_label", lang)}: {c.brain ?? "claude-code"}{#if modelSelectionAvailable} · {tr("model_label", lang)}: {c.model || tr("model_default", lang)}{/if}
+                </span>
               </span>
               {#if selected === c.id}<span class="badge">{tr("current", lang)}</span>{/if}
             </button>
@@ -255,11 +263,13 @@
           <option value="codex">Codex</option>
         </select>
       </label>
-      <label class="block text-sm dim">
-        <span class="kicker !text-[10px]">{tr("model_label", lang)}</span>
-        <input class="field mt-2" bind:value={model} placeholder={tr("model_default", lang)} maxlength="128" autocomplete="off" />
-        <span class="mt-1 block text-xs dim">{tr("model_hint", lang)}</span>
-      </label>
+      {#if modelSelectionAvailable}
+        <label class="block text-sm dim">
+          <span class="kicker !text-[10px]">{tr("model_label", lang)}</span>
+          <input class="field mt-2" bind:value={model} placeholder={tr("model_default", lang)} maxlength="128" autocomplete="off" />
+          <span class="mt-1 block text-xs dim">{tr("model_hint", lang)}</span>
+        </label>
+      {/if}
       {#if error}<p class="text-sm" style="color:var(--color-magenta)">{error}</p>{/if}
       <button class="btn-primary w-full justify-center" disabled={busy || !capName.trim()} onclick={createCapsule}>{tr("capsule_submit", lang)}</button>
     </div>
