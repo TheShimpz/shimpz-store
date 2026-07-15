@@ -153,6 +153,7 @@
   let oauthErr = $state("");
   let configureBusy = $state(false);
   let configureErr = $state("");
+  let accountBrainsAvailable = $state(false);
 
   async function applyAccountBrain() {
     if (!selected || configureBusy) return;
@@ -259,7 +260,12 @@
       phase = "login";
       return;
     }
-    const r = await fetch("/api/capsules");
+    const [r, brainsResponse] = await Promise.all([
+      fetch("/api/capsules"),
+      fetch("/api/brains").catch(() => null),
+    ]);
+    const brainsResult = await brainsResponse?.json().catch(() => null);
+    accountBrainsAvailable = Boolean(brainsResponse?.ok && Array.isArray(brainsResult?.brains));
     capsules = r.ok ? ((await r.json()).capsules ?? []) : [];
     if (capsules.length === 0) {
       phase = "none";
@@ -402,15 +408,19 @@
         {#if brain && !brain.configured}
           <div class="notice notice-error mb-4 space-y-3 px-4 py-3 text-sm">
             <p>{tr("brain_wait", lang)}</p>
-            <div class="flex flex-wrap items-center gap-2">
-              <a class="btn-primary !py-2 text-sm" href={u.account(lang)}>{tr("brain_account_cta", lang)} →</a>
-              <button class="btn-ghost !py-2 text-sm" disabled={configureBusy} onclick={applyAccountBrain}>
-                {configureBusy ? "…" : tr("brain_apply", lang)}
-              </button>
-            </div>
-            {#if configureErr}<p class="text-xs" role="alert">{configureErr}</p>{/if}
+            {#if accountBrainsAvailable}
+              <div class="flex flex-wrap items-center gap-2">
+                <a class="btn-primary !py-2 text-sm" href={u.account(lang)}>{tr("brain_account_cta", lang)} →</a>
+                <button class="btn-ghost !py-2 text-sm" disabled={configureBusy} onclick={applyAccountBrain}>
+                  {configureBusy ? "…" : tr("brain_apply", lang)}
+                </button>
+              </div>
+              {#if configureErr}<p class="text-xs" role="alert">{configureErr}</p>{/if}
+            {/if}
             {#if brain.brain === "claude-code"}
-              <p class="text-xs dim">{tr("brain_interactive_or", lang)}</p>
+              {#if accountBrainsAvailable}
+                <p class="text-xs dim">{tr("brain_interactive_or", lang)}</p>
+              {/if}
               {#if oauthPhase === "idle" || oauthPhase === "err"}
                 {#if oauthPhase === "err"}
                   <p class="text-xs" role="alert">{tr("brain_code_err", lang)}{#if oauthErr}<span class="mono block mt-1 opacity-80">{oauthErr}</span>{/if}</p>

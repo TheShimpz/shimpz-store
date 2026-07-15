@@ -22,13 +22,21 @@
   let brainBusy = $state("");
   let brainMessage = $state<Record<string, string>>({});
   let brainMessageTone = $state<Record<string, "" | "error" | "success">>({});
+  let brainFeatureAvailable = $state(false);
 
   async function loadBrains() {
     const r = await fetch("/api/brains").catch(() => null);
-    if (!r?.ok) return false;
+    if (!r?.ok) {
+      brainFeatureAvailable = false;
+      return false;
+    }
     const result = await r.json().catch(() => null);
-    if (!result) return false;
-    brains = result.brains ?? [];
+    if (!Array.isArray(result?.brains)) {
+      brainFeatureAvailable = false;
+      return false;
+    }
+    brains = result.brains;
+    brainFeatureAvailable = true;
     return true;
   }
 
@@ -167,7 +175,7 @@
       </dl>
     </div>
 
-    <div class="panel mt-6">
+    <div class="panel mt-6" hidden={!brainFeatureAvailable}>
       <span class="kicker">{tr("account_brains", lang)}</span>
       <p class="mt-3 text-sm leading-relaxed dim">{tr("account_brains_lead", lang)}</p>
       <div class="mt-5 space-y-5">
