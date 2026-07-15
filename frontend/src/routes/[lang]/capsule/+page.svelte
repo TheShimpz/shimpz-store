@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
@@ -19,8 +19,14 @@
   let busy = $state(false);
 
   let createOpen = $state(false); // the "Create Capsule" modal (creation is no longer inline on the page)
+  let destroyTarget = $state<any>(null);
   let appsByCap = $state<Record<string, any[]>>({}); // installed apps per Capsule
   let openApps = $state(""); // which Capsule's Apps menu is expanded
+
+  let createTrigger = $state<HTMLButtonElement>();
+  let destroyDialog = $state<HTMLDialogElement>();
+  let destroyCancelButton = $state<HTMLButtonElement>();
+  let destroyReturnFocus: HTMLButtonElement | null = null;
 
   const SEL_KEY = "shimpz_current_capsule";
 
@@ -102,7 +108,6 @@
   }
 
   async function destroyCapsule(id: string) {
-    if (!confirm(tr("destroy_confirm", lang))) return;
     busy = true;
     error = "";
     try {
@@ -111,6 +116,37 @@
       await refresh();
     } finally {
       busy = false;
+    }
+  }
+
+  async function openDestroyDialog(capsule: any, trigger: HTMLButtonElement) {
+    if (busy) return;
+    destroyTarget = capsule;
+    destroyReturnFocus = trigger;
+    await tick();
+    if (destroyDialog && !destroyDialog.open) destroyDialog.showModal();
+    destroyCancelButton?.focus();
+  }
+
+  function closeDestroyDialog() {
+    if (busy) return;
+    if (destroyDialog?.open) destroyDialog.close();
+    const returnFocus = destroyReturnFocus;
+    destroyTarget = null;
+    destroyReturnFocus = null;
+    void tick().then(() => {
+      if (returnFocus?.isConnected) returnFocus.focus();
+      else createTrigger?.focus();
+    });
+  }
+
+  async function confirmDestroyCapsule() {
+    if (!destroyTarget || busy) return;
+    const id = destroyTarget.id;
+    try {
+      await destroyCapsule(id);
+    } finally {
+      closeDestroyDialog();
     }
   }
 
@@ -126,10 +162,10 @@
     }
   }
 
-  // lock the page scroll while the create modal is open
+  // lock the page scroll while either focused modal is open
   $effect(() => {
     if (typeof document === "undefined") return;
-    document.body.style.overflow = createOpen ? "hidden" : "";
+    document.body.style.overflow = createOpen || destroyTarget ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   });
 
@@ -148,7 +184,7 @@
     <!-- My Capsules — the page is the LIST; creation lives behind the button (a focused modal) -->
     <div class="flex flex-wrap items-center justify-between gap-4">
       <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">{tr("my_capsules", lang)}</h1>
-      <button class="btn-primary" onclick={() => { error = ""; createOpen = true; }}>+ {tr("capsule_submit", lang)}</button>
+      <button bind:this={createTrigger} class="btn-primary" onclick={() => { error = ""; createOpen = true; }}>+ {tr("capsule_submit", lang)}</button>
     </div>
     <div class="mt-3 text-sm dim">{capsules.length} {tr("my_capsules", lang)}</div>
     {#if error && !createOpen}<p class="mt-3 text-sm" style="color:var(--color-magenta)">{error}</p>{/if}
@@ -158,7 +194,7 @@
         <div class="card" class:ring={selected === c.id}>
           <div class="flex flex-wrap items-center gap-3">
             <button class="flex min-w-0 flex-1 items-center gap-4 text-left" onclick={() => select(c.id)}>
-              <span class="app-icon grid shrink-0 place-items-center" style="--g1:var(--color-cyan);--g2:var(--color-magenta);width:34px;height:34px;font-size:16px">◆</span>
+              <span class="app-icon grid shrink-0 place-items-center" style="--g1:var(--color-cyan);--g2:var(--color-magenta);width:34px;height:34px;font-size:16px">⬡</span>
               <span class="min-w-0 flex-1">
                 <span class="block font-semibold">{c.name || c.id}</span>
                 <span class="mono block truncate text-xs dim">{c.id} · {c.status} · {tr("brain_label", lang)}: {c.brain ?? "claude-code"} · {tr("model_label", lang)}: {c.model || tr("model_default", lang)}</span>
@@ -169,7 +205,10 @@
               {tr("apps_menu", lang)} <span class="opacity-70">{appsByCap[c.id]?.length ?? 0}</span> {openApps === c.id ? "▴" : "▾"}
             </button>
             <a class="btn-ghost !px-3 !py-1 text-xs" href={u.chat(lang)} onclick={() => select(c.id)}>{tr("nav_chat", lang)}</a>
-            <button class="btn-ghost !px-3 !py-1 text-xs" onclick={() => destroyCapsule(c.id)}>{tr("destroy", lang)}</button>
+            <button
+              class="btn-danger !px-3 !py-1 text-xs"
+              disabled={busy}
+              onclick={(event) => openDestroyDialog(c, event.currentTarget)}>{tr("destroy", lang)}</button>
           </div>
 
           {#if openApps === c.id}
@@ -198,8 +237,8 @@
 
 <!-- Create Capsule — a focused overlay, so the page itself stays a clean list -->
 {#if createOpen}
-  <div class="fixed inset-0 z-[70] flex items-center justify-center p-5" style="background:color-mix(in oklab, var(--color-bg) 88%, transparent)" role="dialog" aria-modal="true" aria-label={tr("capsule_submit", lang)} tabindex="-1">
-    <div class="panel w-full max-w-md space-y-4">
+  <div class="create-backdrop fixed inset-0 z-[70] flex items-center justify-center p-5" style="background:color-mix(in oklab, var(--color-bg) 88%, transparent)" role="dialog" aria-modal="true" aria-label={tr("capsule_submit", lang)} tabindex="-1">
+    <div class="panel create-panel w-full max-w-md space-y-4">
       <div class="flex items-center justify-between gap-4">
         <h2 class="mono text-lg font-extrabold uppercase tracking-wide">{tr("capsule_submit", lang)}</h2>
         <button class="btn-ghost !px-3 !py-1 text-xs" onclick={() => (createOpen = false)} aria-label={tr("close", lang)}>✕</button>
@@ -227,8 +266,105 @@
   </div>
 {/if}
 
+{#if destroyTarget}
+  <dialog
+    bind:this={destroyDialog}
+    class="destroy-dialog"
+    aria-labelledby="destroy-dialog-title"
+    aria-describedby="destroy-dialog-description"
+    oncancel={(event) => {
+      event.preventDefault();
+      closeDestroyDialog();
+    }}
+  >
+    <div class="panel destroy-panel">
+      <p class="kicker">{tr("my_capsules", lang)} // {tr("destroy", lang)}</p>
+      <h2 id="destroy-dialog-title">{tr("destroy", lang)} {destroyTarget.name || destroyTarget.id}?</h2>
+      <p id="destroy-dialog-description">{tr("destroy_confirm", lang)}</p>
+      <div class="destroy-actions">
+        <button bind:this={destroyCancelButton} class="btn-ghost" type="button" disabled={busy} onclick={closeDestroyDialog}>
+          {lang === "pt" ? "Cancelar" : "Cancel"}
+        </button>
+        <button class="btn-danger" type="button" disabled={busy} onclick={confirmDestroyCapsule}>
+          {busy ? tr("capsule_submitting", lang) : tr("destroy", lang)}
+        </button>
+      </div>
+    </div>
+  </dialog>
+{/if}
+
 <style>
   .ring {
     box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  .create-backdrop {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .create-panel {
+    max-height: calc(100dvh - 2.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .destroy-dialog {
+    width: min(calc(100% - 2rem), 32rem);
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+    background: transparent;
+    color: var(--color-fg);
+  }
+
+  .destroy-dialog::backdrop {
+    background: color-mix(in oklab, var(--color-bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .destroy-panel {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    padding: clamp(1.25rem, 4vw, 2rem);
+    overscroll-behavior: contain;
+  }
+
+  .destroy-panel .kicker { margin: 0 0 0.8rem; }
+
+  .destroy-panel h2 {
+    margin: 0;
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    line-height: 1.2;
+  }
+
+  .destroy-panel > p:last-of-type {
+    margin: 1rem 0 0;
+    color: var(--color-muted);
+    line-height: 1.65;
+  }
+
+  .destroy-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: 1.6rem;
+  }
+
+  @media (max-height: 560px) {
+    .create-backdrop {
+      align-items: flex-start;
+      padding-block: 0.75rem;
+    }
+
+    .create-panel { max-height: calc(100dvh - 1.5rem); }
+  }
+
+  @media (max-width: 420px) {
+    .destroy-actions { align-items: stretch; flex-direction: column-reverse; }
+    .destroy-actions button { width: 100%; }
   }
 </style>
