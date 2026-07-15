@@ -156,6 +156,29 @@
     .header-actions { grid-column: 2; grid-row: 1; }
   }
 
+  @media (max-width: 620px) {
+    .primary-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      overflow: visible;
+    }
+
+    .primary-nav > a {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: center;
+      padding-inline: 0.3rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .primary-nav > a::after {
+      right: 0.3rem;
+      left: 0.3rem;
+    }
+  }
+
   @media (max-width: 420px) {
     .topbar { column-gap: 0.5rem; }
     .locale a { min-width: 1.8rem; }

@@ -197,6 +197,15 @@
   }
 
   @media (max-width: 620px) {
+    .capsule-trigger {
+      width: 100%;
+      max-width: none;
+      grid-column: 1 / -1;
+      justify-content: center;
+      border-top: 1px solid var(--color-border);
+      border-left: 0;
+    }
+
     .capsule-grid { grid-template-columns: 1fr; }
   }
 </style>
