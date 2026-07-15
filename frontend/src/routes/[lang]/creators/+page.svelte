@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CREATORS, driversByCreator, type Locale } from "$lib/catalog";
+  import { CREATORS, servicesByCreator, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
@@ -35,7 +35,7 @@
             <div class="mono truncate text-xs" style="color:var(--color-primary)">@{c.handle}</div>
           </div>
         </div>
-        <p class="mt-4 text-xs dim">{driversByCreator(c.handle).length} drivers</p>
+        <p class="mt-4 text-xs dim">{servicesByCreator(c.handle).length} Services</p>
       </a>
     {/each}
   </div>

@@ -41,8 +41,8 @@
         <small>{tr("topology_boundary", lang)}</small>
       </div>
       <div class="apps">
-        <span>App 01</span>
-        <span>App 02</span>
+        <span>Assistant 01</span>
+        <span>Assistant 02</span>
         <span aria-hidden="true">+</span>
       </div>
       <p>{tr("topology_apps", lang)}</p>
@@ -53,8 +53,8 @@
         <small>{tr("topology_boundary", lang)}</small>
       </div>
       <div class="apps">
-        <span>App 01</span>
-        <span>App 02</span>
+        <span>Assistant 01</span>
+        <span>Assistant 02</span>
         <span aria-hidden="true">+</span>
       </div>
       <p>{tr("topology_apps", lang)}</p>

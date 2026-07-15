@@ -9,7 +9,7 @@
 </script>
 
 <div class="card relative flex flex-col">
-  <a href={u.driver(lang, driver)} class="absolute inset-0" aria-label={driver.name}></a>
+  <a href={u.service(lang, driver)} class="absolute inset-0" aria-label={driver.name}></a>
   <div class="flex items-start gap-4">
     <Icon glyph={driver.icon} id={driver.id} size={52} brand={driver.brand} />
     <div class="min-w-0 flex-1">

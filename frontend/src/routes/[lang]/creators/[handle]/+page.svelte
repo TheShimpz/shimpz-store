@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t, type Driver, type Creator, type Locale } from "$lib/catalog";
+  import { t, type Service, type Creator, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
@@ -9,7 +9,7 @@
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
   const cap = $derived(data.creator as Creator);
-  const drivers = $derived(data.drivers as Driver[]);
+  const services = $derived(data.services as Service[]);
 </script>
 
 <Seo title={`${cap.name} (@${cap.handle}) · Shimpz`} description={t(cap.bio, lang)} {lang} />
@@ -36,16 +36,16 @@
     {media}
     {meta} />
 
-  {#if drivers.length}
+  {#if services.length}
     <div class="mt-12">
-      <h2 class="kicker">{tr("created_drivers", lang)} <span class="ml-1 opacity-60">{drivers.length}</span></h2>
+      <h2 class="kicker">{tr("created_drivers", lang)} <span class="ml-1 opacity-60">{services.length}</span></h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {#each drivers as driver (driver.id)}<DriverCard {driver} {lang} />{/each}
+        {#each services as service (service.id)}<DriverCard driver={service} {lang} />{/each}
       </div>
     </div>
   {/if}
 
-  {#if !drivers.length}
+  {#if !services.length}
     <p class="mt-12 dim">{tr("creator_none", lang)}</p>
   {/if}
 </section>

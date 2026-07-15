@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { LOCALES, CREATORS, CREATOR_BY_HANDLE, driversByCreator, type Locale } from "$lib/catalog";
+import { LOCALES, CREATORS, CREATOR_BY_HANDLE, servicesByCreator, type Locale } from "$lib/catalog";
 
 export const prerender = true;
 
@@ -15,6 +15,6 @@ export function load({ params }: { params: { lang: string; handle: string } }) {
   return {
     lang: params.lang as Locale,
     creator: c,
-    drivers: driversByCreator(c.handle),
+    services: servicesByCreator(c.handle),
   };
 }

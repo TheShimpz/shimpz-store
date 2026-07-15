@@ -16,8 +16,11 @@
     <ShimpzBrand href={u.home(lang)} product="Space" ariaLabel="Shimpz home" />
 
     <nav class="primary-nav" aria-label={tr("nav_main", lang)}>
-      <a href={u.drivers(lang)} class:active={path.includes("/drivers")} aria-current={path.includes("/drivers") ? "page" : undefined}>
+      <a href={u.services(lang)} class:active={path.includes("/services")} aria-current={path.includes("/services") ? "page" : undefined}>
         {tr("nav_drivers", lang)}
+      </a>
+      <a href={u.assistants(lang)} class:active={path.includes("/assistants")} aria-current={path.includes("/assistants") ? "page" : undefined}>
+        {tr("nav_assistants", lang)}
       </a>
       <a href={u.creators(lang)} class:active={path.includes("/creators")} aria-current={path.includes("/creators") ? "page" : undefined}>
         {tr("nav_creators", lang)}
@@ -159,7 +162,7 @@
   @media (max-width: 620px) {
     .primary-nav {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       overflow: visible;
     }
 

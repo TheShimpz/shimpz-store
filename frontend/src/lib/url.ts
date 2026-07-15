@@ -1,10 +1,15 @@
 // Public URLs for the implemented product and platform-capability surfaces.
-import type { Driver, Locale } from "$lib/catalog";
+import type { Driver, Locale, Service } from "$lib/catalog";
 
 export const SITE = "https://shimpz.com";
 
 export const u = {
   home: (l: Locale) => `/${l}`,
+  services: (l: Locale) => `/${l}/services`,
+  service: (l: Locale, service: Service) => `/${l}/services/${service.id}`,
+  assistants: (l: Locale) => `/${l}/assistants`,
+  // Legacy public URLs retained for redirect compatibility while runtime contracts still use
+  // driver/app names internally.
   drivers: (l: Locale) => `/${l}/drivers`,
   driver: (l: Locale, d: Driver) => `/${l}/drivers/${d.id}`,
   capsule: (l: Locale) => `/${l}/capsule`,
