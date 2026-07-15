@@ -5,6 +5,7 @@
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
+  import ShimpzBrand from "$lib/components/ShimpzBrand.svelte";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
@@ -56,7 +57,9 @@
 <section class="wrap flex min-h-[calc(100dvh-15rem)] items-center justify-center py-12">
   <div class="w-full max-w-sm">
     <div class="mb-6 text-center">
-      <div class="app-icon mx-auto mb-4 grid size-12 place-items-center" style="--g1:var(--color-cyan);--g2:var(--color-magenta);font-size:22px">◆</div>
+      <div class="mb-6 flex justify-center">
+        <ShimpzBrand href={u.home(lang)} product="Space" />
+      </div>
       <h1 class="mono text-2xl font-extrabold tracking-tight">{tr(mode === "signup" ? "signup_welcome" : "login_welcome", lang)}</h1>
       <p class="mt-2 text-sm leading-relaxed dim">{tr(mode === "signup" ? "signup_lead" : "login_lead", lang)}</p>
     </div>

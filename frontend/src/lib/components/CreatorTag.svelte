@@ -5,7 +5,7 @@
   import { u } from "$lib/url";
 
   let { handle, lang }: { handle: string; lang: Locale } = $props();
-  const cap = CREATOR_BY_HANDLE.get(handle);
+  const cap = $derived(CREATOR_BY_HANDLE.get(handle));
 </script>
 
 {#if cap}

@@ -198,7 +198,7 @@
 
 <!-- Create Capsule — a focused overlay, so the page itself stays a clean list -->
 {#if createOpen}
-  <div class="fixed inset-0 z-[70] flex items-center justify-center p-5" style="background:color-mix(in oklab, var(--color-bg) 88%, transparent)" role="dialog" aria-modal="true" aria-label={tr("capsule_submit", lang)} onclick={(e) => { if (e.target === e.currentTarget) createOpen = false; }}>
+  <div class="fixed inset-0 z-[70] flex items-center justify-center p-5" style="background:color-mix(in oklab, var(--color-bg) 88%, transparent)" role="dialog" aria-modal="true" aria-label={tr("capsule_submit", lang)} tabindex="-1">
     <div class="panel w-full max-w-md space-y-4">
       <div class="flex items-center justify-between gap-4">
         <h2 class="mono text-lg font-extrabold uppercase tracking-wide">{tr("capsule_submit", lang)}</h2>

@@ -447,7 +447,7 @@
           aria-live="polite"
           aria-label={tr("chat_thread_label", lang)}
           aria-busy={busy}
-          tabindex="0"
+          tabindex="-1"
           class="panel h-[52vh] space-y-3 overflow-y-auto">
           {#each messages as m, i (i)}
             {#if m.role === "captain"}
