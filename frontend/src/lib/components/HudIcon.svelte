@@ -1,6 +1,7 @@
 <script lang="ts">
   export type HudIconName =
     | "add"
+    | "attach"
     | "assistants"
     | "brain"
     | "capsule"
@@ -10,8 +11,10 @@
     | "destroy"
     | "key"
     | "retry"
+    | "send"
     | "session"
     | "shield"
+    | "stop"
     | "uninstall"
     | "user";
 
@@ -45,6 +48,8 @@
     <path d="M5 4h9v16H5zM14 9h5v6h-5M10 12h9M16.5 9.5 19 12l-2.5 2.5" />
   {:else if name === "add"}
     <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M12 7v10M7 12h10" />
+  {:else if name === "attach"}
+    <path d="m8 12.5 6.7-6.7a3.2 3.2 0 0 1 4.5 4.5l-8.5 8.5a5 5 0 0 1-7.1-7.1l8-8" />
   {:else if name === "chevron"}
     <path d="m8 10 4 4 4-4" />
   {:else if name === "brain"}
@@ -65,6 +70,11 @@
     <path d="m4.5 12 4.7 4.7L19.5 6.5" />
   {:else if name === "retry"}
     <path d="M19 8V4l-2 2a8 8 0 1 0 2.2 8" />
+  {:else if name === "send"}
+    <path d="m3.5 4 17 8-17 8 3-8-3-8Z" />
+    <path d="M6.5 12h9" />
+  {:else if name === "stop"}
+    <path d="M6 6h12v12H6z" />
   {/if}
 </svg>
 

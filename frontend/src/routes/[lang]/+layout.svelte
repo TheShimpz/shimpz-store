@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import type { Locale } from "$lib/catalog";
   import SiteFooter from "$lib/components/SiteFooter.svelte";
@@ -6,8 +7,9 @@
 
   let { data, children } = $props();
   const lang = $derived(data.lang as Locale);
-  const path = $derived($page.url.pathname);
-  const embedded = $derived(/^\/(?:en|pt)\/assistants\/embed\/?$/.test(path));
+  const pathname = $derived($page.url.pathname);
+  const path = $derived(pathname + (browser ? $page.url.search : ""));
+  const embedded = $derived(/^\/(?:en|pt)\/assistants\/embed\/?$/.test(pathname));
 </script>
 
 {#if !embedded}<SiteHeader {lang} {path} />{/if}

@@ -4,6 +4,8 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import HudIcon from "$lib/components/HudIcon.svelte";
+  import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
   let { data } = $props();
@@ -160,10 +162,33 @@
   let configureBusy = $state(false);
   let configureErr = $state("");
   let accountBrainsAvailable = $state(false);
+  let brainChoice = $state("claude-code");
+  let brainModel = $state("claude-sonnet-5");
+  let loadedBrainChoice = $state("claude-code");
+  let loadedBrainModel = $state("claude-sonnet-5");
+  let brainSwapBusy = $state(false);
+  let brainSwapErr = $state("");
+  let brainSwapOk = $state("");
   let oauthAttempt = 0;
 
+  const brainHasChanges = $derived(
+    brainChoice !== loadedBrainChoice || brainModel.trim() !== loadedBrainModel,
+  );
+  const runtimeBusy = $derived(busy || brainSwapBusy);
+
+  function defaultBrainModel(provider: string) {
+    return provider === "claude-code" ? "claude-sonnet-5" : "";
+  }
+
+  function chooseBrain(event: Event) {
+    brainChoice = (event.currentTarget as HTMLSelectElement).value;
+    brainModel = defaultBrainModel(brainChoice);
+    brainSwapErr = "";
+    brainSwapOk = "";
+  }
+
   async function applyAccountBrain() {
-    if (!selected || configureBusy) return;
+    if (!selected || configureBusy || brainSwapBusy) return;
     configureBusy = true;
     configureErr = "";
     try {
@@ -181,7 +206,7 @@
   }
 
   async function startOauth() {
-    if (!selected || oauthPhase === "starting" || oauthPhase === "checking") return;
+    if (!selected || brainSwapBusy || oauthPhase === "starting" || oauthPhase === "checking") return;
     const cid = selected;
     const attempt = ++oauthAttempt;
     oauthPhase = "starting";
@@ -289,6 +314,11 @@
     if (selected !== cid) return;
     brain = b;
     crew = a.apps ?? [];
+    const capsule = capsules.find((item) => item.id === cid);
+    loadedBrainChoice = b?.brain ?? capsule?.brain ?? "claude-code";
+    loadedBrainModel = String(b?.model ?? capsule?.model ?? defaultBrainModel(loadedBrainChoice));
+    brainChoice = loadedBrainChoice;
+    brainModel = loadedBrainModel;
     connectWs(cid);
   }
 
@@ -299,6 +329,8 @@
     oauthCode = "";
     oauthErr = "";
     configureErr = "";
+    brainSwapErr = "";
+    brainSwapOk = "";
     const previous = ws;
     ws = null;
     previous?.close();
@@ -310,13 +342,59 @@
   }
 
   async function changeCapsule(next: string, updateUrl = true) {
-    if (!capsules.some((capsule) => capsule.id === next) || next === selected) return;
+    if (brainSwapBusy || !capsules.some((capsule) => capsule.id === next) || next === selected) return;
     resetCapsuleSession();
     selected = next;
     if (updateUrl) {
       await goto(u.chat(lang, next), { keepFocus: true, noScroll: true });
     }
     await loadCapsuleContext();
+  }
+
+  async function swapBrain() {
+    if (!selected || !brainHasChanges || brainSwapBusy || busy) return;
+    const cid = selected;
+    const capsule = capsules.find((item) => item.id === cid);
+    if (!capsule) return;
+    const capsuleName = String(capsule.name ?? "").trim();
+    if (!capsuleName) {
+      brainSwapErr = tr("brain_switch_failed", lang);
+      return;
+    }
+    const targetBrain = brainChoice;
+    const targetModel = brainModel.trim();
+    brainSwapBusy = true;
+    brainSwapErr = "";
+    brainSwapOk = "";
+    const payload: Record<string, string> = {
+      name: capsuleName,
+      brain: targetBrain,
+      model: targetModel,
+    };
+    try {
+      const response = await fetch("/api/capsules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        brainSwapErr = result?.detail ?? result?.error ?? tr("brain_switch_failed", lang);
+        return;
+      }
+      if (selected !== cid) return;
+      resetCapsuleSession();
+      capsules = capsules.map((item) =>
+        item.id === cid ? { ...item, brain: targetBrain, model: targetModel } : item,
+      );
+      await loadCapsuleContext();
+      brainSwapOk = tr("brain_switch_ok", lang);
+    } catch {
+      brainSwapErr = tr("brain_switch_failed", lang);
+    } finally {
+      brainSwapBusy = false;
+      syncCapsuleFromUrl();
+    }
   }
 
   function syncCapsuleFromUrl() {
@@ -359,7 +437,7 @@
 
   async function send() {
     const text = draft.trim();
-    if (!text || busy || !selected || !brain?.configured) return;
+    if (!text || runtimeBusy || !selected || !brain?.configured) return;
     draft = "";
     busy = true;
     status = tr("chat_thinking", lang);
@@ -395,7 +473,7 @@
 
   async function upload(ev: Event) {
     const file = (ev.target as HTMLInputElement).files?.[0];
-    if (!file || !selected || uploading || !brain?.configured) return;
+    if (!file || !selected || uploading || brainSwapBusy || !brain?.configured) return;
     uploading = true;
     try {
       const form = new FormData();
@@ -434,116 +512,186 @@
 
 <Seo title={tr("chat_title", lang)} description={tr("chat_lead", lang)} {lang} />
 
-<section class="wrap pt-10 pb-16">
-  <h1 class="text-3xl font-extrabold tracking-tight">{tr("nav_chat", lang)}</h1>
-  <p class="mt-2 text-sm dim">{tr("chat_lead", lang)}</p>
+<section class="wrap chat-page">
+  {#snippet chatMedia()}
+    <div class="chat-hero-icon"><HudIcon name="chat" size={40} /></div>
+  {/snippet}
+
+  {#snippet chatMeta()}
+    {#if phase === "ready"}
+      <span class="connection-chip" class:online={wsReady}>
+        <i aria-hidden="true"></i>
+        {wsReady ? tr("chat_connection_live", lang) : tr("chat_connection_offline", lang)}
+      </span>
+      <span class="badge">{crew.length} {tr("apps_menu", lang)}</span>
+    {/if}
+  {/snippet}
+
+  <PageIntro
+    headingId="chat-title"
+    kicker={tr("chat_kicker", lang)}
+    title={capsules.find((capsule) => capsule.id === selected)?.name || tr("nav_chat", lang)}
+    description={tr("chat_lead", lang)}
+    media={chatMedia}
+    meta={chatMeta}
+  />
 
   {#if phase === "checking"}
-    <p class="mt-8 dim">…</p>
+    <div class="panel page-state" aria-live="polite"><span class="loading-pulse" aria-hidden="true"></span><p>{tr("loading", lang)}</p></div>
   {:else if phase === "login"}
-    <p class="mt-8"><a class="btn-primary" href={u.capsule(lang)}>{tr("chat_login", lang)}</a></p>
+    <div class="panel page-state"><HudIcon name="user" size={28} /><p>{tr("chat_login", lang)}</p><a class="btn-primary" href={u.login(lang)}>{tr("log_in", lang)}</a></div>
   {:else if phase === "none"}
-    <p class="mt-8"><a class="btn-primary" href={u.capsule(lang)}>{tr("chat_no_capsule", lang)}</a></p>
+    <div class="panel page-state"><HudIcon name="capsule" size={30} /><p>{tr("chat_no_capsule", lang)}</p><a class="btn-primary" href={u.capsule(lang)}>{tr("capsule_submit", lang)}</a></div>
   {:else}
-    <div class="mt-6 flex flex-col gap-6 lg:flex-row">
-      <aside class="order-2 lg:order-none lg:w-64 lg:shrink-0">
-        <div class="space-y-4 lg:sticky lg:top-32">
-          <div class="panel">
-            <span class="kicker">{tr("my_capsules", lang)}</span>
+    <div class="chat-workspace">
+      <aside class="control-rail" aria-label={tr("chat_capsule_title", lang)}>
+        <section class="panel control-card" aria-labelledby="capsule-context-title">
+          <header class="control-heading">
+            <span class="control-icon" aria-hidden="true"><HudIcon name="capsule" size={21} /></span>
+            <div><p class="kicker">Capsule</p><h2 id="capsule-context-title">{tr("chat_capsule_title", lang)}</h2></div>
+          </header>
+          <p class="control-help">{tr("chat_capsule_help", lang)}</p>
+          <label class="field-stack">
+            <span>{tr("my_capsules", lang)}</span>
             <select
-              class="field field-sm mt-2"
+              class="field field-sm"
               aria-label={tr("my_capsules", lang)}
               value={selected}
+              disabled={runtimeBusy}
               onchange={(event) => changeCapsule((event.currentTarget as HTMLSelectElement).value)}>
               {#each capsules as c (c.id)}<option value={c.id}>{c.name || c.id}</option>{/each}
             </select>
+          </label>
+          <code class="capsule-id">{selected}</code>
+        </section>
+
+        <section class="panel control-card brain-control" aria-labelledby="brain-control-title" aria-busy={brainSwapBusy}>
+          <header class="control-heading">
+            <span class="control-icon brain-icon" aria-hidden="true"><HudIcon name="brain" size={21} /></span>
+            <div><p class="kicker">Runtime</p><h2 id="brain-control-title">{tr("chat_brain_title", lang)}</h2></div>
             {#if brain}
-              <p class="mt-3 flex items-center gap-2 text-xs dim">
-                <span class="kicker !text-[10px]">{tr("brain_label", lang)}</span>
-                <span>{brain.title}</span>
-                <span
-                  class="ml-auto size-2 rounded-full"
-                  style="background:{brain.authenticated ? 'var(--color-primary)' : 'var(--color-magenta)'}"
-                  role="img"
-                  aria-label={brain.authenticated ? tr("brain_authenticated_verified", lang) : brain.configured ? tr("brain_verification_pending", lang) : tr("brain_not_configured", lang)}
-                  title={brain.authenticated ? tr("brain_authenticated_verified", lang) : brain.configured ? tr("brain_verification_pending", lang) : tr("brain_not_configured", lang)}></span>
-              </p>
+              <span class="brain-state" class:ready={brain.authenticated} class:pending={brain.configured && !brain.authenticated}>
+                <i aria-hidden="true"></i>
+                {brain.authenticated ? tr("brain_authenticated_verified", lang) : brain.configured ? tr("brain_verification_pending", lang) : tr("brain_not_configured", lang)}
+              </span>
             {/if}
-          </div>
-          <div class="panel">
-            <span class="kicker">{tr("crew_title", lang)}</span>
-            <div class="mt-2 space-y-1.5">
-              {#each crew as a (a.app)}
-                <p class="mono flex items-center gap-2 text-xs"><span style="color:var(--color-primary)">▸</span><span class="truncate">{a.app}</span><span class="ml-auto dim">{a.status}</span></p>
-              {/each}
-              {#if crew.length === 0}<p class="text-xs dim">{tr("crew_empty", lang)}</p>{/if}
+          </header>
+          <p class="control-help">{tr("chat_brain_help", lang)}</p>
+
+          {#if brain}
+            <div class="brain-editor">
+              <label class="field-stack">
+                <span>{tr("brain_provider", lang)}</span>
+                <select class="field field-sm" value={brainChoice} disabled={runtimeBusy || configureBusy} onchange={chooseBrain}>
+                  <option value="claude-code">Claude Code</option>
+                  <option value="codex">Codex</option>
+                </select>
+              </label>
+              <label class="field-stack">
+                <span>{tr("model_label", lang)}</span>
+                <input class="field field-sm" bind:value={brainModel} maxlength="128" autocomplete="off" disabled={runtimeBusy || configureBusy} placeholder={tr("model_default", lang)} />
+              </label>
+              <button class="btn-primary brain-switch" type="button" disabled={!brainHasChanges || runtimeBusy || configureBusy} onclick={swapBrain}>
+                <HudIcon name="retry" size={16} />
+                {brainSwapBusy ? tr("brain_switching", lang) : tr("brain_switch", lang)}
+              </button>
+              <p class="brain-hint"><HudIcon name="shield" size={15} />{tr("brain_switch_hint", lang)}</p>
+              {#if brainSwapErr}<p class="notice notice-error compact-notice" role="alert">{brainSwapErr}</p>{/if}
+              {#if brainSwapOk}<p class="notice notice-success compact-notice" role="status">{brainSwapOk}</p>{/if}
             </div>
-          </div>
-        </div>
+
+            <div class="brain-access">
+              <div class="access-heading"><HudIcon name="key" size={16} /><span>{tr("brain_auth_type", lang)}</span></div>
+              {#if brain.configured}
+                {#if brain.authenticated}
+                  <p class="access-state success"><HudIcon name="check" size={16} />{tr("brain_authenticated_verified", lang)}</p>
+                {:else}
+                  <p class="notice compact-notice">{tr("brain_verification_pending", lang)}</p>
+                {/if}
+              {:else}
+                <p class="access-copy">{tr("brain_wait", lang)}</p>
+                <div class="access-actions">
+                  <a class="btn-primary" href={u.account(lang)}>{tr("brain_account_cta", lang)}</a>
+                  {#if accountBrainsAvailable}
+                    <button class="btn-ghost" type="button" disabled={configureBusy || brainSwapBusy} onclick={applyAccountBrain}>
+                      {configureBusy ? "…" : tr("brain_apply", lang)}
+                    </button>
+                  {/if}
+                </div>
+                {#if configureErr}<p class="notice notice-error compact-notice" role="alert">{configureErr}</p>{/if}
+
+                {#if brain.brain === "claude-code"}
+                  <p class="oauth-divider">{tr("brain_interactive_or", lang)}</p>
+                  {#if oauthPhase === "idle" || oauthPhase === "err"}
+                    {#if oauthPhase === "err"}<p class="notice notice-error compact-notice" role="alert">{oauthErr || tr("brain_code_err", lang)}</p>{/if}
+                    <button class="btn-ghost oauth-start" type="button" disabled={brainSwapBusy} onclick={startOauth}>{tr("brain_configure", lang)}</button>
+                  {:else if oauthPhase === "starting"}
+                    <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("brain_starting", lang)}</p>
+                  {:else if oauthPhase === "url"}
+                    <div class="oauth-flow">
+                      <a class="btn-primary" href={oauthUrl} target="_blank" rel="noopener noreferrer">{tr("brain_open_url", lang)} ↗</a>
+                      <input class="field field-sm" placeholder={tr("brain_paste_code", lang)} bind:value={oauthCode} onkeydown={(event) => event.key === "Enter" && !event.isComposing && submitOauthCode()} />
+                      <button class="btn-ghost" type="button" disabled={!oauthCode.trim()} onclick={submitOauthCode}>{tr("brain_submit_code", lang)}</button>
+                    </div>
+                  {:else if oauthPhase === "checking"}
+                    <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("brain_starting", lang)}</p>
+                  {/if}
+                {/if}
+              {/if}
+              {#if oauthPhase === "done" && brain.authenticated}<p class="notice notice-success compact-notice" role="status">{tr("brain_ok", lang)}</p>{/if}
+            </div>
+          {:else}
+            <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("loading", lang)}</p>
+          {/if}
+        </section>
+
+        <section class="panel control-card" aria-labelledby="assistants-context-title">
+          <header class="control-heading">
+            <span class="control-icon assistant-icon" aria-hidden="true"><HudIcon name="assistants" size={21} /></span>
+            <div><p class="kicker">Capsule</p><h2 id="assistants-context-title">{tr("crew_title", lang)}</h2></div>
+            <span class="assistant-count">{crew.length}</span>
+          </header>
+          <p class="control-help">{tr("chat_assistants_help", lang)}</p>
+          {#if crew.length}
+            <ul class="crew-list">
+              {#each crew as assistant (assistant.app)}
+                <li><HudIcon name="assistants" size={16} /><span>{assistant.app}</span><small>{assistant.status}</small></li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="empty-crew">{tr("crew_empty", lang)}</p>
+          {/if}
+        </section>
       </aside>
 
-      <div class="order-1 flex min-w-0 flex-1 flex-col lg:order-none">
-        {#if brain && !brain.configured}
-          <div class="notice notice-error mb-4 space-y-3 px-4 py-3 text-sm">
-            <p>{tr("brain_wait", lang)}</p>
-            {#if accountBrainsAvailable}
-              <div class="flex flex-wrap items-center gap-2">
-                <a class="btn-primary !py-2 text-sm" href={u.account(lang)}>{tr("brain_account_cta", lang)} →</a>
-                <button class="btn-ghost !py-2 text-sm" disabled={configureBusy} onclick={applyAccountBrain}>
-                  {configureBusy ? "…" : tr("brain_apply", lang)}
-                </button>
-              </div>
-              {#if configureErr}<p class="text-xs" role="alert">{configureErr}</p>{/if}
-            {/if}
-            {#if brain.brain === "claude-code"}
-              {#if accountBrainsAvailable}
-                <p class="text-xs dim">{tr("brain_interactive_or", lang)}</p>
-              {/if}
-              {#if oauthPhase === "idle" || oauthPhase === "err"}
-                {#if oauthPhase === "err"}
-                  <p class="text-xs" role="alert">{oauthErr || tr("brain_code_err", lang)}</p>
-                {/if}
-                <button class="btn-ghost !py-2 text-sm" onclick={startOauth}>{tr("brain_configure", lang)}</button>
-              {:else if oauthPhase === "starting"}
-                <p class="text-xs dim">{tr("brain_starting", lang)}</p>
-              {:else if oauthPhase === "url"}
-                <div class="flex flex-wrap items-center gap-2">
-                  <a class="btn-primary !py-2 text-sm" href={oauthUrl} target="_blank" rel="noopener">{tr("brain_open_url", lang)} ↗</a>
-                  <input class="field field-sm min-w-48 flex-1" placeholder={tr("brain_paste_code", lang)} bind:value={oauthCode} onkeydown={(e) => e.key === "Enter" && submitOauthCode()} />
-                  <button class="btn-ghost !py-2 text-sm" disabled={!oauthCode.trim()} onclick={submitOauthCode}>{tr("brain_submit_code", lang)}</button>
-                </div>
-              {:else if oauthPhase === "checking"}
-                <p class="text-xs dim">…</p>
-              {/if}
-            {/if}
+      <main class="conversation-shell" aria-labelledby="conversation-title">
+        <header class="conversation-header">
+          <span class="conversation-avatar" aria-hidden="true"><HudIcon name="brain" size={24} /></span>
+          <div>
+            <p class="kicker">{tr("chat_conversation", lang)}</p>
+            <h2 id="conversation-title">{brain?.title || tr("brain_label", lang)}</h2>
           </div>
-        {/if}
-        {#if brain?.configured && !brain.authenticated}
-          <div class="notice mb-4 px-4 py-3 text-sm dim">
-            {tr("brain_verification_pending", lang)}
-          </div>
-        {/if}
-        {#if oauthPhase === "done" && brain?.authenticated}
-          <div class="notice notice-success mb-4 px-4 py-3 text-sm" role="status">
-            {tr("brain_ok", lang)}
-          </div>
-        {/if}
+          <span class="conversation-status" class:online={wsReady && brain?.configured}>
+            <i aria-hidden="true"></i>{brain?.configured ? tr("chat_ready", lang) : tr("chat_setup_required", lang)}
+          </span>
+        </header>
         <div
           bind:this={thread}
           onscroll={onThreadScroll}
           role="log"
           aria-live="polite"
+          aria-relevant="additions"
           aria-label={tr("chat_thread_label", lang)}
-          aria-busy={busy}
+          aria-busy={runtimeBusy}
           tabindex="-1"
-          class="panel h-[52vh] space-y-3 overflow-y-auto">
+          class="conversation-thread">
           {#each messages as m, i (i)}
             {#if m.role === "captain"}
-              <div class="bubble ml-auto max-w-[85%] px-4 py-2.5 text-sm" style="background:color-mix(in oklab, var(--color-primary) 16%, var(--color-elevated))">{m.text}</div>
+              <div class="message captain-message">{m.text}</div>
             {:else if m.role === "brain"}
-              <div class="md bubble-in max-w-[85%] bg-[var(--color-elevated)] px-4 py-2.5 text-sm" class:caret={m.streaming} class:whitespace-pre-wrap={m.streaming}>{@html m.streaming ? escapeHtml(m.text) : renderMd(m.text || "")}</div>
+              <div class="md message brain-message" class:caret={m.streaming} class:whitespace-pre-wrap={m.streaming}>{@html m.streaming ? escapeHtml(m.text) : renderMd(m.text || "")}</div>
             {:else if m.role === "ask"}
-              <div class="bubble-in max-w-[85%] space-y-2 px-4 py-3 text-sm" style="box-shadow:inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 45%, var(--color-border));background:var(--color-elevated)" class:opacity-60={m.answered}>
+              <div class="message ask-message" class:opacity-60={m.answered}>
                 <p class="whitespace-pre-wrap"><span style="color:var(--color-primary)">?</span> {m.text}</p>
                 {#if !m.answered}
                   <div class="flex flex-wrap gap-2">
@@ -559,7 +707,7 @@
                     {/each}
                   </div>
                   <div class="flex gap-2">
-                    <input class="field field-sm min-h-11 min-w-0 flex-1 !text-xs" placeholder={tr("ask_custom", lang)} bind:value={m.custom} onkeydown={(e) => e.key === "Enter" && answerAsk(m, m.custom)} />
+                    <input class="field field-sm min-h-11 min-w-0 flex-1 !text-xs" placeholder={tr("ask_custom", lang)} bind:value={m.custom} onkeydown={(event) => event.key === "Enter" && !event.isComposing && answerAsk(m, m.custom)} />
                     <button class="btn-ghost min-h-11 !px-3 !py-1.5 text-xs" disabled={!m.custom?.trim()} onclick={() => answerAsk(m, m.custom)}>{tr("chat_send", lang)}</button>
                   </div>
                 {:else}
@@ -577,34 +725,410 @@
               >{m.text}</p>
             {/if}
           {/each}
-          {#if busy && status}<p class="text-xs dim">{status}</p>{/if}
-          {#if messages.length === 0 && !busy}<p class="text-sm dim">{tr("chat_empty", lang)}</p>{/if}
+          {#if busy && status}<p class="turn-status"><span class="loading-pulse" aria-hidden="true"></span>{status}</p>{/if}
+          {#if messages.length === 0 && !busy}<div class="conversation-empty"><HudIcon name="chat" size={30} /><p>{tr("chat_empty", lang)}</p></div>{/if}
         </div>
-        <div class="mt-3 flex items-end gap-2">
+        <div class="composer">
           <input bind:this={fileInput} type="file" class="hidden" onchange={upload} />
-          <button class="btn-ghost min-h-11 min-w-11 !px-3" title={tr("chat_attach", lang)} aria-label={tr("chat_attach", lang)} disabled={uploading || !brain?.configured} onclick={() => fileInput?.click()}>
+          <button class="btn-ghost composer-icon" type="button" title={tr("chat_attach", lang)} aria-label={tr("chat_attach", lang)} disabled={uploading || runtimeBusy || !brain?.configured} onclick={() => fileInput?.click()}>
             {#if uploading}
               …
             {:else}
-              <svg class="size-4" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter">
-                <path d="m8 12.5 6.7-6.7a3.2 3.2 0 0 1 4.5 4.5l-8.5 8.5a5 5 0 0 1-7.1-7.1l8-8" />
-              </svg>
+              <HudIcon name="attach" size={18} />
             {/if}
           </button>
           <textarea
-            class="field field-area max-h-40 flex-1"
+            class="field field-area composer-input"
             placeholder={tr("chat_placeholder", lang)}
             aria-label={tr("chat_placeholder", lang)}
-            disabled={!brain?.configured}
+            rows="2"
+            disabled={runtimeBusy || !brain?.configured}
             bind:value={draft}
-            onkeydown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}></textarea>
+            onkeydown={(event) => event.key === "Enter" && !event.shiftKey && !event.isComposing && (event.preventDefault(), send())}></textarea>
           {#if busy}
-            <button class="btn-danger !px-4" onclick={stopTurn}>■ {tr("chat_stop", lang)}</button>
+            <button class="btn-danger composer-action" type="button" onclick={stopTurn}><HudIcon name="stop" size={17} />{tr("chat_stop", lang)}</button>
           {:else}
-            <button class="btn-primary" disabled={!draft.trim() || !brain?.configured} onclick={send}>{tr("chat_send", lang)}</button>
+            <button class="btn-primary composer-action" type="button" disabled={!draft.trim() || runtimeBusy || !brain?.configured} onclick={send}><HudIcon name="send" size={17} />{tr("chat_send", lang)}</button>
           {/if}
         </div>
-      </div>
+      </main>
     </div>
   {/if}
 </section>
+
+<style>
+  .chat-page { padding-block: 2.5rem 4rem; }
+
+  .chat-hero-icon {
+    display: grid;
+    width: 4.5rem;
+    height: 4.5rem;
+    place-items: center;
+    color: var(--color-cyan);
+    background: color-mix(in oklab, var(--color-cyan) 7%, #000);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 46%, var(--color-border));
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+
+  .connection-chip,
+  .conversation-status,
+  .brain-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .connection-chip i,
+  .conversation-status i,
+  .brain-state i {
+    width: 0.45rem;
+    height: 0.45rem;
+    flex: none;
+    background: var(--color-muted-2);
+    box-shadow: 0 0 0 1px #000;
+  }
+
+  .connection-chip.online,
+  .conversation-status.online,
+  .brain-state.ready { color: var(--color-green); }
+
+  .connection-chip.online i,
+  .conversation-status.online i,
+  .brain-state.ready i {
+    background: var(--color-green);
+    box-shadow: 0 0 8px color-mix(in oklab, var(--color-green) 64%, transparent);
+  }
+
+  .brain-state.pending { color: var(--color-yellow); }
+  .brain-state.pending i { background: var(--color-yellow); }
+
+  .page-state {
+    display: flex;
+    min-height: 14rem;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  .page-state > :global(svg) { color: var(--color-cyan); }
+  .page-state p { max-width: 34rem; }
+
+  .loading-pulse {
+    width: 0.55rem;
+    height: 0.55rem;
+    flex: none;
+    background: var(--color-cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+    animation: pulse 1.2s steps(2, end) infinite;
+  }
+
+  .chat-workspace {
+    display: grid;
+    grid-template-columns: minmax(17.5rem, 20rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .control-rail {
+    position: sticky;
+    top: 7rem;
+    display: grid;
+    max-height: calc(100vh - 8rem);
+    gap: 0.8rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  .control-card { padding: 1rem; }
+  .control-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: color-mix(in oklab, var(--color-cyan) 48%, transparent);
+  }
+
+  .control-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .control-icon,
+  .conversation-avatar {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: none;
+    place-items: center;
+    color: var(--color-cyan);
+    background: #000;
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  }
+
+  .brain-icon { color: var(--color-magenta); }
+  .assistant-icon { color: var(--color-yellow); }
+
+  .control-heading .kicker,
+  .conversation-header .kicker { margin: 0 0 0.08rem; font-size: 0.55rem; }
+
+  .control-heading h2,
+  .conversation-header h2 {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  .control-help {
+    margin: 0.85rem 0;
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    line-height: 1.55;
+  }
+
+  .field-stack { display: grid; gap: 0.35rem; }
+  .field-stack > span,
+  .access-heading {
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 0.61rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .capsule-id {
+    display: block;
+    max-width: 100%;
+    margin-top: 0.65rem;
+    overflow: hidden;
+    color: var(--color-muted-2);
+    font-size: 0.58rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brain-state { justify-self: end; font-size: 0.54rem; text-align: right; }
+  .brain-editor,
+  .brain-access { display: grid; gap: 0.65rem; }
+  .brain-editor { padding-top: 0.1rem; }
+  .brain-access { margin-top: 0.9rem; border-top: 1px solid var(--color-border); padding-top: 0.85rem; }
+  .brain-switch { width: 100%; min-height: 2.55rem; padding: 0.55rem 0.8rem; font-size: 0.68rem; }
+
+  .brain-hint,
+  .access-copy,
+  .oauth-progress,
+  .empty-crew {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  .brain-hint,
+  .oauth-progress,
+  .access-heading,
+  .access-state { display: flex; align-items: flex-start; gap: 0.45rem; }
+  .brain-hint { color: var(--color-muted-2); }
+  .brain-hint > :global(svg) { margin-top: 0.12rem; color: var(--color-cyan); }
+  .compact-notice { margin: 0; padding: 0.65rem 0.75rem; font-size: 0.68rem; line-height: 1.45; }
+  .access-heading { align-items: center; color: var(--color-fg); }
+  .access-heading > :global(svg) { color: var(--color-cyan); }
+  .access-state { margin: 0; color: var(--color-muted); font-size: 0.72rem; }
+  .access-state.success { color: var(--color-green); }
+  .access-actions,
+  .oauth-flow { display: grid; gap: 0.5rem; }
+  .access-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-actions > :global(*) { min-width: 0; padding-inline: 0.65rem; font-size: 0.62rem; }
+  .oauth-divider { margin: 0.1rem 0; color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.59rem; text-align: center; text-transform: uppercase; }
+  .oauth-start { width: 100%; padding-inline: 0.7rem; font-size: 0.64rem; }
+  .oauth-progress { align-items: center; }
+
+  .assistant-count {
+    min-width: 1.8rem;
+    padding: 0.15rem 0.4rem;
+    color: var(--color-yellow);
+    background: color-mix(in oklab, var(--color-yellow) 7%, #000);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-yellow) 35%, var(--color-border));
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    text-align: center;
+  }
+
+  .crew-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .crew-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    border-top: 1px solid var(--color-border);
+    padding: 0.55rem 0;
+    color: var(--color-fg);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+  .crew-list li > :global(svg) { color: var(--color-yellow); }
+  .crew-list small { color: var(--color-muted-2); font-size: 0.56rem; text-transform: uppercase; }
+
+  .conversation-shell {
+    display: flex;
+    min-width: 0;
+    min-height: 42rem;
+    flex-direction: column;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--color-card-2), #020202);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+
+  .conversation-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.9rem 1rem;
+    background: #050505;
+  }
+
+  .conversation-avatar { width: 2.75rem; height: 2.75rem; color: var(--color-magenta); }
+  .conversation-status { justify-self: end; }
+
+  .conversation-thread {
+    display: flex;
+    height: clamp(31rem, 62vh, 48rem);
+    min-height: 28rem;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.85rem;
+    overflow-y: auto;
+    padding: 1.2rem;
+    background-image:
+      linear-gradient(rgba(0, 240, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.018) 1px, transparent 1px);
+    background-size: 32px 32px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+    outline: none;
+  }
+
+  .message {
+    width: fit-content;
+    max-width: min(86%, 46rem);
+    padding: 0.8rem 0.95rem;
+    font-size: 0.86rem;
+    line-height: 1.58;
+    overflow-wrap: anywhere;
+  }
+
+  .captain-message {
+    align-self: flex-end;
+    color: #dffcff;
+    background: color-mix(in oklab, var(--color-cyan) 11%, #050505);
+    box-shadow: inset 2px 0 0 var(--color-cyan), inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 26%, var(--color-border));
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+
+  .brain-message,
+  .ask-message {
+    align-self: flex-start;
+    background: var(--color-elevated);
+    box-shadow: inset 2px 0 0 var(--color-magenta), inset 0 0 0 1px var(--color-border-strong);
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  }
+
+  .ask-message { display: grid; gap: 0.7rem; border-left-color: var(--color-yellow); box-shadow: inset 2px 0 0 var(--color-yellow), inset 0 0 0 1px var(--color-border-strong); }
+  .ask-message p { margin: 0; }
+
+  .conversation-empty {
+    display: grid;
+    max-width: 25rem;
+    place-items: center;
+    gap: 0.75rem;
+    margin: auto;
+    color: var(--color-muted);
+    text-align: center;
+  }
+  .conversation-empty > :global(svg) { color: var(--color-cyan); opacity: 0.7; }
+  .conversation-empty p { margin: 0; }
+
+  .turn-status {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    color: var(--color-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .composer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.65rem;
+    border-top: 1px solid var(--color-border);
+    padding: 0.85rem;
+    background: #050505;
+  }
+
+  .composer-input { max-height: 12rem; min-height: 3rem; resize: vertical; line-height: 1.45; }
+  .composer-icon { width: 2.9rem; min-height: 3rem; padding: 0; }
+  .composer-action { min-height: 3rem; padding-inline: 1rem; font-size: 0.7rem; }
+
+  @keyframes pulse { 50% { opacity: 0.35; } }
+
+  @media (max-width: 1050px) {
+    .chat-workspace { grid-template-columns: 1fr; }
+    .control-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; }
+    .brain-control { grid-row: span 2; }
+  }
+
+  @media (max-width: 720px) {
+    .control-rail { grid-template-columns: 1fr; }
+    .brain-control { grid-row: auto; }
+    .conversation-header { grid-template-columns: auto minmax(0, 1fr); }
+    .conversation-status { grid-column: 2; justify-self: start; }
+    .message { max-width: 94%; }
+  }
+
+  @media (max-width: 520px) {
+    .chat-page { padding-top: 1.5rem; }
+    .page-state { flex-direction: column; }
+    .control-heading { grid-template-columns: auto minmax(0, 1fr); }
+    .brain-state { grid-column: 2; justify-self: start; text-align: left; }
+    .access-actions { grid-template-columns: 1fr; }
+    .conversation-thread { height: min(58vh, 36rem); min-height: 24rem; padding: 0.8rem; }
+    .composer { grid-template-columns: minmax(0, 1fr) auto; }
+    .composer-input { grid-column: 1 / -1; grid-row: 1; }
+    .composer-icon { grid-column: 1; justify-self: start; }
+    .composer-action { grid-column: 2; }
+  }
+
+  @media (forced-colors: active) {
+    .chat-hero-icon,
+    .control-icon,
+    .conversation-avatar,
+    .conversation-shell,
+    .control-card,
+    .message { border: 1px solid CanvasText; }
+    .loading-pulse,
+    .connection-chip i,
+    .conversation-status i,
+    .brain-state i { background: CanvasText; }
+  }
+</style>
