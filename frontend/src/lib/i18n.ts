@@ -144,17 +144,17 @@ const D: Dict = {
   account_session: { en: "Session", pt: "Sessão" },
   account_brains: { en: "Account Brains", pt: "Cérebros da conta" },
   account_brains_lead: {
-    en: "Store one encrypted credential per provider. It is decrypted only while being written into your Capsule's private config volume.",
-    pt: "Guarde uma credencial cifrada por provedor. Ela só é decifrada enquanto é gravada no volume privado de configuração da sua Cápsula.",
+    en: "Seal an API key account-wide, or sign one Capsule in directly with its provider.",
+    pt: "Proteja uma chave de API na conta ou conecte uma Cápsula diretamente ao provedor.",
   },
   brain_wizard_title: { en: "Connect a Brain", pt: "Conectar um Cérebro" },
   brain_wizard_lead: {
-    en: "Choose a provider, select how you authenticate, and add the credential. Shimpz guides the rest.",
-    pt: "Escolha um provedor, selecione como autenticar e adicione a credencial. O Shimpz orienta o restante.",
+    en: "Choose a provider and use an account API key or its guided browser sign-in.",
+    pt: "Escolha um provedor e use uma chave de API da conta ou o login guiado no navegador.",
   },
   brain_step_provider: { en: "Provider", pt: "Provedor" },
   brain_step_access: { en: "Access", pt: "Acesso" },
-  brain_step_credential: { en: "Credential", pt: "Credencial" },
+  brain_step_credential: { en: "Connect", pt: "Conectar" },
   brain_choose_provider: { en: "Which Brain do you want to use?", pt: "Qual Cérebro você quer usar?" },
   brain_choose_provider_help: {
     en: "You can configure both and choose one independently for each Capsule.",
@@ -162,16 +162,35 @@ const D: Dict = {
   },
   brain_choose_auth: { en: "How will it authenticate?", pt: "Como ele vai autenticar?" },
   brain_choose_auth_help: {
-    en: "Use an API key for the simplest setup, or import an OAuth credential you already have.",
-    pt: "Use uma chave de API para a configuração mais simples ou importe uma credencial OAuth que você já possui.",
+    en: "API keys can be reused by matching Capsules. Provider sign-in connects only the Capsule you choose.",
+    pt: "Chaves de API podem ser reutilizadas por Cápsulas compatíveis. O login no provedor conecta apenas a Cápsula escolhida.",
   },
   brain_api_key_desc: {
     en: "Recommended for a quick, predictable setup.",
     pt: "Recomendado para uma configuração rápida e previsível.",
   },
   brain_oauth_desc: {
-    en: "Import an existing provider credential. This does not start an interactive login.",
-    pt: "Importe uma credencial existente do provedor. Isso não inicia um login interativo.",
+    en: "Open the official provider flow; no credential file is pasted into Shimpz.",
+    pt: "Abra o fluxo oficial do provedor; nenhum arquivo de credencial é colado no Shimpz.",
+  },
+  brain_provider_signin_title: { en: "Sign in with the provider", pt: "Entrar com o provedor" },
+  brain_provider_signin_review: {
+    en: "Choose the exact running Capsule, then start its official browser flow.",
+    pt: "Escolha a Cápsula em execução e inicie o fluxo oficial no navegador.",
+  },
+  brain_provider_signin_capsule: { en: "Capsule", pt: "Cápsula" },
+  brain_provider_signin_scope: {
+    en: "This sign-in stays inside this Capsule's private config volume.",
+    pt: "Este login permanece no volume privado de configuração desta Cápsula.",
+  },
+  brain_provider_signin_no_capsule: {
+    en: "Create or start a Capsule that uses this provider first.",
+    pt: "Primeiro crie ou inicie uma Cápsula que use este provedor.",
+  },
+  brain_provider_signin_done_title: { en: "Capsule connected", pt: "Cápsula conectada" },
+  brain_provider_signin_done_body: {
+    en: "Provider access was written only to the selected Capsule.",
+    pt: "O acesso ao provedor foi gravado apenas na Cápsula selecionada.",
   },
   brain_credential_title: { en: "Add the credential", pt: "Adicionar a credencial" },
   brain_credential_review: {
@@ -201,20 +220,13 @@ const D: Dict = {
   },
   brain_auth_type: { en: "Authentication", pt: "Autenticação" },
   brain_api_key: { en: "API key", pt: "Chave de API" },
-  brain_oauth: { en: "OAuth credential", pt: "Credencial OAuth" },
+  brain_oauth: { en: "Provider sign-in", pt: "Login no provedor" },
+  brain_oauth_legacy: { en: "Legacy OAuth import", pt: "Importação OAuth legada" },
   brain_secret: { en: "Credential", pt: "Credencial" },
   brain_secret_required: { en: "Add a credential to continue.", pt: "Adicione uma credencial para continuar." },
-  brain_codex_oauth_invalid: {
-    en: "Codex OAuth requires the complete auth.json object.",
-    pt: "O OAuth do Codex exige o objeto auth.json completo.",
-  },
   brain_secret_api_help: {
     en: "Paste the provider API key. It is never returned by the API.",
     pt: "Cole a chave de API do provedor. Ela nunca é devolvida pela API.",
-  },
-  brain_secret_oauth_help: {
-    en: "Paste the exported OAuth credential. Codex expects the complete auth.json object.",
-    pt: "Cole a credencial OAuth exportada. O Codex espera o objeto auth.json completo.",
   },
   brain_save: { en: "Save credential", pt: "Salvar credencial" },
   brain_remove: { en: "Remove", pt: "Remover" },
@@ -444,11 +456,13 @@ const D: Dict = {
     pt: "Nenhuma credencial utilizável da conta pôde ser aplicada.",
   },
   brain_interactive_or: {
-    en: "Or authenticate this Claude Capsule interactively:",
-    pt: "Ou autentique esta Cápsula Claude de forma interativa:",
+    en: "Or sign this Capsule in with its provider:",
+    pt: "Ou conecte esta Cápsula ao provedor:",
   },
   brain_configure: { en: "Sign in with Claude", pt: "Entrar com Claude" },
+  brain_codex_device_start: { en: "Start Codex device sign-in", pt: "Iniciar login por dispositivo do Codex" },
   brain_starting: { en: "Starting the login bridge…", pt: "Iniciando a ponte de login…" },
+  brain_login_checking: { en: "Verifying provider sign-in…", pt: "Verificando login no provedor…" },
   brain_login_start_failed: {
     en: "The login bridge could not start. Try again.",
     pt: "A ponte de login não pôde iniciar. Tente novamente.",
@@ -461,9 +475,25 @@ const D: Dict = {
     en: "The authorization link did not arrive in time. Start again.",
     pt: "O link de autorização não chegou a tempo. Inicie novamente.",
   },
+  brain_login_challenge_invalid: {
+    en: "The provider returned an invalid authorization challenge.",
+    pt: "O provedor retornou um desafio de autorização inválido.",
+  },
   brain_open_url: { en: "1 · Open and authorize", pt: "1 · Abrir e autorizar" },
   brain_paste_code: { en: "2 · Paste the code here", pt: "2 · Cole o código aqui" },
   brain_submit_code: { en: "Connect", pt: "Conectar" },
+  brain_device_open: { en: "1 · Open Codex sign-in", pt: "1 · Abrir login do Codex" },
+  brain_device_copy: { en: "Copy code", pt: "Copiar código" },
+  brain_device_copied: { en: "Copied", pt: "Copiado" },
+  brain_device_wait: {
+    en: "Authorize with this code; Shimpz will detect completion.",
+    pt: "Autorize com este código; o Shimpz detectará a conclusão.",
+  },
+  brain_login_cancel: { en: "Cancel", pt: "Cancelar" },
+  brain_login_cancel_failed: {
+    en: "The device login could not be cancelled safely.",
+    pt: "O login por dispositivo não pôde ser cancelado com segurança.",
+  },
   brain_code_err: { en: "Code not accepted — start over and try again.", pt: "Código não aceito — recomece e tente de novo." },
   brain_ok: { en: "✓ Brain authenticated — the bridge is live, Captain.", pt: "✓ Cérebro autenticado — o comando está vivo, Capitão." },
   footer: {

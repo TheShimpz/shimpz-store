@@ -3,6 +3,7 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import BrainLoginFlow from "$lib/components/BrainLoginFlow.svelte";
   import HudIcon from "$lib/components/HudIcon.svelte";
 
   type ProviderId = "claude-code" | "codex";
@@ -35,9 +36,14 @@
   let messageTone = $state<"" | "error" | "success">("");
   let confirmRemove = $state<ProviderId | "">("");
   let fieldError = $state("");
+  let oauthCapsule = $state("");
+  let completionMode = $state<"api_key" | "oauth">("api_key");
 
   const matchingCapsules = $derived(
     capsules.filter((capsule) => (capsule.brain ?? "claude-code") === provider),
+  );
+  const interactiveCapsules = $derived(
+    matchingCapsules.filter((capsule) => capsule.status === "running"),
   );
 
   function recordFor(id: ProviderId) {
@@ -84,6 +90,9 @@
     fieldError = "";
     message = "";
     step = 2;
+    oauthCapsule = capsules.find(
+      (capsule) => capsule.status === "running" && (capsule.brain ?? "claude-code") === id,
+    )?.id ?? "";
   }
 
   function chooseAuth(value: AuthType) {
@@ -91,19 +100,15 @@
     secret = "";
     reveal = false;
     fieldError = "";
+    if (value === "oauth" && !interactiveCapsules.some((capsule) => capsule.id === oauthCapsule)) {
+      oauthCapsule = interactiveCapsules[0]?.id ?? "";
+    }
   }
 
   function validateCredential() {
+    if (authType !== "api_key") return "";
     const value = secret.trim();
     if (!value) return tr("brain_secret_required", lang);
-    if (provider === "codex" && authType === "oauth") {
-      try {
-        const parsed = JSON.parse(value);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
-      } catch {
-        return tr("brain_codex_oauth_invalid", lang);
-      }
-    }
     return "";
   }
 
@@ -142,7 +147,7 @@
   }
 
   async function save() {
-    if (busy) return;
+    if (busy || authType !== "api_key") return;
     fieldError = validateCredential();
     if (fieldError) return;
     busy = true;
@@ -166,10 +171,21 @@
       await load({ preserveMessage: true });
       message = resultText(applied.total, applied.applied);
       messageTone = applied.total >= 0 && applied.total === applied.applied ? "success" : "error";
+      completionMode = "api_key";
       step = 4;
     } finally {
       busy = false;
     }
+  }
+
+  function completeOauth() {
+    const capsule = interactiveCapsules.find((entry) => entry.id === oauthCapsule);
+    message = lang === "pt"
+      ? `${providers.find((entry) => entry.id === provider)?.title} conectado à Cápsula ${capsule?.name || oauthCapsule}.`
+      : `${providers.find((entry) => entry.id === provider)?.title} connected to Capsule ${capsule?.name || oauthCapsule}.`;
+    messageTone = "success";
+    completionMode = "oauth";
+    step = 4;
   }
 
   async function remove(id: ProviderId) {
@@ -269,12 +285,12 @@
       {:else if step === 3}
         <div class="stage-copy">
           <p class="selection">{providers.find((entry) => entry.id === provider)?.title} // {tr(authType === "oauth" ? "brain_oauth" : "brain_api_key", lang)}</p>
-          <h3>{tr("brain_credential_title", lang)}</h3>
-          <p>{tr("brain_credential_review", lang)}</p>
+          <h3>{tr(authType === "oauth" ? "brain_provider_signin_title" : "brain_credential_title", lang)}</h3>
+          <p>{tr(authType === "oauth" ? "brain_provider_signin_review" : "brain_credential_review", lang)}</p>
         </div>
-        <label class="credential-field">
-          <span class="kicker">{tr("brain_secret", lang)}</span>
-          {#if authType === "api_key"}
+        {#if authType === "api_key"}
+          <label class="credential-field">
+            <span class="kicker">{tr("brain_secret", lang)}</span>
             <span class="secret-input">
               <input
                 class="field"
@@ -285,41 +301,63 @@
                 oninput={() => (fieldError = "")} />
               <button type="button" onclick={() => (reveal = !reveal)}>{tr(reveal ? "password_hide" : "password_show", lang)}</button>
             </span>
-          {:else}
-            <textarea class="field" rows="5" autocomplete="off" spellcheck="false" bind:value={secret} oninput={() => (fieldError = "")}></textarea>
-          {/if}
-          <small>{tr(authType === "oauth" ? "brain_secret_oauth_help" : "brain_secret_api_help", lang)}</small>
-        </label>
-        <div class="review-row">
-          <HudIcon name="capsule" size={18} />
-          <span>
-            {#if capsulesLoaded}
-              {lang === "pt"
-                ? `${matchingCapsules.length} ${matchingCapsules.length === 1 ? "Cápsula usa" : "Cápsulas usam"} este Cérebro`
-                : `${matchingCapsules.length} ${matchingCapsules.length === 1 ? "Capsule uses" : "Capsules use"} this Brain`}
-            {:else}
-              {tr("brain_load_failed", lang)}
-            {/if}
-          </span>
-        </div>
-        {#if fieldError}<p class="field-error" role="alert">{fieldError}</p>{/if}
-        {#if message}<p class="notice state-notice" class:notice-error={messageTone === "error"} role={messageTone === "error" ? "alert" : "status"}>{message}</p>{/if}
-        <div class="stage-actions">
-          <button class="btn-ghost compact" type="button" disabled={busy} onclick={() => (step = 2)}>{tr("brain_back", lang)}</button>
-          <button class="btn-primary compact" type="button" disabled={busy || !secret.trim()} onclick={save}>
-            {#if busy}{tr("brain_saving", lang)}{:else}<HudIcon name="shield" size={16} /> {tr("brain_save", lang)}{/if}
-          </button>
-        </div>
+            <small>{tr("brain_secret_api_help", lang)}</small>
+          </label>
+          <div class="review-row">
+            <HudIcon name="capsule" size={18} />
+            <span>
+              {#if capsulesLoaded}
+                {lang === "pt"
+                  ? `${matchingCapsules.length} ${matchingCapsules.length === 1 ? "Cápsula usa" : "Cápsulas usam"} este Cérebro`
+                  : `${matchingCapsules.length} ${matchingCapsules.length === 1 ? "Capsule uses" : "Capsules use"} this Brain`}
+              {:else}
+                {tr("brain_load_failed", lang)}
+              {/if}
+            </span>
+          </div>
+          {#if fieldError}<p class="field-error" role="alert">{fieldError}</p>{/if}
+          {#if message}<p class="notice state-notice" class:notice-error={messageTone === "error"} role={messageTone === "error" ? "alert" : "status"}>{message}</p>{/if}
+          <div class="stage-actions">
+            <button class="btn-ghost compact" type="button" disabled={busy} onclick={() => (step = 2)}>{tr("brain_back", lang)}</button>
+            <button class="btn-primary compact" type="button" disabled={busy || !secret.trim()} onclick={save}>
+              {#if busy}{tr("brain_saving", lang)}{:else}<HudIcon name="shield" size={16} /> {tr("brain_save", lang)}{/if}
+            </button>
+          </div>
+        {:else if interactiveCapsules.length}
+          <label class="credential-field">
+            <span class="kicker">{tr("brain_provider_signin_capsule", lang)}</span>
+            <select class="field capsule-select" bind:value={oauthCapsule}>
+              {#each interactiveCapsules as capsule (capsule.id)}
+                <option value={capsule.id}>{capsule.name || capsule.id}</option>
+              {/each}
+            </select>
+            <small>{tr("brain_provider_signin_scope", lang)}</small>
+          </label>
+          <div class="interactive-login">
+            <BrainLoginFlow {lang} capsuleId={oauthCapsule} {provider} oncomplete={completeOauth} />
+          </div>
+          <div class="stage-actions">
+            <button class="btn-ghost compact" type="button" onclick={() => (step = 2)}>{tr("brain_back", lang)}</button>
+          </div>
+        {:else}
+          <div class="notice state-notice" role="status">
+            <span>{tr("brain_provider_signin_no_capsule", lang)}</span>
+            <a class="btn-primary compact" href={u.capsule(lang)}>{tr("my_capsules", lang)} →</a>
+          </div>
+          <div class="stage-actions">
+            <button class="btn-ghost compact" type="button" onclick={() => (step = 2)}>{tr("brain_back", lang)}</button>
+          </div>
+        {/if}
       {:else}
         <div class="done-mark"><HudIcon name="check" size={30} /></div>
         <div class="stage-copy done-copy">
-          <h3>{tr("brain_done_title", lang)}</h3>
-          <p>{tr("brain_done_body", lang)}</p>
+          <h3>{tr(completionMode === "oauth" ? "brain_provider_signin_done_title" : "brain_done_title", lang)}</h3>
+          <p>{tr(completionMode === "oauth" ? "brain_provider_signin_done_body" : "brain_done_body", lang)}</p>
         </div>
         {#if message}<p class="notice state-notice" class:notice-error={messageTone === "error"} class:notice-success={messageTone === "success"} role={messageTone === "error" ? "alert" : "status"}>{message}</p>{/if}
         <div class="stage-actions done-actions">
           <button class="btn-ghost compact" type="button" onclick={() => { message = ""; step = 1; }}>{tr("brain_reconfigure", lang)}</button>
-          <a class="btn-primary compact" href={u.chat(lang)}>{tr("nav_chat", lang)} →</a>
+          <a class="btn-primary compact" href={u.chat(lang, completionMode === "oauth" ? oauthCapsule : undefined)}>{tr("nav_chat", lang)} →</a>
         </div>
       {/if}
     </div>
@@ -334,7 +372,7 @@
             <span class="configured-icon"><HudIcon name="brain" size={18} /></span>
             <span class="configured-name">
               <strong>{providers.find((option) => option.id === entry.provider)?.title}</strong>
-              <small>{tr(entry.auth_type === "oauth" ? "brain_oauth" : "brain_api_key", lang)}</small>
+              <small>{tr(entry.auth_type === "oauth" ? "brain_oauth_legacy" : "brain_api_key", lang)}</small>
             </span>
             <span class="badge" class:ready={entry.status === "configured"}>{statusLabel(entry.provider)}</span>
             <button class="btn-ghost row-action" type="button" disabled={busy || entry.status === "revoking"} onclick={() => chooseProvider(entry.provider)}>{tr("brain_reconfigure", lang)}</button>
@@ -404,7 +442,8 @@
   .secret-input { position: relative; display: block; margin-top: 0.45rem; }
   .secret-input input { padding-right: 5.5rem; }
   .secret-input button { position: absolute; top: 50%; right: 0.65rem; border: 0; padding: 0.4rem; background: transparent; color: var(--color-cyan); cursor: pointer; font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; transform: translateY(-50%); }
-  textarea.field { margin-top: 0.45rem; resize: vertical; font-family: var(--font-mono); font-size: 0.76rem; }
+  .capsule-select { margin-top: 0.45rem; }
+  .interactive-login { margin-top: 0.8rem; }
   .review-row { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.9rem; color: var(--color-muted); font-size: 0.75rem; }
   .review-row :global(svg) { color: var(--color-cyan); }
   .field-error { margin: 0.65rem 0 0; color: var(--color-danger); font-size: 0.75rem; }

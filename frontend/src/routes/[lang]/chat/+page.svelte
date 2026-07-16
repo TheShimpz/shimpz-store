@@ -4,6 +4,7 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import BrainLoginFlow from "$lib/components/BrainLoginFlow.svelte";
   import HudIcon from "$lib/components/HudIcon.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -153,12 +154,6 @@
     scrollDown(true);
   }
 
-  // Brain OAuth configure flow (the admin panel's exact bridge, Captain-facing):
-  // idle → starting (poll url) → url (Captain authorizes + pastes code) → checking → done/err
-  let oauthPhase = $state("idle");
-  let oauthUrl = $state("");
-  let oauthCode = $state("");
-  let oauthErr = $state("");
   let configureBusy = $state(false);
   let configureErr = $state("");
   let accountBrainsAvailable = $state(false);
@@ -169,7 +164,6 @@
   let brainSwapBusy = $state(false);
   let brainSwapErr = $state("");
   let brainSwapOk = $state("");
-  let oauthAttempt = 0;
 
   const brainHasChanges = $derived(
     brainChoice !== loadedBrainChoice || brainModel.trim() !== loadedBrainModel,
@@ -202,82 +196,6 @@
       if (!brain?.configured) configureErr = tr("brain_apply_failed", lang);
     } finally {
       configureBusy = false;
-    }
-  }
-
-  async function startOauth() {
-    if (!selected || brainSwapBusy || oauthPhase === "starting" || oauthPhase === "checking") return;
-    const cid = selected;
-    const attempt = ++oauthAttempt;
-    oauthPhase = "starting";
-    oauthUrl = "";
-    oauthCode = "";
-    oauthErr = "";
-    const startResponse = await fetch(`/api/capsules/${cid}/brain/login/start`, { method: "POST" }).catch(() => null);
-    const startResult = await startResponse?.json().catch(() => ({}));
-    if (!startResponse?.ok) {
-      oauthErr = startResult?.detail ?? startResult?.error ?? tr("brain_login_start_failed", lang);
-      oauthPhase = "err";
-      return;
-    }
-    for (let i = 0; i < 20 && oauthPhase === "starting" && attempt === oauthAttempt && selected === cid; i++) {
-      await new Promise((done) => setTimeout(done, 1500));
-      if (attempt !== oauthAttempt || selected !== cid) return;
-      const response = await fetch(`/api/capsules/${cid}/brain/login/url`).catch(() => null);
-      const d = await response?.json().catch(() => ({}));
-      if (!response?.ok) {
-        oauthErr = d?.detail ?? d?.error ?? tr("brain_login_status_failed", lang);
-        oauthPhase = "err";
-        return;
-      }
-      if (d.url) {
-        oauthUrl = d.url;
-        oauthPhase = "url";
-        return;
-      }
-    }
-    if (oauthPhase === "starting" && attempt === oauthAttempt) {
-      oauthErr = tr("brain_login_timeout", lang);
-      oauthPhase = "err";
-    }
-  }
-
-  async function submitOauthCode() {
-    if (!oauthCode.trim() || !selected) return;
-    const cid = selected;
-    const attempt = oauthAttempt;
-    oauthPhase = "checking";
-    oauthErr = "";
-    const r = await fetch(`/api/capsules/${cid}/brain/login/code`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: oauthCode.trim() }),
-    }).catch(() => null);
-    const d = await r?.json().catch(() => ({}));
-    if (r?.ok && d?.ok) {
-      let last: any = {};
-      for (let i = 0; i < 10 && attempt === oauthAttempt && selected === cid; i++) {
-        await new Promise((done) => setTimeout(done, 1200));
-        if (attempt !== oauthAttempt || selected !== cid) return;
-        const statusResponse = await fetch(`/api/capsules/${cid}/brain/login/status`).catch(() => null);
-        last = await statusResponse?.json().catch(() => ({}));
-        if (!statusResponse?.ok) {
-          oauthErr = last?.detail ?? last?.error ?? tr("brain_login_status_failed", lang);
-          oauthPhase = "err";
-          return;
-        }
-        if (last.loggedIn) break;
-      }
-      if (last.loggedIn) {
-        oauthPhase = "done";
-        await loadCapsuleContext(); // configuration becomes usable; a real successful turn verifies auth
-      } else {
-        oauthErr = last.last_error ?? ""; // the bridge's own verdict, e.g. "Login failed: …"
-        oauthPhase = "err";
-      }
-    } else {
-      oauthErr = d?.error ?? d?.detail ?? "";
-      oauthPhase = "err";
     }
   }
 
@@ -323,11 +241,6 @@
   }
 
   function resetCapsuleSession() {
-    oauthAttempt += 1;
-    oauthPhase = "idle";
-    oauthUrl = "";
-    oauthCode = "";
-    oauthErr = "";
     configureErr = "";
     brainSwapErr = "";
     brainSwapOk = "";
@@ -620,25 +533,11 @@
                 </div>
                 {#if configureErr}<p class="notice notice-error compact-notice" role="alert">{configureErr}</p>{/if}
 
-                {#if brain.brain === "claude-code"}
+                {#if brain.brain === "claude-code" || brain.brain === "codex"}
                   <p class="oauth-divider">{tr("brain_interactive_or", lang)}</p>
-                  {#if oauthPhase === "idle" || oauthPhase === "err"}
-                    {#if oauthPhase === "err"}<p class="notice notice-error compact-notice" role="alert">{oauthErr || tr("brain_code_err", lang)}</p>{/if}
-                    <button class="btn-ghost oauth-start" type="button" disabled={brainSwapBusy} onclick={startOauth}>{tr("brain_configure", lang)}</button>
-                  {:else if oauthPhase === "starting"}
-                    <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("brain_starting", lang)}</p>
-                  {:else if oauthPhase === "url"}
-                    <div class="oauth-flow">
-                      <a class="btn-primary" href={oauthUrl} target="_blank" rel="noopener noreferrer">{tr("brain_open_url", lang)} ↗</a>
-                      <input class="field field-sm" placeholder={tr("brain_paste_code", lang)} bind:value={oauthCode} onkeydown={(event) => event.key === "Enter" && !event.isComposing && submitOauthCode()} />
-                      <button class="btn-ghost" type="button" disabled={!oauthCode.trim()} onclick={submitOauthCode}>{tr("brain_submit_code", lang)}</button>
-                    </div>
-                  {:else if oauthPhase === "checking"}
-                    <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("brain_starting", lang)}</p>
-                  {/if}
+                  <BrainLoginFlow {lang} capsuleId={selected} provider={brain.brain} oncomplete={loadCapsuleContext} />
                 {/if}
               {/if}
-              {#if oauthPhase === "done" && brain.authenticated}<p class="notice notice-success compact-notice" role="status">{tr("brain_ok", lang)}</p>{/if}
             </div>
           {:else}
             <p class="oauth-progress"><span class="loading-pulse" aria-hidden="true"></span>{tr("loading", lang)}</p>
@@ -956,12 +855,10 @@
   .access-heading > :global(svg) { color: var(--color-cyan); }
   .access-state { margin: 0; color: var(--color-muted); font-size: 0.72rem; }
   .access-state.success { color: var(--color-green); }
-  .access-actions,
-  .oauth-flow { display: grid; gap: 0.5rem; }
+  .access-actions { display: grid; gap: 0.5rem; }
   .access-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-actions > :global(*) { min-width: 0; padding-inline: 0.65rem; font-size: 0.62rem; }
   .oauth-divider { margin: 0.1rem 0; color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.59rem; text-align: center; text-transform: uppercase; }
-  .oauth-start { width: 100%; padding-inline: 0.7rem; font-size: 0.64rem; }
   .oauth-progress { align-items: center; }
 
   .assistant-count {
