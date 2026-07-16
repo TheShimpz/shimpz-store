@@ -4,6 +4,9 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import BrainSetupWizard from "$lib/components/BrainSetupWizard.svelte";
+  import HudIcon from "$lib/components/HudIcon.svelte";
+  import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
   let { data } = $props();
@@ -12,128 +15,16 @@
   let me = $state<any>(null);
   let ready = $state(false);
   let busy = $state(false);
-  const providers = [
-    { id: "claude-code", title: "Claude Code" },
-    { id: "codex", title: "Codex" },
-  ];
-  let brains = $state<any[]>([]);
-  let brainSecrets = $state<Record<string, string>>({ "claude-code": "", codex: "" });
-  let brainAuth = $state<Record<string, string>>({ "claude-code": "api_key", codex: "api_key" });
-  let brainBusy = $state("");
-  let brainMessage = $state<Record<string, string>>({});
-  let brainMessageTone = $state<Record<string, "" | "error" | "success">>({});
-  let brainFeatureAvailable = $state(false);
-
-  async function loadBrains() {
-    const r = await fetch("/api/brains").catch(() => null);
-    if (!r?.ok) {
-      brainFeatureAvailable = false;
-      return false;
-    }
-    const result = await r.json().catch(() => null);
-    if (!Array.isArray(result?.brains)) {
-      brainFeatureAvailable = false;
-      return false;
-    }
-    brains = result.brains;
-    brainFeatureAvailable = true;
-    return true;
-  }
 
   onMount(async () => {
-    const d = await fetch("/api/me").then((r) => r.json()).catch(() => ({}));
-    if (!d.authenticated) {
-      goto(u.login(lang)); // account is behind auth
+    const account = await fetch("/api/me").then((response) => response.json()).catch(() => ({}));
+    if (!account.authenticated) {
+      goto(u.login(lang));
       return;
     }
-    me = d;
-    await loadBrains();
+    me = account;
     ready = true;
   });
-
-  function configured(provider: string) {
-    return brains.some((entry) => entry.provider === provider && entry.status === "configured");
-  }
-
-  function revoking(provider: string) {
-    return brains.some((entry) => entry.provider === provider && entry.status === "revoking");
-  }
-
-  function removable(provider: string) {
-    return configured(provider) || revoking(provider);
-  }
-
-  function removalPendingLabel() {
-    return lang === "pt" ? "Remoção pendente" : "Removal pending";
-  }
-
-  function retryRemovalLabel() {
-    return lang === "pt" ? "Tentar remoção novamente" : "Retry removal";
-  }
-
-  async function applyBrainToCapsules(provider: string): Promise<boolean> {
-    const r = await fetch("/api/capsules").catch(() => null);
-    if (!r?.ok) return false;
-    const caps = (await r.json()).capsules ?? [];
-    const results = await Promise.all(
-      caps
-        .filter((capsule: any) => (capsule.brain ?? "claude-code") === provider)
-        .map((capsule: any) =>
-          fetch(`/api/capsules/${capsule.id}/brain/configure`, { method: "POST" }).catch(() => null),
-        ),
-    );
-    return results.every((result) => result?.ok);
-  }
-
-  async function saveBrain(provider: string) {
-    const secret = brainSecrets[provider]?.trim();
-    if (!secret || brainBusy) return;
-    brainBusy = provider;
-    brainMessage[provider] = "";
-    brainMessageTone[provider] = "";
-    try {
-      const r = await fetch(`/api/brains/${provider}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ auth_type: brainAuth[provider], secret }),
-      });
-      const result = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        brainMessage[provider] = result.detail ?? result.error ?? "save failed";
-        brainMessageTone[provider] = "error";
-        return;
-      }
-      brainSecrets[provider] = "";
-      await loadBrains();
-      const applied = await applyBrainToCapsules(provider);
-      brainMessage[provider] = tr(applied ? "brain_saved" : "brain_saved_apply_failed", lang);
-      brainMessageTone[provider] = applied ? "success" : "error";
-    } finally {
-      brainBusy = "";
-    }
-  }
-
-  async function removeBrain(provider: string) {
-    if (brainBusy) return;
-    brainBusy = provider;
-    brainMessage[provider] = "";
-    brainMessageTone[provider] = "";
-    try {
-      const r = await fetch(`/api/brains/${provider}`, { method: "DELETE" }).catch(() => null);
-      const result = await r?.json().catch(() => ({}));
-      if (!r?.ok) {
-        await loadBrains();
-        brainMessage[provider] = result?.detail ?? result?.error ?? "remove failed";
-        brainMessageTone[provider] = "error";
-        return;
-      }
-      await loadBrains();
-      brainMessage[provider] = tr("brain_removed", lang);
-      brainMessageTone[provider] = "success";
-    } finally {
-      brainBusy = "";
-    }
-  }
 
   async function logout() {
     busy = true;
@@ -146,107 +37,136 @@
 
 <Seo title={`${tr("account_title", lang)} · Shimpz`} description={tr("account_lead", lang)} {lang} />
 
-<section class="wrap max-w-2xl pt-10 pb-8">
-  <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">{tr("account_title", lang)}</h1>
-  <p class="mt-3 dim">{tr("account_lead", lang)}</p>
+<section class="wrap pt-10 pb-12" aria-labelledby="account-title">
+  {#snippet media()}
+    <div class="identity-mark"><HudIcon name="user" size={38} /></div>
+  {/snippet}
+  {#snippet meta()}
+    {#if me}<span class="mono text-xs dim">@{me.username}</span>{/if}
+  {/snippet}
+  <PageIntro
+    headingId="account-title"
+    kicker={tr("account_kicker", lang)}
+    title={tr("account_title", lang)}
+    description={tr("account_lead", lang)}
+    {media}
+    {meta} />
 
   {#if !ready}
-    <p class="mt-8 dim">…</p>
+    <p class="mt-8 dim" role="status">{tr("loading", lang)}</p>
   {:else}
-    <div class="mt-8 flex items-center gap-4">
-      <div class="app-icon grid size-16 shrink-0 place-items-center" style="--g1:var(--color-cyan);--g2:var(--color-magenta);font-size:26px">{(me.username?.[0] ?? "?").toUpperCase()}</div>
-      <div class="min-w-0">
-        <div class="text-xl font-semibold">{me.username}</div>
-        <div class="mono truncate text-xs dim">{tr("logged_in_as", lang)} @{me.username}</div>
-      </div>
-    </div>
+    <div class="account-grid">
+      <BrainSetupWizard {lang} />
 
-    <div class="panel mt-8">
-      <span class="kicker">{tr("account_profile", lang)}</span>
-      <dl class="mt-4 space-y-3 text-sm">
-        <div class="flex items-center justify-between gap-4 border-b hair pb-3">
-          <dt class="dim">{tr("username", lang)}</dt>
-          <dd class="mono">{me.username}</dd>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-          <dt class="dim">{tr("account_id_label", lang)}</dt>
-          <dd class="mono min-w-0 truncate">{me.account_id}</dd>
-        </div>
-      </dl>
-    </div>
-
-    <div class="panel mt-6" hidden={!brainFeatureAvailable}>
-      <span class="kicker">{tr("account_brains", lang)}</span>
-      <p class="mt-3 text-sm leading-relaxed dim">{tr("account_brains_lead", lang)}</p>
-      <div class="mt-5 space-y-5">
-        {#each providers as provider (provider.id)}
-          <div class="panel !p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="font-semibold">{provider.title}</div>
-              <span
-                class="badge"
-                style:color={configured(provider.id) ? "var(--color-primary)" : "var(--color-magenta)"}
-              >
-                {#if revoking(provider.id)}
-                  {removalPendingLabel()}
-                {:else if configured(provider.id)}
-                  {tr("brain_configured", lang)}
-                {:else}
-                  {tr("brain_not_configured", lang)}
-                {/if}
-              </span>
-            </div>
-            <label class="mt-4 block">
-              <span class="kicker !text-[10px]">{tr("brain_auth_type", lang)}</span>
-              <select class="field field-sm mt-2" bind:value={brainAuth[provider.id]}>
-                <option value="api_key">{tr("brain_api_key", lang)}</option>
-                <option value="oauth">{tr("brain_oauth", lang)}</option>
-              </select>
-            </label>
-            <label class="mt-3 block">
-              <span class="kicker !text-[10px]">{tr("brain_secret", lang)}</span>
-              <textarea
-                class="field mt-2 min-h-24 resize-y"
-                autocomplete="off"
-                spellcheck="false"
-                bind:value={brainSecrets[provider.id]}
-              ></textarea>
-              <span class="mt-2 block text-xs dim">
-                {tr(brainAuth[provider.id] === "oauth" ? "brain_secret_oauth_help" : "brain_secret_api_help", lang)}
-              </span>
-            </label>
-            <div class="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                class="btn-primary !py-2 text-sm"
-                disabled={brainBusy !== "" || !brainSecrets[provider.id]?.trim()}
-                onclick={() => saveBrain(provider.id)}>{tr("brain_save", lang)}</button>
-              {#if removable(provider.id)}
-                <button
-                  class="btn-danger !py-2 text-sm"
-                  disabled={brainBusy !== ""}
-                  onclick={() => removeBrain(provider.id)}
-                >{revoking(provider.id) ? retryRemovalLabel() : tr("brain_remove", lang)}</button>
-              {/if}
-              {#if brainMessage[provider.id]}
-                <span
-                  class="notice px-3 py-2 text-xs"
-                  class:notice-error={brainMessageTone[provider.id] === "error"}
-                  class:notice-success={brainMessageTone[provider.id] === "success"}
-                  role={brainMessageTone[provider.id] === "error" ? "alert" : "status"}
-                >{brainMessage[provider.id]}</span>
-              {/if}
-            </div>
+      <aside class="account-aside">
+        <section class="panel compact-panel" aria-labelledby="identity-title">
+          <div class="panel-title">
+            <span class="panel-icon"><HudIcon name="user" size={18} /></span>
+            <h2 id="identity-title">{tr("account_identity", lang)}</h2>
           </div>
-        {/each}
-      </div>
-    </div>
+          <dl>
+            <div>
+              <dt>{tr("username", lang)}</dt>
+              <dd>@{me.username}</dd>
+            </div>
+            <div>
+              <dt>{tr("account_id_label", lang)}</dt>
+              <dd title={me.account_id}>{me.account_id}</dd>
+            </div>
+          </dl>
+        </section>
 
-    <div class="panel mt-6">
-      <span class="kicker">{tr("account_session", lang)}</span>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <a href={u.capsule(lang)} class="btn-ghost !py-2 text-sm">{tr("my_capsules", lang)} →</a>
-        <button class="btn-danger !py-2 text-sm" disabled={busy} onclick={logout}>{tr("log_out", lang)}</button>
-      </div>
+        <section class="panel compact-panel" aria-labelledby="session-title">
+          <div class="panel-title">
+            <span class="panel-icon"><HudIcon name="session" size={18} /></span>
+            <h2 id="session-title">{tr("account_session", lang)}</h2>
+          </div>
+          <div class="session-actions">
+            <a href={u.capsule(lang)} class="btn-ghost">{tr("my_capsules", lang)} →</a>
+            <button class="btn-danger" type="button" disabled={busy} onclick={logout}>{tr("log_out", lang)}</button>
+          </div>
+        </section>
+      </aside>
     </div>
   {/if}
 </section>
+
+<style>
+  .identity-mark {
+    display: grid;
+    width: 5rem;
+    height: 5rem;
+    place-items: center;
+    color: var(--color-cyan);
+    background:
+      linear-gradient(145deg, color-mix(in oklab, var(--color-cyan) 12%, #000), #000 55%),
+      #000;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.34fr);
+    align-items: start;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .account-aside {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .compact-panel { padding: 1rem; }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .panel-title h2 {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .panel-icon {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    color: var(--color-cyan);
+    background: #000;
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+
+  dl { margin: 0.85rem 0 0; }
+  dl > div { border-top: 1px solid var(--color-border); padding: 0.65rem 0; }
+  dt { color: var(--color-muted); font-size: 0.68rem; }
+  dd { margin: 0.15rem 0 0; overflow: hidden; font-family: var(--font-mono); font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+
+  .session-actions {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+  }
+
+  .session-actions :global(.btn-ghost),
+  .session-actions :global(.btn-danger) {
+    min-height: 2.5rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.65rem;
+  }
+
+  @media (max-width: 900px) {
+    .account-grid { grid-template-columns: 1fr; }
+    .account-aside { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 580px) {
+    .account-aside { grid-template-columns: 1fr; }
+  }
+</style>
