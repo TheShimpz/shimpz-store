@@ -16,9 +16,7 @@ from uuid import uuid4
 import structlog
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
-_CSP_PREFIX = (
-    b"default-src 'self'; base-uri 'self'; object-src 'none'; "
-)
+_CSP_PREFIX = b"default-src 'self'; base-uri 'self'; object-src 'none'; "
 _CSP_SUFFIX = (
     b"form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
     b"img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; "
@@ -52,9 +50,7 @@ _EMBED_SECURITY_HEADERS = (
     _COMMON_SECURITY_HEADERS[3],
     (b"x-robots-tag", b"noindex, nofollow"),
 )
-_MANAGED_SECURITY_HEADERS = {
-    name for name, _value in (*_SECURITY_HEADERS, *_EMBED_SECURITY_HEADERS)
-}
+_MANAGED_SECURITY_HEADERS = {name for name, _value in (*_SECURITY_HEADERS, *_EMBED_SECURITY_HEADERS)}
 _EMBED_PATH = re.compile(r"^/(?:en|pt)/assistants/embed/?$")
 
 
