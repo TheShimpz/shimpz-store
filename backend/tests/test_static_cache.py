@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
 from app import main as store
+from fastapi.testclient import TestClient
 
 
 def _write(root: Path, relative: str, content: str) -> None:
@@ -34,7 +33,7 @@ def test_sveltekit_immutable_assets_keep_long_content_addressed_cache(monkeypatc
     monkeypatch.setattr(store, "BUILD", tmp_path)
 
     with TestClient(store.app) as client:
-        response = client.get("/_app/immutable/chunks/AssistantStore.BfzPtRCS.js")
+        response = client.get("/_app/immutable/chunks/AssistantStore.BfzPtRCS.js?release=1")
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == store.IMMUTABLE_CACHE_CONTROL
@@ -43,13 +42,17 @@ def test_sveltekit_immutable_assets_keep_long_content_addressed_cache(monkeypatc
 
 def test_mutable_assets_and_missing_navigation_do_not_heuristically_cache(monkeypatch, tmp_path):
     _write(tmp_path, "brand/shimpz.svg", "<svg></svg>")
+    _write(tmp_path, "_app/immutable-lookalike/chunk.js", "mutable")
     monkeypatch.setattr(store, "BUILD", tmp_path)
 
     with TestClient(store.app) as client:
         mutable = client.get("/brand/shimpz.svg")
+        lookalike = client.get("/_app/immutable-lookalike/chunk.js")
         missing = client.get("/en/not-published-yet")
 
     assert mutable.status_code == 200
     assert mutable.headers["cache-control"] == store.HTML_CACHE_CONTROL
+    assert lookalike.status_code == 200
+    assert lookalike.headers["cache-control"] == store.HTML_CACHE_CONTROL
     assert missing.status_code == 404
     assert missing.headers["cache-control"] == store.HTML_CACHE_CONTROL
