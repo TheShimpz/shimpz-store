@@ -2,7 +2,7 @@
   import { t, creatorOf, type Locale, type Service } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import Seo from "$lib/components/Seo.svelte";
-  import Icon from "$lib/components/Icon.svelte";
+  import ServiceIcon from "$lib/components/ServiceIcon.svelte";
   import CreatorTag from "$lib/components/CreatorTag.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
 
@@ -15,7 +15,7 @@
 
 <section class="wrap pt-10" aria-labelledby="service-title">
   {#snippet media()}
-    <Icon glyph={service.icon} id={service.id} size={80} brand={service.brand} />
+    <ServiceIcon icon={service.icon} size={80} brand={service.brand} />
   {/snippet}
   {#snippet meta()}
     <CreatorTag handle={creatorOf(service)} {lang} />

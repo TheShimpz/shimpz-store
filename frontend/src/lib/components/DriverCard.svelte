@@ -2,7 +2,7 @@
   import { t, creatorOf, type Driver, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
-  import Icon from "./Icon.svelte";
+  import ServiceIcon from "./ServiceIcon.svelte";
   import CreatorTag from "./CreatorTag.svelte";
 
   let { driver, lang }: { driver: Driver; lang: Locale } = $props();
@@ -11,7 +11,7 @@
 <div class="card relative flex flex-col">
   <a href={u.service(lang, driver)} class="absolute inset-0" aria-label={driver.name}></a>
   <div class="flex items-start gap-4">
-    <Icon glyph={driver.icon} id={driver.id} size={52} brand={driver.brand} />
+    <ServiceIcon icon={driver.icon} size={52} brand={driver.brand} />
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         <span class="truncate text-[15px] font-semibold">{driver.name}</span>

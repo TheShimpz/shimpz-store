@@ -11,11 +11,19 @@ export const t = (v: I18n, l: Locale): string => v[l] ?? v.en;
 export type DriverCategory =
   | "Hosting" | "Data" | "Integration" | "AI" | "Network" | "Dev" | "Automation";
 
+export type ServiceIconName =
+  | "edge"
+  | "database"
+  | "event-bus"
+  | "object-storage"
+  | "neural-media"
+  | "secure-route";
+
 export interface Driver {
   id: string;
   name: string; // brand/technical name — not translated
   category: DriverCategory;
-  icon: string; // emoji, self-contained (no external asset)
+  icon: ServiceIconName; // semantic Shimpz glyph; rendered as a code-native SVG
   brand?: string; // official BRAND COLOR (recognition) for third-party Services — not a reproduced logo
   summary: I18n; // one line, human-readable
   blurb: I18n; // a paragraph
@@ -26,7 +34,7 @@ export interface Driver {
 
 export const DRIVERS: Driver[] = [
   {
-    id: "cloudflare", name: "Cloudflare", category: "Hosting", icon: "☁️", brand: "#F38020",
+    id: "cloudflare", name: "Cloudflare", category: "Hosting", icon: "edge", brand: "#F38020",
     summary: { en: "Publish an operator-managed workload to its own domain.", pt: "Publica um workload gerenciado pelo operador no próprio domínio." },
     blurb: {
       en: "The platform Brain's deployment tooling creates DNS, a Cloudflare Tunnel route and Zero-Trust access for an operator-managed workload, scoped to its own <slug>.grid.shimpz.com.",
@@ -46,7 +54,7 @@ export const DRIVERS: Driver[] = [
     ],
   },
   {
-    id: "postgres", name: "Postgres", category: "Data", icon: "🐘", brand: "#336791",
+    id: "postgres", name: "Postgres", category: "Data", icon: "database", brand: "#336791",
     summary: { en: "Provision an isolated database for one admitted workload.", pt: "Provisiona um banco isolado para um workload admitido." },
     blurb: {
       en: "The current internal lifecycle can provision one least-privilege Postgres database (proj_<name>) per admitted workload. Assistant Spec v1 does not claim this binding until its Capsule controller enforces it.",
@@ -66,7 +74,7 @@ export const DRIVERS: Driver[] = [
     ],
   },
   {
-    id: "bus", name: "Event Bus", category: "Integration", icon: "🐼", brand: "#E4462B",
+    id: "bus", name: "Event Bus", category: "Integration", icon: "event-bus", brand: "#E4462B",
     summary: { en: "Async events, queues and retries.", pt: "Eventos async, filas e retries." },
     blurb: {
       en: "The existing workspace runtime publishes and consumes events with at-least-once delivery, a dead-letter queue and retries. Capsule Assistants are not connected to this bus yet.",
@@ -86,7 +94,7 @@ export const DRIVERS: Driver[] = [
     ],
   },
   {
-    id: "storage", name: "Object Storage", category: "Data", icon: "📦", brand: "#F6821F",
+    id: "storage", name: "Object Storage", category: "Data", icon: "object-storage", brand: "#F6821F",
     summary: { en: "Brain-side artifact storage and share links.", pt: "Armazenamento de artefatos e links para o Cérebro." },
     blurb: {
       en: "The platform Brain uses the audited R2 sidecar to upload, list and retrieve artifacts. This operator-managed capability is not exposed as an Assistant permission.",
@@ -104,7 +112,7 @@ export const DRIVERS: Driver[] = [
     ],
   },
   {
-    id: "openai", name: "OpenAI", category: "AI", icon: "🧠", brand: "#10A37F",
+    id: "openai", name: "OpenAI", category: "AI", icon: "neural-media", brand: "#10A37F",
     summary: { en: "Platform media generation and voice processing.", pt: "Geração de mídia e processamento de voz da plataforma." },
     blurb: {
       en: "The platform Brain's image tool and Telegram voice gateway call the audited OpenAI sidecar. This media capability is not exposed as an Assistant permission.",
@@ -123,7 +131,7 @@ export const DRIVERS: Driver[] = [
     ],
   },
   {
-    id: "proxy", name: "Residential Proxy", category: "Network", icon: "🛰️",
+    id: "proxy", name: "Residential Proxy", category: "Network", icon: "secure-route",
     summary: { en: "Optional residential egress for the platform Browser.", pt: "Egress residencial opcional para o Browser da plataforma." },
     blurb: {
       en: "When the operator configures IPRoyal credentials, the Browser container routes Chrome through that residential upstream. This is a Browser setting, not an Assistant egress permission.",
