@@ -43,7 +43,9 @@ _EMBED_SECURITY_HEADERS = (
     _COMMON_SECURITY_HEADERS[0],
     (
         b"content-security-policy",
-        _CSP_PREFIX + b"frame-ancestors http://127.0.0.1:* http://localhost:*; " + _CSP_SUFFIX,
+        _CSP_PREFIX
+        + b"frame-ancestors http://127.0.0.1:* http://localhost:* http://[::1]:*; "
+        + _CSP_SUFFIX,
     ),
     _COMMON_SECURITY_HEADERS[1],
     _COMMON_SECURITY_HEADERS[2],

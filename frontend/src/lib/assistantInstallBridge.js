@@ -1,12 +1,19 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const REQUEST_KEYS = Object.freeze(["assistant", "type", "version"]);
 const ACK_KEYS = Object.freeze(["accepted", "assistant", "type", "version"]);
+const FRAME_KEYS = Object.freeze(["height", "type", "version"]);
+const CONTEXT_KEYS = Object.freeze(["type", "version"]);
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 export const ASSISTANT_INSTALL_TYPE = "shimpz:assistant-install";
 export const ASSISTANT_INSTALL_ACK_TYPE = "shimpz:assistant-install-ack";
 export const ASSISTANT_INSTALL_VERSION = 1;
 export const ASSISTANT_INSTALL_ACK_TIMEOUT_MS = 3000;
+export const ASSISTANT_STORE_FRAME_TYPE = "shimpz:assistant-store-frame";
+export const ASSISTANT_STORE_CONTEXT_TYPE = "shimpz:assistant-store-context";
+export const ASSISTANT_STORE_FRAME_VERSION = 1;
+export const ASSISTANT_STORE_FRAME_MIN_HEIGHT = 320;
+export const ASSISTANT_STORE_FRAME_MAX_HEIGHT = 5000;
 
 /**
  * @param {unknown} value
@@ -33,6 +40,57 @@ export function resolveInstallParentOrigin(referrer) {
     throw new Error("unexpected local Admin origin");
   }
   return parent.origin;
+}
+
+/** Create the exact inert frame measurement sent to a local Admin parent. */
+export function createAssistantStoreFrameMessage(height) {
+  if (typeof height !== "number" || !Number.isFinite(height)) {
+    throw new Error("invalid Assistant Store frame height");
+  }
+  const boundedHeight = Math.min(
+    ASSISTANT_STORE_FRAME_MAX_HEIGHT,
+    Math.max(ASSISTANT_STORE_FRAME_MIN_HEIGHT, Math.ceil(height)),
+  );
+  const message = {
+    type: ASSISTANT_STORE_FRAME_TYPE,
+    version: ASSISTANT_STORE_FRAME_VERSION,
+    height: boundedHeight,
+  };
+  if (!hasExactKeys(message, FRAME_KEYS)) throw new Error("invalid Assistant Store frame message");
+  return message;
+}
+
+/**
+ * Accept the exact context reply only from the current parent window at an HTTP loopback origin.
+ * The returned origin is safe to use as the exact targetOrigin for the existing install request.
+ */
+export function acceptAssistantStoreContext(event, parentWindow) {
+  if (!event || !parentWindow || event.source !== parentWindow) return null;
+  const data = event.data;
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
+  if (!hasExactKeys(data, CONTEXT_KEYS)) return null;
+  if (
+    data.type !== ASSISTANT_STORE_CONTEXT_TYPE ||
+    data.version !== ASSISTANT_STORE_FRAME_VERSION ||
+    typeof event.origin !== "string"
+  ) {
+    return null;
+  }
+  try {
+    const parent = new URL(event.origin);
+    if (
+      parent.origin !== event.origin ||
+      parent.protocol !== "http:" ||
+      !LOOPBACK_HOSTS.has(parent.hostname) ||
+      parent.username ||
+      parent.password
+    ) {
+      return null;
+    }
+    return parent.origin;
+  } catch {
+    return null;
+  }
 }
 
 /** @param {string} assistant */
