@@ -911,6 +911,8 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                 self._json(409, {"detail": "generation mismatch"})
             else:
                 self._json(200, {"deleted": True, "generation": 7})
+        elif self.path == "/v1/capsules/cap-codex/brain/login/cancel":
+            self._json(200, {"provider": "codex", "mode": "device_code", "cancelled": True})
         elif self.path.startswith("/v1/capsules/") and self.path.endswith("/create"):
             self._json(201, {"created": True, **body})
         else:
@@ -1008,6 +1010,19 @@ def test_capsule_create_forwards_the_account_scoped_model_to_the_real_control_pl
             {"name": "Astra", "brain": "codex", "model": "gpt-5.2-codex"},
         )
     ]
+
+
+def test_codex_device_login_cancel_is_forwarded_as_a_post():
+    with _brain_control_plane() as calls, TestClient(app) as client:
+        client.cookies.set(ACCOUNT_COOKIE, "valid-token")
+        response = client.post("/api/capsules/cap-codex/brain/login/cancel")
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "codex",
+        "mode": "device_code",
+        "cancelled": True,
+    }
+    assert ("POST", "/v1/capsules/cap-codex/brain/login/cancel", {}) in calls
 
 
 def test_capsule_ids_bind_the_complete_account_and_normalized_name():

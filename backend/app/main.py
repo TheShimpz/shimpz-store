@@ -890,18 +890,18 @@ async def capsule_brain_configure(request: Request, cid: str) -> JSONResponse:
 @app.get("/api/capsules/{cid}/brain/login/url")
 @app.post("/api/capsules/{cid}/brain/login/code")
 @app.get("/api/capsules/{cid}/brain/login/status")
+@app.post("/api/capsules/{cid}/brain/login/cancel")
 async def capsule_brain_login(request: Request, cid: str) -> JSONResponse:
-    """Forward the per-Capsule Claude-subscription OAuth bridge.
+    """Forward the per-Capsule provider OAuth bridge.
 
-    This is the admin panel's exact Captain-facing flow: start, poll the URL, authorize in the browser,
-    paste the code, and observe the status flip. The capsule-driver executes the fixed `shimpz-login`
-    inside the Captain's own Capsule.
+    Claude returns an authorization URL and accepts its callback code. Codex returns a device user
+    code that is entered only on OpenAI's website; cancel stops that bounded background writer.
     """
     token, _, _ = await _authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     step = request.url.path.rsplit("/", 1)[-1]
-    method = "POST" if step in ("start", "code") else "GET"
+    method = "POST" if step in ("start", "code", "cancel") else "GET"
     payload = {}
     if step == "code":
         try:
