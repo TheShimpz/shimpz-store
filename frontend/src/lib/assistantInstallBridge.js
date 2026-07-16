@@ -42,7 +42,10 @@ export function resolveInstallParentOrigin(referrer) {
   return parent.origin;
 }
 
-/** Create the exact inert frame measurement sent to a local Admin parent. */
+/**
+ * Create the exact inert frame measurement sent to a local Admin parent.
+ * @param {number} height
+ */
 export function createAssistantStoreFrameMessage(height) {
   if (typeof height !== "number" || !Number.isFinite(height)) {
     throw new Error("invalid Assistant Store frame height");
@@ -63,15 +66,18 @@ export function createAssistantStoreFrameMessage(height) {
 /**
  * Accept the exact context reply only from the current parent window at an HTTP loopback origin.
  * The returned origin is safe to use as the exact targetOrigin for the existing install request.
+ * @param {{ source?: unknown, origin?: unknown, data?: unknown } | null | undefined} event
+ * @param {unknown} parentWindow
  */
 export function acceptAssistantStoreContext(event, parentWindow) {
   if (!event || !parentWindow || event.source !== parentWindow) return null;
   const data = event.data;
   if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
   if (!hasExactKeys(data, CONTEXT_KEYS)) return null;
+  const value = /** @type {Record<string, unknown>} */ (data);
   if (
-    data.type !== ASSISTANT_STORE_CONTEXT_TYPE ||
-    data.version !== ASSISTANT_STORE_FRAME_VERSION ||
+    value.type !== ASSISTANT_STORE_CONTEXT_TYPE ||
+    value.version !== ASSISTANT_STORE_FRAME_VERSION ||
     typeof event.origin !== "string"
   ) {
     return null;

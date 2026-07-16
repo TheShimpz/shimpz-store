@@ -312,6 +312,18 @@ const D: Dict = {
     en: "The local Admin did not accept this request. Refresh and try again.",
     pt: "O Admin local não aceitou este pedido. Atualize e tente novamente.",
   },
+  assistants_admin_connecting: {
+    en: "Connecting to local Admin…",
+    pt: "Conectando ao Admin local…",
+  },
+  assistants_admin_connection_failed: {
+    en: "The local Admin connection is not ready yet.",
+    pt: "A conexão com o Admin local ainda não está pronta.",
+  },
+  assistants_admin_connection_retry: {
+    en: "Retry connection",
+    pt: "Tentar conexão novamente",
+  },
   assistants_local_setup: { en: "Need a local Space first?", pt: "Ainda precisa de um Space local?" },
   assistants_local_setup_help: {
     en: "Install Shimpz, create your Admin password and return to Assistants. The Admin will ask which Capsule should receive Hello Pulse.",

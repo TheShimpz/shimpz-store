@@ -33,6 +33,26 @@ test("resolves only exact HTTP loopback Admin origins from the iframe referrer",
   }
 });
 
+test("keeps the validated referrer fallback compatible with an Admin that has no context handshake", () => {
+  const parentWindow = {};
+  const parentOrigin = resolveInstallParentOrigin("http://localhost:7777/assistants/");
+  const data = {
+    type: ASSISTANT_INSTALL_ACK_TYPE,
+    version: 1,
+    assistant: "hello-pulse",
+    accepted: true,
+  };
+
+  assert.equal(parentOrigin, "http://localhost:7777");
+  assert.equal(
+    classifyAssistantInstallAck(
+      { source: parentWindow, origin: parentOrigin, data },
+      { parentWindow, parentOrigin, assistant: "hello-pulse" },
+    ),
+    "accepted",
+  );
+});
+
 test("creates the exact inert Assistant install request", () => {
   assert.deepEqual(createAssistantInstallRequest("hello-pulse"), {
     type: "shimpz:assistant-install",

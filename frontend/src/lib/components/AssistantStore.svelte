@@ -5,7 +5,9 @@
   import { u } from "$lib/url";
   import {
     ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
+    acceptAssistantStoreContext,
     classifyAssistantInstallAck,
+    createAssistantStoreFrameMessage,
     createAssistantInstallRequest,
     resolveInstallParentOrigin,
   } from "$lib/assistantInstallBridge.js";
@@ -15,11 +17,17 @@
   import PageIntro from "$lib/components/PageIntro.svelte";
 
   type InstallState = "idle" | "pending" | "sent" | "error";
+  type ContextState = "connecting" | "ready" | "error";
   type PendingInstall = { parentOrigin: string; timeout: ReturnType<typeof setTimeout> };
 
   let { lang, embedded = false }: { lang: Locale; embedded?: boolean } = $props();
   let installStates = $state<Record<string, InstallState>>({});
+  let contextState = $state<ContextState>("connecting");
+  let parentOrigin = $state("");
+  let storeElement = $state<HTMLElement>();
   const pendingInstalls = new Map<string, PendingInstall>();
+  let contextTimeout: ReturnType<typeof setTimeout> | undefined;
+  let frameRequest = 0;
 
   function installState(assistant: string): InstallState {
     return installStates[assistant] ?? "idle";
@@ -40,7 +48,7 @@
     if (pendingInstalls.has(assistant)) return;
     try {
       if (window.parent === window) throw new Error("not embedded");
-      const parentOrigin = resolveInstallParentOrigin(document.referrer);
+      if (!parentOrigin) throw new Error("local Admin context unavailable");
       const request = createAssistantInstallRequest(assistant);
       setInstallState(assistant, "pending");
       window.parent.postMessage(request, parentOrigin);
@@ -54,7 +62,47 @@
     }
   }
 
-  function receiveInstallAck(event: MessageEvent) {
+  function measureFrameHeight(): number {
+    const contentBottom = storeElement
+      ? storeElement.getBoundingClientRect().bottom + window.scrollY + 32
+      : 0;
+    return contentBottom;
+  }
+
+  function emitFrameMeasurement() {
+    if (!embedded || window.parent === window) return;
+    window.parent.postMessage(createAssistantStoreFrameMessage(measureFrameHeight()), "*");
+  }
+
+  function scheduleFrameMeasurement() {
+    if (frameRequest) cancelAnimationFrame(frameRequest);
+    frameRequest = requestAnimationFrame(() => {
+      frameRequest = 0;
+      emitFrameMeasurement();
+    });
+  }
+
+  function requestAdminContext() {
+    if (!embedded || window.parent === window) return;
+    if (!parentOrigin) contextState = "connecting";
+    emitFrameMeasurement();
+    if (parentOrigin) return;
+    if (contextTimeout) clearTimeout(contextTimeout);
+    contextTimeout = setTimeout(() => {
+      if (!parentOrigin) contextState = "error";
+    }, ASSISTANT_INSTALL_ACK_TIMEOUT_MS);
+  }
+
+  function receiveStoreMessage(event: MessageEvent) {
+    const contextOrigin = acceptAssistantStoreContext(event, window.parent);
+    if (contextOrigin) {
+      parentOrigin = contextOrigin;
+      contextState = "ready";
+      if (contextTimeout) clearTimeout(contextTimeout);
+      contextTimeout = undefined;
+      return;
+    }
+
     const assistant =
       event.data && typeof event.data === "object" && typeof event.data.assistant === "string"
         ? event.data.assistant
@@ -71,30 +119,59 @@
   }
 
   onMount(() => {
-    window.addEventListener("message", receiveInstallAck);
+    window.addEventListener("message", receiveStoreMessage);
+    let mounted = true;
+    let resizeObserver: ResizeObserver | undefined;
+    if (embedded) {
+      // Rolling-deployment compatibility only: new Admin images establish the preferred explicit
+      // context handshake; old images still provide a strictly validated loopback referrer.
+      try {
+        parentOrigin = resolveInstallParentOrigin(document.referrer);
+        contextState = "ready";
+      } catch {
+        contextState = "connecting";
+      }
+
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(scheduleFrameMeasurement);
+        if (storeElement) resizeObserver.observe(storeElement);
+      }
+      requestAdminContext();
+      scheduleFrameMeasurement();
+      void document.fonts?.ready.then(() => {
+        if (mounted) scheduleFrameMeasurement();
+      });
+    }
     return () => {
-      window.removeEventListener("message", receiveInstallAck);
+      mounted = false;
+      window.removeEventListener("message", receiveStoreMessage);
+      resizeObserver?.disconnect();
+      if (frameRequest) cancelAnimationFrame(frameRequest);
+      if (contextTimeout) clearTimeout(contextTimeout);
       for (const pending of pendingInstalls.values()) clearTimeout(pending.timeout);
       pendingInstalls.clear();
     };
   });
 </script>
 
-<section class:embedded class="wrap assistants-page" aria-labelledby="assistants-title">
-  {#if embedded}
-    <header class="store-intro">
-      <div>
-        <p class="kicker">{tr("assistants_preview", lang)}</p>
-        <h1 id="assistants-title">{tr("assistants_title", lang)}</h1>
-      </div>
-      <span><strong>{ASSISTANT_CATALOG.length}</strong> {tr("assistants_available_count", lang)}</span>
-    </header>
-  {:else}
-    <PageIntro
-      headingId="assistants-title"
-      kicker={tr("assistants_preview", lang)}
-      title={tr("assistants_title", lang)}
-      description={tr("assistants_lead", lang)} />
+<section
+  bind:this={storeElement}
+  class:embedded
+  class="wrap assistants-page"
+  aria-labelledby="assistants-title">
+  <PageIntro
+    headingId="assistants-title"
+    kicker={tr("assistants_preview", lang)}
+    title={tr("assistants_title", lang)}
+    description={tr("assistants_lead", lang)} />
+
+  {#if embedded && contextState === "error"}
+    <div class="context-error" role="alert">
+      <span>{tr("assistants_admin_connection_failed", lang)}</span>
+      <button type="button" onclick={requestAdminContext}>
+        {tr("assistants_admin_connection_retry", lang)}
+      </button>
+    </div>
   {/if}
 
   <div class="assistant-grid">
@@ -123,10 +200,17 @@
             <button
               class="btn-primary install-action"
               type="button"
-              disabled={installState(assistant.id) === "pending"}
+              disabled={contextState !== "ready" || installState(assistant.id) === "pending"}
               onclick={() => requestInstall(assistant.id)}>
               <HudIcon name="add" size={17} />
-              {tr(installState(assistant.id) === "pending" ? "assistants_request_waiting" : "assistants_install_local", lang)}
+              {tr(
+                installState(assistant.id) === "pending"
+                  ? "assistants_request_waiting"
+                  : contextState === "ready"
+                    ? "assistants_install_local"
+                    : "assistants_admin_connecting",
+                lang,
+              )}
             </button>
           {:else}
             <a
@@ -165,20 +249,7 @@
 
 <style>
   .assistants-page { padding-top: 2.5rem; }
-  .assistants-page.embedded { width: min(100% - 1.25rem, 1180px); padding-top: 1rem; }
-  .store-intro {
-    display: flex;
-    min-height: 4.5rem;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1rem;
-    border-bottom: 1px solid var(--color-border);
-    padding: 0.25rem 0 0.85rem;
-  }
-  .store-intro .kicker { margin: 0 0 0.2rem; font-size: 0.58rem; }
-  .store-intro h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.25rem); line-height: 1; }
-  .store-intro > span { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase; }
-  .store-intro > span strong { color: var(--color-cyan); }
+  .assistants-page.embedded { padding-top: 0.5rem; }
 
   .assistant-grid {
     display: grid;
@@ -233,6 +304,32 @@
   .install-action { width: 100%; min-height: 2.5rem; border: 0; padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.62rem; }
   .install-status { margin: 0.55rem 0 0; color: var(--color-green); font-size: 0.68rem; line-height: 1.45; }
   .install-status.error { color: var(--color-danger); }
+  .context-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    border-left: 2px solid var(--color-danger);
+    padding: 0.65rem 0.75rem;
+    background: color-mix(in oklab, var(--color-danger) 5%, #000);
+    color: var(--color-danger);
+    font-size: 0.68rem;
+    line-height: 1.45;
+  }
+  .context-error button {
+    min-height: 2rem;
+    border: 1px solid color-mix(in oklab, var(--color-danger) 55%, var(--color-border));
+    padding: 0 0.65rem;
+    background: #000;
+    color: var(--color-danger);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
 
   .local-setup {
     display: grid;
@@ -253,9 +350,9 @@
     .local-setup { grid-template-columns: 1fr; }
   }
   @media (max-width: 540px) {
-    .store-intro { align-items: flex-start; flex-direction: column; }
     .assistant-grid { grid-template-columns: 1fr; }
     .assistant-card { min-height: 16.5rem; }
+    .context-error { align-items: stretch; flex-direction: column; }
   }
   @media (prefers-reduced-motion: reduce) {
     .assistant-card { transition: none; }
