@@ -384,6 +384,18 @@ const D: Dict = {
   },
   brain_configure: { en: "Sign in with Claude", pt: "Entrar com Claude" },
   brain_starting: { en: "Starting the login bridge…", pt: "Iniciando a ponte de login…" },
+  brain_login_start_failed: {
+    en: "The login bridge could not start. Try again.",
+    pt: "A ponte de login não pôde iniciar. Tente novamente.",
+  },
+  brain_login_status_failed: {
+    en: "The login bridge stopped responding. Start again.",
+    pt: "A ponte de login parou de responder. Inicie novamente.",
+  },
+  brain_login_timeout: {
+    en: "The authorization link did not arrive in time. Start again.",
+    pt: "O link de autorização não chegou a tempo. Inicie novamente.",
+  },
   brain_open_url: { en: "1 · Open and authorize", pt: "1 · Abrir e autorizar" },
   brain_paste_code: { en: "2 · Paste the code here", pt: "2 · Cole o código aqui" },
   brain_submit_code: { en: "Connect", pt: "Conectar" },

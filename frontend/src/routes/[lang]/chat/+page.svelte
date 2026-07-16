@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
+  import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
@@ -74,15 +75,19 @@
     return "✗ " + (detail || "error");
   }
 
-  function connectWs() {
-    ws?.close();
+  function connectWs(cid = selected) {
+    const previous = ws;
+    ws = null;
+    previous?.close();
     wsReady = false;
-    if (!selected) return;
+    if (!cid || selected !== cid) return;
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
-    const sock = new WebSocket(`${proto}${location.host}/api/capsules/${selected}/ws`);
-    sock.onopen = () => (wsReady = true);
+    const sock = new WebSocket(`${proto}${location.host}/api/capsules/${cid}/ws`);
+    sock.onopen = () => {
+      if (ws === sock && selected === cid) wsReady = true;
+    };
     sock.onclose = () => {
-      if (ws !== sock) return;
+      if (ws !== sock || selected !== cid) return;
       wsReady = false;
       ws = null;
       if (busy) {
@@ -94,6 +99,7 @@
       }
     };
     sock.onmessage = (ev) => {
+      if (ws !== sock || selected !== cid) return;
       let m: any = {};
       try {
         m = JSON.parse(ev.data);
@@ -154,6 +160,7 @@
   let configureBusy = $state(false);
   let configureErr = $state("");
   let accountBrainsAvailable = $state(false);
+  let oauthAttempt = 0;
 
   async function applyAccountBrain() {
     if (!selected || configureBusy) return;
@@ -174,27 +181,49 @@
   }
 
   async function startOauth() {
+    if (!selected || oauthPhase === "starting" || oauthPhase === "checking") return;
+    const cid = selected;
+    const attempt = ++oauthAttempt;
     oauthPhase = "starting";
     oauthUrl = "";
     oauthCode = "";
-    await fetch(`/api/capsules/${selected}/brain/login/start`, { method: "POST" }).catch(() => null);
-    for (let i = 0; i < 20 && oauthPhase === "starting"; i++) {
+    oauthErr = "";
+    const startResponse = await fetch(`/api/capsules/${cid}/brain/login/start`, { method: "POST" }).catch(() => null);
+    const startResult = await startResponse?.json().catch(() => ({}));
+    if (!startResponse?.ok) {
+      oauthErr = startResult?.detail ?? startResult?.error ?? tr("brain_login_start_failed", lang);
+      oauthPhase = "err";
+      return;
+    }
+    for (let i = 0; i < 20 && oauthPhase === "starting" && attempt === oauthAttempt && selected === cid; i++) {
       await new Promise((done) => setTimeout(done, 1500));
-      const d = (await fetch(`/api/capsules/${selected}/brain/login/url`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as { url?: string };
+      if (attempt !== oauthAttempt || selected !== cid) return;
+      const response = await fetch(`/api/capsules/${cid}/brain/login/url`).catch(() => null);
+      const d = await response?.json().catch(() => ({}));
+      if (!response?.ok) {
+        oauthErr = d?.detail ?? d?.error ?? tr("brain_login_status_failed", lang);
+        oauthPhase = "err";
+        return;
+      }
       if (d.url) {
         oauthUrl = d.url;
         oauthPhase = "url";
         return;
       }
     }
-    if (oauthPhase === "starting") oauthPhase = "err";
+    if (oauthPhase === "starting" && attempt === oauthAttempt) {
+      oauthErr = tr("brain_login_timeout", lang);
+      oauthPhase = "err";
+    }
   }
 
   async function submitOauthCode() {
-    if (!oauthCode.trim()) return;
+    if (!oauthCode.trim() || !selected) return;
+    const cid = selected;
+    const attempt = oauthAttempt;
     oauthPhase = "checking";
     oauthErr = "";
-    const r = await fetch(`/api/capsules/${selected}/brain/login/code`, {
+    const r = await fetch(`/api/capsules/${cid}/brain/login/code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: oauthCode.trim() }),
@@ -202,9 +231,16 @@
     const d = await r?.json().catch(() => ({}));
     if (r?.ok && d?.ok) {
       let last: any = {};
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 10 && attempt === oauthAttempt && selected === cid; i++) {
         await new Promise((done) => setTimeout(done, 1200));
-        last = await fetch(`/api/capsules/${selected}/brain/login/status`).then((x) => (x.ok ? x.json() : {})).catch(() => ({}));
+        if (attempt !== oauthAttempt || selected !== cid) return;
+        const statusResponse = await fetch(`/api/capsules/${cid}/brain/login/status`).catch(() => null);
+        last = await statusResponse?.json().catch(() => ({}));
+        if (!statusResponse?.ok) {
+          oauthErr = last?.detail ?? last?.error ?? tr("brain_login_status_failed", lang);
+          oauthPhase = "err";
+          return;
+        }
         if (last.loggedIn) break;
       }
       if (last.loggedIn) {
@@ -239,19 +275,57 @@
   }
 
   async function loadCapsuleContext() {
+    const cid = selected;
     brain = null;
     crew = [];
-    if (!selected) return;
-    localStorage.setItem(SEL_KEY, selected);
-    const name = capsules.find((c) => c.id === selected)?.name ?? selected;
+    if (!cid) return;
+    localStorage.setItem(SEL_KEY, cid);
+    const name = capsules.find((c) => c.id === cid)?.name ?? cid;
     localStorage.setItem(SEL_KEY + "_name", name);
     const [b, a] = await Promise.all([
-      fetch(`/api/capsules/${selected}/brain`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch(`/api/capsules/${selected}/apps`).then((r) => (r.ok ? r.json() : { apps: [] })).catch(() => ({ apps: [] })),
+      fetch(`/api/capsules/${cid}/brain`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`/api/capsules/${cid}/apps`).then((r) => (r.ok ? r.json() : { apps: [] })).catch(() => ({ apps: [] })),
     ]);
+    if (selected !== cid) return;
     brain = b;
     crew = a.apps ?? [];
-    connectWs();
+    connectWs(cid);
+  }
+
+  function resetCapsuleSession() {
+    oauthAttempt += 1;
+    oauthPhase = "idle";
+    oauthUrl = "";
+    oauthCode = "";
+    oauthErr = "";
+    configureErr = "";
+    const previous = ws;
+    ws = null;
+    previous?.close();
+    wsReady = false;
+    busy = false;
+    status = "";
+    messages = [];
+    draft = "";
+  }
+
+  async function changeCapsule(next: string, updateUrl = true) {
+    if (!capsules.some((capsule) => capsule.id === next) || next === selected) return;
+    resetCapsuleSession();
+    selected = next;
+    if (updateUrl) {
+      await goto(u.chat(lang, next), { keepFocus: true, noScroll: true });
+    }
+    await loadCapsuleContext();
+  }
+
+  function syncCapsuleFromUrl() {
+    if (phase !== "ready" || location.pathname !== u.chat(lang)) return;
+    const requested = new URL(location.href).searchParams.get("capsule") ?? "";
+    const next = capsules.some((capsule) => capsule.id === requested) ? requested : capsules[0]?.id ?? "";
+    if (!next) return;
+    if (requested !== next) history.replaceState(history.state, "", u.chat(lang, next));
+    if (next !== selected) void changeCapsule(next, false);
   }
 
   async function boot() {
@@ -271,8 +345,14 @@
       phase = "none";
       return;
     }
+    const requested = new URL(location.href).searchParams.get("capsule") ?? "";
     const stored = localStorage.getItem(SEL_KEY) ?? "";
-    selected = capsules.some((c) => c.id === stored) ? stored : capsules[0].id;
+    selected = capsules.some((c) => c.id === requested)
+      ? requested
+      : capsules.some((c) => c.id === stored)
+        ? stored
+        : capsules[0].id;
+    if (requested !== selected) history.replaceState(history.state, "", u.chat(lang, selected));
     await loadCapsuleContext();
     phase = "ready";
   }
@@ -350,6 +430,8 @@
   onDestroy(() => ws?.close());
 </script>
 
+<svelte:window onpopstate={syncCapsuleFromUrl} />
+
 <Seo title={tr("chat_title", lang)} description={tr("chat_lead", lang)} {lang} />
 
 <section class="wrap pt-10 pb-16">
@@ -371,12 +453,8 @@
             <select
               class="field field-sm mt-2"
               aria-label={tr("my_capsules", lang)}
-              bind:value={selected}
-              onchange={() => {
-                oauthPhase = "idle";
-                configureErr = "";
-                loadCapsuleContext();
-              }}>
+              value={selected}
+              onchange={(event) => changeCapsule((event.currentTarget as HTMLSelectElement).value)}>
               {#each capsules as c (c.id)}<option value={c.id}>{c.name || c.id}</option>{/each}
             </select>
             {#if brain}
@@ -423,7 +501,7 @@
               {/if}
               {#if oauthPhase === "idle" || oauthPhase === "err"}
                 {#if oauthPhase === "err"}
-                  <p class="text-xs" role="alert">{tr("brain_code_err", lang)}{#if oauthErr}<span class="mono block mt-1 opacity-80">{oauthErr}</span>{/if}</p>
+                  <p class="text-xs" role="alert">{oauthErr || tr("brain_code_err", lang)}</p>
                 {/if}
                 <button class="btn-ghost !py-2 text-sm" onclick={startOauth}>{tr("brain_configure", lang)}</button>
               {:else if oauthPhase === "starting"}
