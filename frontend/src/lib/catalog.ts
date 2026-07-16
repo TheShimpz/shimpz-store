@@ -188,8 +188,8 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
     version: "0.1.0",
     creator: "julianoamg",
     summary: {
-      en: "A tiny first Assistant that turns a name into a real Capsule operation.",
-      pt: "Um primeiro Assistant mínimo que transforma um nome em uma operação real da Cápsula.",
+      en: "Validate a Capsule with one safe hello operation.",
+      pt: "Valide uma Cápsula com uma operação hello segura.",
     },
     description: {
       en: "Use Hello Pulse to validate the complete local install, invoke and uninstall flow without credentials, Services or internet access.",
