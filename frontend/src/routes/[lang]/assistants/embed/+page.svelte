@@ -14,4 +14,4 @@
   <link rel="canonical" href={`https://shimpz.com/${lang}/assistants`} />
 </svelte:head>
 
-<AssistantStore {lang} />
+<AssistantStore {lang} embedded />

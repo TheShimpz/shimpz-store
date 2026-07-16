@@ -262,16 +262,39 @@ const D: Dict = {
   what_it_does: { en: "What it does", pt: "O que faz" },
   features_title: { en: "Everything it does", pt: "Tudo que faz" },
   capabilities: { en: "capabilities", pt: "funcionalidades" },
-  // Assistants area — this describes the v1 contract, not a live marketplace or checkout.
+  // Assistants area — one free local evaluation listing plus the v1 creator contract.
   assistants_title: { en: "Assistants", pt: "Assistants" },
-  assistants_preview: { en: "Specification preview", pt: "Preview da especificação" },
+  assistants_preview: { en: "Assistant Store // local", pt: "Loja de Assistants // local" },
   assistants_lead: {
     en: "Capsule-native software that performs declared operations, follows opt-in routines, and collaborates through explicit capabilities.",
     pt: "Software nativo de Cápsula que executa operações declaradas, segue rotinas opt-in e colabora por capabilities explícitas.",
   },
   assistants_preview_notice: {
-    en: "Assistant Spec v1 and its developer workflow are in preview. Public installation is not available yet.",
-    pt: "A spec de Assistants v1 e seu fluxo de desenvolvimento estão em preview. A instalação pública ainda não está disponível.",
+    en: "Hello Pulse is free and installable from the local Admin. Checkout and paid listings are not part of this evaluation release.",
+    pt: "O Hello Pulse é gratuito e pode ser instalado pelo Admin local. Checkout e itens pagos não fazem parte desta versão de avaliação.",
+  },
+  assistants_available_kicker: { en: "Available now // free", pt: "Disponível agora // grátis" },
+  assistants_available_title: { en: "Meet the first Shimpz Assistant.", pt: "Conheça o primeiro Assistant do Shimpz." },
+  assistants_available_lead: {
+    en: "A deliberately small real workload for proving that your Capsule boundary and local install path work end to end.",
+    pt: "Um workload real propositalmente pequeno para provar de ponta a ponta o limite da Cápsula e o fluxo de instalação local.",
+  },
+  assistants_free: { en: "Free", pt: "Grátis" },
+  assistants_version: { en: "Version", pt: "Versão" },
+  assistants_architectures: { en: "Architectures", pt: "Arquiteturas" },
+  assistants_permissions: { en: "Permissions", pt: "Permissões" },
+  assistants_no_permissions: { en: "No Services, secrets or egress", pt: "Sem Services, secrets ou egress" },
+  assistants_operation: { en: "Operation", pt: "Operação" },
+  assistants_install_local: { en: "Install in local Admin", pt: "Instalar no Admin local" },
+  assistants_request_sent: { en: "Install request sent to your Admin.", pt: "Pedido de instalação enviado ao seu Admin." },
+  assistants_request_failed: {
+    en: "Open this Store from your local Admin to install.",
+    pt: "Abra esta Loja pelo seu Admin local para instalar.",
+  },
+  assistants_local_setup: { en: "Need a local Space first?", pt: "Ainda precisa de um Space local?" },
+  assistants_local_setup_help: {
+    en: "Install Shimpz, create your Admin password and return to Assistants. The Admin will ask which Capsule should receive Hello Pulse.",
+    pt: "Instale o Shimpz, crie sua senha do Admin e volte para Assistants. O Admin perguntará qual Cápsula deve receber o Hello Pulse.",
   },
   assistants_model_kicker: { en: "Assistant model // v1", pt: "Modelo de Assistant // v1" },
   assistants_model_title: { en: "Useful by design. Bounded by contract.", pt: "Útil por design. Limitado por contrato." },

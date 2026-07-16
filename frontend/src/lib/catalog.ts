@@ -158,6 +158,61 @@ export type Service = Driver;
 export const SERVICES: Service[] = DRIVERS;
 export const SERVICE_BY_ID = DRIVER_BY_ID;
 
+// ── Assistants (public presentation; execution policy remains controller-owned) ─────────────────
+// The Store intentionally exposes product facts only. Image references, digests, ports and runtime
+// privileges never enter browser code; the Capsule controller resolves an ID against its own trusted
+// registry. This keeps the public and embedded Store on one codebase without making it an authority.
+export interface AssistantOperation {
+  id: string;
+  name: I18n;
+  summary: I18n;
+}
+
+export interface AssistantListing {
+  id: string;
+  name: string;
+  version: string;
+  creator: string;
+  summary: I18n;
+  description: I18n;
+  price: "free";
+  archs: Arch[];
+  operations: AssistantOperation[];
+  permissions: string[];
+}
+
+export const ASSISTANT_CATALOG: AssistantListing[] = [
+  {
+    id: "hello-pulse",
+    name: "Hello Pulse",
+    version: "0.1.0",
+    creator: "julianoamg",
+    summary: {
+      en: "A tiny first Assistant that turns a name into a real Capsule operation.",
+      pt: "Um primeiro Assistant mínimo que transforma um nome em uma operação real da Cápsula.",
+    },
+    description: {
+      en: "Use Hello Pulse to validate the complete local install, invoke and uninstall flow without credentials, Services or internet access.",
+      pt: "Use o Hello Pulse para validar o fluxo local completo de instalação, execução e desinstalação sem credenciais, Services ou acesso à internet.",
+    },
+    price: "free",
+    archs: ["amd64", "arm64"],
+    operations: [
+      {
+        id: "hello",
+        name: { en: "Say hello", pt: "Dizer olá" },
+        summary: {
+          en: "Returns a typed greeting for one bounded name.",
+          pt: "Retorna uma saudação tipada para um nome limitado.",
+        },
+      },
+    ],
+    permissions: [],
+  },
+];
+
+export const ASSISTANT_BY_ID = new Map(ASSISTANT_CATALOG.map((assistant) => [assistant.id, assistant]));
+
 // ── Apps (legacy internal operational inventory only) ───────────────────────────────────────────
 // This type deliberately contains only deployment-policy facts. It has no public presentation,
 // publisher, pricing, review, or route metadata, and no rendered component imports APPS. Adding a

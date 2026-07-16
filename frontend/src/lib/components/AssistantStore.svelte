@@ -1,9 +1,29 @@
 <script lang="ts">
-  import type { Locale } from "$lib/catalog";
+  import { ASSISTANT_CATALOG, t, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
+  import HudIcon from "$lib/components/HudIcon.svelte";
+  import InstallCommand from "$lib/components/InstallCommand.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
 
-  let { lang }: { lang: Locale } = $props();
+  let { lang, embedded = false }: { lang: Locale; embedded?: boolean } = $props();
+  let installState = $state<"idle" | "sent" | "error">("idle");
+
+  function requestInstall(assistant: string) {
+    installState = "idle";
+    try {
+      if (window.parent === window || !document.referrer) throw new Error("not embedded");
+      const parent = new URL(document.referrer);
+      const loopback = parent.hostname === "127.0.0.1" || parent.hostname === "localhost" || parent.hostname === "[::1]";
+      if (parent.protocol !== "http:" || !loopback) throw new Error("unexpected parent");
+      window.parent.postMessage(
+        { type: "shimpz:assistant-install", version: 1, assistant },
+        parent.origin,
+      );
+      installState = "sent";
+    } catch {
+      installState = "error";
+    }
+  }
 
   const principles = [
     ["assistants_capsule_title", "assistants_capsule_body", "CAPSULE // 01"],
@@ -27,7 +47,80 @@
     title={tr("assistants_title", lang)}
     description={tr("assistants_lead", lang)} />
 
-  <p class="preview-notice"><span aria-hidden="true">PREVIEW</span>{tr("assistants_preview_notice", lang)}</p>
+  <p class="preview-notice"><span aria-hidden="true">FREE // EVAL</span>{tr("assistants_preview_notice", lang)}</p>
+
+  <section class="available" aria-labelledby="available-assistants-title">
+    <header class="section-copy">
+      <p class="kicker">{tr("assistants_available_kicker", lang)}</p>
+      <h2 id="available-assistants-title">{tr("assistants_available_title", lang)}</h2>
+      <p>{tr("assistants_available_lead", lang)}</p>
+    </header>
+
+    <div class="assistant-grid">
+      {#each ASSISTANT_CATALOG as assistant (assistant.id)}
+        <article class="assistant-card">
+          <div class="assistant-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 25h9l4-11 7 22 6-17 4 6h10" />
+              <path d="M8 8h32v32H8z" opacity=".45" />
+            </svg>
+          </div>
+          <div class="assistant-main">
+            <div class="assistant-title">
+              <div>
+                <p class="kicker">@{assistant.creator}</p>
+                <h3>{assistant.name}</h3>
+              </div>
+              <span class="free-badge">{tr("assistants_free", lang)}</span>
+            </div>
+            <p class="assistant-summary">{t(assistant.summary, lang)}</p>
+            <p class="assistant-description">{t(assistant.description, lang)}</p>
+
+            <dl class="assistant-facts">
+              <div><dt>{tr("assistants_version", lang)}</dt><dd>{assistant.version}</dd></div>
+              <div><dt>{tr("assistants_architectures", lang)}</dt><dd>{assistant.archs.join(" + ")}</dd></div>
+              <div><dt>{tr("assistants_permissions", lang)}</dt><dd>{tr("assistants_no_permissions", lang)}</dd></div>
+            </dl>
+
+            <div class="operation">
+              <span class="operation-icon" aria-hidden="true"><HudIcon name="retry" size={18} /></span>
+              <div>
+                <p class="kicker">{tr("assistants_operation", lang)} // {assistant.operations[0].id}</p>
+                <strong>{t(assistant.operations[0].name, lang)}</strong>
+                <small>{t(assistant.operations[0].summary, lang)}</small>
+              </div>
+            </div>
+
+            {#if embedded}
+              <button class="btn-primary install-action" type="button" onclick={() => requestInstall(assistant.id)}>
+                <HudIcon name="add" size={18} />{tr("assistants_install_local", lang)}
+              </button>
+            {:else}
+              <a class="btn-primary install-action" href="http://127.0.0.1:7777/assistants/" target="_blank" rel="noopener noreferrer">
+                <HudIcon name="add" size={18} />{tr("assistants_install_local", lang)}
+              </a>
+            {/if}
+            {#if installState !== "idle"}
+              <p class:error={installState === "error"} class="install-status" role={installState === "error" ? "alert" : "status"}>
+                {tr(installState === "sent" ? "assistants_request_sent" : "assistants_request_failed", lang)}
+              </p>
+            {/if}
+          </div>
+        </article>
+      {/each}
+    </div>
+
+    {#if !embedded}
+      <aside class="local-setup" aria-labelledby="local-setup-title">
+        <div>
+          <p class="kicker">LOCAL // 60 SECONDS</p>
+          <h3 id="local-setup-title">{tr("assistants_local_setup", lang)}</h3>
+          <p>{tr("assistants_local_setup_help", lang)}</p>
+        </div>
+        <InstallCommand {lang} />
+      </aside>
+    {/if}
+  </section>
 
   <section class="model" aria-labelledby="assistant-model-title">
     <header class="section-copy">
@@ -101,7 +194,90 @@
     font-size: 0.85rem;
   }
   .preview-notice span { color: var(--color-yellow); font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; }
+  .available { margin-top: clamp(3rem, 6vw, 5rem); }
   .model, .creator-panel, .future-grid { margin-top: clamp(4rem, 8vw, 7rem); }
+
+  .assistant-grid { margin-top: 2rem; }
+  .assistant-card {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: clamp(1.2rem, 4vw, 2.5rem);
+    padding: clamp(1.25rem, 4vw, 2.4rem);
+    background:
+      linear-gradient(120deg, color-mix(in oklab, var(--color-cyan) 8%, transparent), transparent 42%),
+      var(--color-card);
+    box-shadow: inset 3px 0 0 var(--color-cyan), inset 0 0 0 1px var(--color-border-strong);
+    clip-path: polygon(var(--cut-lg) 0, 100% 0, 100% calc(100% - var(--cut-lg)), calc(100% - var(--cut-lg)) 100%, 0 100%, 0 var(--cut-lg));
+  }
+  .assistant-mark {
+    display: grid;
+    width: 7.5rem;
+    height: 7.5rem;
+    place-items: center;
+    color: var(--color-cyan);
+    background: #000;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 55%, var(--color-border));
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  }
+  .assistant-mark svg { width: 4.4rem; filter: drop-shadow(0 0 9px rgba(0, 240, 255, 0.35)); }
+  .assistant-main { min-width: 0; }
+  .assistant-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .assistant-title .kicker { margin: 0 0 0.25rem; font-size: 0.58rem; }
+  .assistant-title h3 { margin: 0; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1; }
+  .free-badge {
+    padding: 0.35rem 0.6rem;
+    color: var(--color-green);
+    background: color-mix(in oklab, var(--color-green) 7%, #000);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 45%, var(--color-border));
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .assistant-summary { max-width: 52rem; margin: 1.1rem 0 0; color: var(--color-fg); font-size: 1rem; font-weight: 600; }
+  .assistant-description { max-width: 52rem; margin: 0.55rem 0 0; color: var(--color-muted); font-size: 0.86rem; line-height: 1.7; }
+  .assistant-facts {
+    display: grid;
+    grid-template-columns: 0.55fr 0.8fr 1.65fr;
+    margin: 1.3rem 0 0;
+    border-block: 1px solid var(--color-border);
+  }
+  .assistant-facts div { min-width: 0; padding: 0.75rem 0.8rem; border-right: 1px solid var(--color-border); }
+  .assistant-facts div:first-child { padding-left: 0; }
+  .assistant-facts div:last-child { border-right: 0; }
+  .assistant-facts dt { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .assistant-facts dd { margin: 0.25rem 0 0; color: var(--color-fg); font-size: 0.72rem; overflow-wrap: anywhere; }
+  .operation {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.8rem;
+    background: #000;
+    box-shadow: inset 0 0 0 1px var(--color-border);
+  }
+  .operation-icon { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; color: var(--color-yellow); background: var(--color-elevated); }
+  .operation .kicker { margin: 0; color: var(--color-yellow); font-size: 0.52rem; }
+  .operation strong { display: block; margin-top: 0.15rem; font-family: var(--font-mono); font-size: 0.8rem; }
+  .operation small { display: block; margin-top: 0.15rem; color: var(--color-muted); font-size: 0.7rem; }
+  .install-action { width: fit-content; margin-top: 1rem; border: 0; cursor: pointer; }
+  .install-status { margin: 0.65rem 0 0; color: var(--color-green); font-size: 0.74rem; }
+  .install-status.error { color: var(--color-danger); }
+  .local-setup {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.7fr) minmax(22rem, 1.3fr);
+    align-items: center;
+    gap: clamp(1.5rem, 5vw, 4rem);
+    margin-top: 1rem;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    background: var(--color-card);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+  }
+  .local-setup .kicker { margin: 0 0 0.35rem; }
+  .local-setup h3 { margin: 0; font-size: 1.2rem; }
+  .local-setup p:last-child { margin: 0.45rem 0 0; color: var(--color-muted); font-size: 0.8rem; line-height: 1.6; }
 
   .section-copy {
     display: grid;
@@ -191,8 +367,11 @@
     .principle-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 720px) {
-    .section-copy, .creator-panel, .future-grid { grid-template-columns: 1fr; }
+    .section-copy, .creator-panel, .future-grid, .local-setup { grid-template-columns: 1fr; }
     .section-copy > p:last-child { margin-top: 1rem; }
+    .assistant-card { grid-template-columns: 1fr; }
+    .assistant-mark { width: 5rem; height: 5rem; }
+    .assistant-mark svg { width: 3rem; }
   }
   @media (max-width: 520px) {
     .principle-grid { grid-template-columns: 1fr; }
@@ -200,5 +379,10 @@
     .principle-grid h3 { margin-top: 2rem; }
     .example ul { align-items: stretch; flex-direction: column; }
     .example li { overflow-wrap: anywhere; }
+    .assistant-title { align-items: flex-start; flex-direction: column; }
+    .assistant-facts { grid-template-columns: 1fr; }
+    .assistant-facts div, .assistant-facts div:first-child { border-right: 0; border-bottom: 1px solid var(--color-border); padding: 0.65rem 0; }
+    .assistant-facts div:last-child { border-bottom: 0; }
+    .install-action { width: 100%; }
   }
 </style>
