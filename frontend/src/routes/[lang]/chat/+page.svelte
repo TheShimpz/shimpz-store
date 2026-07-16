@@ -523,7 +523,7 @@
         <i aria-hidden="true"></i>
         {wsReady ? tr("chat_connection_live", lang) : tr("chat_connection_offline", lang)}
       </span>
-      <span class="badge">{crew.length} {tr("apps_menu", lang)}</span>
+      <span class="badge">{crew.length} {tr("chat_hosted_crew_count", lang)}</span>
     {/if}
   {/snippet}
 
@@ -661,6 +661,12 @@
           {:else}
             <p class="empty-crew">{tr("crew_empty", lang)}</p>
           {/if}
+          <div class="assistant-boundary">
+            <p>{tr("chat_local_assistant_boundary", lang)}</p>
+            <a href="http://127.0.0.1:7777/assistants/" target="_blank" rel="noopener noreferrer">
+              {tr("chat_open_local_admin", lang)} <span aria-hidden="true">↗</span>
+            </a>
+          </div>
         </section>
       </aside>
 
@@ -668,7 +674,7 @@
         <header class="conversation-header">
           <span class="conversation-avatar" aria-hidden="true"><HudIcon name="brain" size={24} /></span>
           <div>
-            <p class="kicker">{tr("chat_conversation", lang)}</p>
+            <p class="kicker">{tr("chat_brain_target", lang)}</p>
             <h2 id="conversation-title">{brain?.title || tr("brain_label", lang)}</h2>
           </div>
           <span class="conversation-status" class:online={wsReady && brain?.configured}>
@@ -983,6 +989,9 @@
   }
   .crew-list li > :global(svg) { color: var(--color-yellow); }
   .crew-list small { color: var(--color-muted-2); font-size: 0.56rem; text-transform: uppercase; }
+  .assistant-boundary { margin-top: 0.75rem; border-top: 1px solid var(--color-border); padding-top: 0.7rem; }
+  .assistant-boundary p { margin: 0; color: var(--color-muted); font-size: 0.68rem; line-height: 1.45; }
+  .assistant-boundary a { display: inline-block; margin-top: 0.45rem; color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 0.22em; }
 
   .conversation-shell {
     display: flex;
