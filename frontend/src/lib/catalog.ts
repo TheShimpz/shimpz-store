@@ -192,8 +192,8 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
       pt: "Valide uma Cápsula com uma operação hello segura.",
     },
     description: {
-      en: "Use Hello Pulse to validate the complete local install, invoke and uninstall flow without credentials, Services or internet access.",
-      pt: "Use o Hello Pulse para validar o fluxo local completo de instalação, execução e desinstalação sem credenciais, Services ou acesso à internet.",
+      en: "Use Hello Pulse to validate a complete contextual install, invoke and uninstall flow without credentials, Services or internet access.",
+      pt: "Use o Hello Pulse para validar um fluxo contextual completo de instalação, execução e desinstalação sem credenciais, Services ou acesso à internet.",
     },
     price: "free",
     archs: ["amd64", "arm64"],

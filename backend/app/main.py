@@ -331,11 +331,60 @@ WS_ALLOWED_ORIGINS = frozenset(
     for raw in os.environ.get("SHIMPZ_WS_ALLOWED_ORIGINS", "https://shimpz.com").split(",")
     if (origin := _canonical_origin(raw.strip())) is not None
 )
+ASSISTANT_MUTATION_ALLOWED_ORIGINS = WS_ALLOWED_ORIGINS
+CAPSULE_ID_RE = re.compile(r"^[a-z0-9_]{1,40}$")
+ASSISTANT_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+RELEASED_CLOUD_ASSISTANTS = frozenset({"hello-pulse"})
+PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
 
 
 def _ws_origin_allowed(origin: str | None) -> bool:
     canonical = _canonical_origin(origin)
     return canonical is not None and canonical in WS_ALLOWED_ORIGINS
+
+
+def _assistant_mutation_origin_allowed(origin: str | None) -> bool:
+    canonical = _canonical_origin(origin)
+    return canonical is not None and canonical in ASSISTANT_MUTATION_ALLOWED_ORIGINS
+
+
+def _private_json(content: dict, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(
+        content, status_code=status_code, headers=PRIVATE_NO_STORE_HEADERS
+    )
+
+
+def _canonical_capsule_id(value: object) -> str | None:
+    return (
+        value
+        if isinstance(value, str) and CAPSULE_ID_RE.fullmatch(value) is not None
+        else None
+    )
+
+
+def _canonical_assistant_id(value: object) -> str | None:
+    if (
+        not isinstance(value, str)
+        or len(value) > 80
+        or ASSISTANT_ID_RE.fullmatch(value) is None
+    ):
+        return None
+    return value
+
+
+def _released_assistant_inventory(data: object) -> list[str] | None:
+    if not isinstance(data, dict) or not isinstance(data.get("apps"), list):
+        return None
+    installed: list[str] = []
+    for item in data["apps"]:
+        if not isinstance(item, dict):
+            return None
+        assistant = item.get("app")
+        if assistant in RELEASED_CLOUD_ASSISTANTS:
+            if assistant in installed:
+                return None
+            installed.append(assistant)
+    return installed
 
 
 app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
@@ -851,6 +900,108 @@ async def capsule_uninstall(request: Request, cid: str, app_id: str) -> JSONResp
     )
     log.info("app_uninstall", account=account_id, capsule=cid, app=app_id, status=status)
     return JSONResponse(data, status_code=status)
+
+
+# ── Assistant Store cloud lifecycle (closed adapter over the legacy Capsule App plane) ──────────
+@app.get("/api/capsules/{cid}/assistants")
+async def cloud_assistants_list(request: Request, cid: str) -> JSONResponse:
+    token, _, _ = await _authed_account_bounded(request)
+    if not token:
+        return _private_json({"detail": "not authenticated"}, 401)
+    capsule_id = _canonical_capsule_id(cid)
+    if capsule_id is None:
+        return _private_json({"detail": "bad capsule id"}, 400)
+    status, data = await _bounded_call(
+        _CONTROL_EXECUTOR,
+        CAPSULEDRIVER_URL,
+        "GET",
+        f"/v1/capsules/{capsule_id}/apps",
+        extra={"X-Shimpz-Account": token},
+    )
+    if status != 200:
+        return _private_json(data, status)
+    installed = _released_assistant_inventory(data)
+    if installed is None:
+        log.warning("assistant_inventory_invalid", capsule=capsule_id)
+        return _private_json({"detail": "invalid Assistant inventory"}, 502)
+    return _private_json({"installed": installed})
+
+
+@app.post("/api/capsules/{cid}/assistants")
+async def cloud_assistant_install(request: Request, cid: str) -> JSONResponse:  # noqa: PLR0911
+    token, account_id, _ = await _authed_account_bounded(request)
+    if not token:
+        return _private_json({"detail": "not authenticated"}, 401)
+    if not _assistant_mutation_origin_allowed(request.headers.get("origin")):
+        return _private_json({"detail": "forbidden origin"}, 403)
+    if request.headers.get("content-type", "").strip().lower() != "application/json":
+        return _private_json({"detail": "Content-Type must be application/json"}, 415)
+    capsule_id = _canonical_capsule_id(cid)
+    if capsule_id is None:
+        return _private_json({"detail": "bad capsule id"}, 400)
+    try:
+        payload = await _read_bounded_json(request, MAX_CAPSULE_INSTALL_BODY_BYTES)
+    except ClientPayloadError as exc:
+        return _private_json({"detail": exc.detail}, exc.status)
+    if set(payload) != {"assistant"}:
+        return _private_json({"detail": "body must contain only assistant"}, 400)
+    assistant = _canonical_assistant_id(payload["assistant"])
+    if assistant not in RELEASED_CLOUD_ASSISTANTS:
+        return _private_json({"detail": "Assistant is not released"}, 404)
+    status, data = await _bounded_call(
+        _CONTROL_EXECUTOR,
+        CAPSULEDRIVER_URL,
+        "POST",
+        f"/v1/capsules/{capsule_id}/apps",
+        {"app": assistant},
+        {"X-Shimpz-Account": token},
+    )
+    log.info(
+        "assistant_install",
+        account=account_id,
+        capsule=capsule_id,
+        assistant=assistant,
+        status=status,
+    )
+    if not 200 <= status < 300:
+        return _private_json(data, status)
+    return _private_json({"assistant": assistant, "accepted": True})
+
+
+@app.delete("/api/capsules/{cid}/assistants/{assistant}")
+async def cloud_assistant_uninstall(  # noqa: PLR0911
+    request: Request, cid: str, assistant: str
+) -> JSONResponse:
+    token, account_id, _ = await _authed_account_bounded(request)
+    if not token:
+        return _private_json({"detail": "not authenticated"}, 401)
+    if not _assistant_mutation_origin_allowed(request.headers.get("origin")):
+        return _private_json({"detail": "forbidden origin"}, 403)
+    capsule_id = _canonical_capsule_id(cid)
+    assistant_id = _canonical_assistant_id(assistant)
+    if capsule_id is None:
+        return _private_json({"detail": "bad capsule id"}, 400)
+    if assistant_id is None:
+        return _private_json({"detail": "bad Assistant id"}, 400)
+    if assistant_id not in RELEASED_CLOUD_ASSISTANTS:
+        return _private_json({"detail": "Assistant is not released"}, 404)
+    status, data = await _bounded_call(
+        _CONTROL_EXECUTOR,
+        CAPSULEDRIVER_URL,
+        "DELETE",
+        f"/v1/capsules/{capsule_id}/apps/{assistant_id}",
+        extra={"X-Shimpz-Account": token},
+    )
+    log.info(
+        "assistant_uninstall",
+        account=account_id,
+        capsule=capsule_id,
+        assistant=assistant_id,
+        status=status,
+    )
+    if not 200 <= status < 300:
+        return _private_json(data, status)
+    return _private_json({"assistant": assistant_id, "accepted": True})
 
 
 # ── the Captain's chat (ADR-0004): forwarded to the capsule-driver's named exec ops ──────────────

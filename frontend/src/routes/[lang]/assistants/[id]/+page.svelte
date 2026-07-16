@@ -2,6 +2,7 @@
   import { t, type AssistantListing, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import { closedAssistantStoreHref } from "$lib/cloudAssistantLifecycle.js";
   import AssistantIcon from "$lib/components/AssistantIcon.svelte";
   import HudIcon from "$lib/components/HudIcon.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
@@ -66,10 +67,8 @@
       </dl>
       <a
         class="btn-primary install-link"
-        href="http://127.0.0.1:7777/assistants/"
-        target="_blank"
-        rel="noopener noreferrer">
-        <HudIcon name="add" size={18} />{tr("assistants_install_local", lang)}
+        href={closedAssistantStoreHref(lang, assistant.id)}>
+        <HudIcon name="add" size={18} />{tr("assistants_cloud_choose", lang)}
       </a>
     </aside>
   </div>

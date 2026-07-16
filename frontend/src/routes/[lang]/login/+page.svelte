@@ -4,6 +4,7 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
+  import { resolveClosedLoginReturn } from "$lib/cloudAssistantLifecycle.js";
   import Seo from "$lib/components/Seo.svelte";
   import ShimpzBrand from "$lib/components/ShimpzBrand.svelte";
 
@@ -17,9 +18,13 @@
   let busy = $state(false);
   let error = $state("");
 
+  function destinationAfterLogin(): string {
+    return resolveClosedLoginReturn(lang, window.location.search) ?? u.capsule(lang);
+  }
+
   onMount(async () => {
     const me = await fetch("/api/me").then((r) => r.json()).catch(() => ({}));
-    if (me.authenticated) goto(u.capsule(lang)); // already signed in → My Capsules
+    if (me.authenticated) goto(destinationAfterLogin());
   });
 
   function switchMode(m: "login" | "signup") {
@@ -39,7 +44,7 @@
         body: JSON.stringify(body),
       });
       if (r.ok) {
-        goto(u.capsule(lang));
+        goto(destinationAfterLogin());
       } else {
         const d = await r.json().catch(() => ({}));
         error = d.detail ?? d.error ?? "failed";

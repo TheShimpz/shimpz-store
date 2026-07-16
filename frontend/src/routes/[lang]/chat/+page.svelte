@@ -562,8 +562,8 @@
           {/if}
           <div class="assistant-boundary">
             <p>{tr("chat_local_assistant_boundary", lang)}</p>
-            <a href="http://127.0.0.1:7777/assistants/" target="_blank" rel="noopener noreferrer">
-              {tr("chat_open_local_admin", lang)} <span aria-hidden="true">↗</span>
+            <a href={u.assistants(lang)}>
+              {tr("chat_open_local_admin", lang)} <span aria-hidden="true">→</span>
             </a>
           </div>
         </section>

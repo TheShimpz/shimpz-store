@@ -274,22 +274,22 @@ const D: Dict = {
   what_it_does: { en: "What it does", pt: "O que faz" },
   features_title: { en: "Everything it does", pt: "Tudo que faz" },
   capabilities: { en: "capabilities", pt: "funcionalidades" },
-  // Assistants area — one free local evaluation listing plus the v1 creator contract.
+  // Assistants area — one free hybrid evaluation listing plus the v1 creator contract.
   assistants_title: { en: "Assistants", pt: "Assistants" },
-  assistants_preview: { en: "Assistant Store // local", pt: "Loja de Assistants // local" },
+  assistants_preview: { en: "Assistant Store // one catalog", pt: "Loja de Assistants // um catálogo" },
   assistants_lead: {
     en: "Capsule-native software that performs declared operations, follows opt-in routines, and collaborates through explicit capabilities.",
     pt: "Software nativo de Cápsula que executa operações declaradas, segue rotinas opt-in e colabora por capabilities explícitas.",
   },
   assistants_preview_notice: {
-    en: "Hello Pulse is free and installable from the local Admin. Checkout and paid listings are not part of this evaluation release.",
-    pt: "O Hello Pulse é gratuito e pode ser instalado pelo Admin local. Checkout e itens pagos não fazem parte desta versão de avaliação.",
+    en: "Hello Pulse is free. Install it in your hosted Capsule here or through the Store embedded in a local Admin. Checkout and paid listings are not part of this evaluation release.",
+    pt: "O Hello Pulse é gratuito. Instale-o em sua Cápsula hospedada aqui ou pela loja embutida em um Admin local. Checkout e itens pagos não fazem parte desta versão de avaliação.",
   },
   assistants_available_kicker: { en: "Available now // free", pt: "Disponível agora // grátis" },
   assistants_available_title: { en: "Meet the first Shimpz Assistant.", pt: "Conheça o primeiro Assistant do Shimpz." },
   assistants_available_lead: {
-    en: "A deliberately small real workload for proving that your Capsule boundary and local install path work end to end.",
-    pt: "Um workload real propositalmente pequeno para provar de ponta a ponta o limite da Cápsula e o fluxo de instalação local.",
+    en: "A deliberately small real workload for proving your Capsule boundary and its contextual install path end to end.",
+    pt: "Um workload real propositalmente pequeno para provar de ponta a ponta o limite da Cápsula e seu fluxo contextual de instalação.",
   },
   assistants_available_count: { en: "available", pt: "disponível" },
   assistants_free: { en: "Free", pt: "Grátis" },
@@ -341,6 +341,43 @@ const D: Dict = {
   assistants_admin_connection_retry: {
     en: "Retry connection",
     pt: "Tentar conexão novamente",
+  },
+  assistants_cloud_target_title: { en: "Choose where this Assistant runs.", pt: "Escolha onde este Assistant roda." },
+  assistants_cloud_target_help: {
+    en: "The Store changes only the selected hosted Capsule. Your local Docker Space remains separate.",
+    pt: "A loja altera apenas a Cápsula hospedada selecionada. Seu Space Docker local permanece separado.",
+  },
+  assistants_cloud_target_label: { en: "Hosted Capsule", pt: "Cápsula hospedada" },
+  assistants_cloud_selected: { en: "Target", pt: "Destino" },
+  assistants_cloud_loading: { en: "Loading your cloud account…", pt: "Carregando sua conta cloud…" },
+  assistants_cloud_sign_in: { en: "Sign in to install", pt: "Entrar para instalar" },
+  assistants_cloud_sign_in_help: {
+    en: "Sign in to your Shimpz account, then explicitly choose a hosted Capsule.",
+    pt: "Entre na sua conta Shimpz e escolha explicitamente uma Cápsula hospedada.",
+  },
+  assistants_cloud_no_capsules: {
+    en: "Create a hosted Capsule before installing an Assistant.",
+    pt: "Crie uma Cápsula hospedada antes de instalar um Assistant.",
+  },
+  assistants_cloud_create_capsule: { en: "Create a Capsule", pt: "Criar uma Cápsula" },
+  assistants_cloud_load_failed: {
+    en: "Your hosted Capsules could not be loaded.",
+    pt: "Não foi possível carregar suas Cápsulas hospedadas.",
+  },
+  assistants_cloud_retry: { en: "Retry cloud connection", pt: "Tentar conexão cloud novamente" },
+  assistants_cloud_choose: { en: "Choose a Capsule", pt: "Escolher uma Cápsula" },
+  assistants_cloud_retry_inventory: { en: "Retry Capsule check", pt: "Verificar Cápsula novamente" },
+  assistants_cloud_install: { en: "Install", pt: "Instalar" },
+  assistants_cloud_uninstall: { en: "Uninstall", pt: "Desinstalar" },
+  assistants_cloud_installing: { en: "Installing…", pt: "Instalando…" },
+  assistants_cloud_uninstalling: { en: "Uninstalling…", pt: "Desinstalando…" },
+  assistants_cloud_committed: {
+    en: "The selected Capsule inventory confirms this change.",
+    pt: "O inventário da Cápsula selecionada confirma esta alteração.",
+  },
+  assistants_cloud_failed: {
+    en: "The selected Capsule did not confirm this change. Try again.",
+    pt: "A Cápsula selecionada não confirmou esta alteração. Tente novamente.",
   },
   assistants_local_setup: { en: "Need a local Space first?", pt: "Ainda precisa de um Space local?" },
   assistants_local_setup_help: {
@@ -440,14 +477,14 @@ const D: Dict = {
   chat_connection_offline: { en: "Reconnecting", pt: "Reconectando" },
   chat_conversation: { en: "Conversation", pt: "Conversa" },
   chat_assistants_help: {
-    en: "Inventory from this hosted Capsule. Local Docker Assistants are separate.",
-    pt: "Inventário desta Cápsula hospedada. Assistants do Docker local são separados.",
+    en: "Inventory from this hosted Capsule. The Store always asks which hosted Capsule should change.",
+    pt: "Inventário desta Cápsula hospedada. A loja sempre pergunta qual Cápsula hospedada deve ser alterada.",
   },
   chat_local_assistant_boundary: {
-    en: "Hello Pulse and other local Assistants run declared operations in the Docker Admin.",
-    pt: "Hello Pulse e outros Assistants locais executam operações declaradas no Admin do Docker.",
+    en: "Browse the canonical Store to install or remove an Assistant from a hosted Capsule.",
+    pt: "Acesse a loja canônica para instalar ou remover um Assistant de uma Cápsula hospedada.",
   },
-  chat_open_local_admin: { en: "Open local Assistant operations", pt: "Abrir operações locais de Assistants" },
+  chat_open_local_admin: { en: "Open Assistant Store", pt: "Abrir loja de Assistants" },
   chat_hosted_crew_count: { en: "hosted Assistants", pt: "Assistants hospedados" },
   chat_brain_target: { en: "Hosted Brain chat", pt: "Chat com Cérebro hospedado" },
   chat_ready: { en: "Ready to talk", pt: "Pronto para conversar" },
