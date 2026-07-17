@@ -112,20 +112,19 @@ export const DRIVERS: Driver[] = [
   },
   {
     id: "openai", name: "OpenAI", category: "AI", icon: "neural-media", brand: "#10A37F",
-    summary: { en: "Platform media generation and voice processing.", pt: "Geração de mídia e processamento de voz da plataforma." },
+    summary: { en: "Audited image, transcription, and speech operations.", pt: "Operações auditadas de imagem, transcrição e voz." },
     blurb: {
-      en: "The platform Brain's image tool and Telegram voice gateway call the audited OpenAI sidecar. This media capability is not exposed as an Assistant permission.",
-      pt: "A ferramenta de imagens do Cérebro da plataforma e o gateway de voz do Telegram chamam o sidecar OpenAI auditado. Essa capacidade de mídia não é exposta como permissão de Assistant.",
+      en: "The audited OpenAI media sidecar implements allow-listed image generation, speech-to-text transcription, and text-to-speech. These operations are not yet exposed through an Assistant Power.",
+      pt: "O sidecar auditado de mídia OpenAI implementa geração de imagens, transcrição de voz em texto e conversão de texto em voz permitidas. Essas operações ainda não são expostas por um Power de Assistant.",
     },
     features: [
       { en: "Image generation (gpt-image)", pt: "Geração de imagens (gpt-image)" },
       { en: "Speech-to-text transcription", pt: "Transcrição de fala para texto" },
       { en: "Text-to-speech voice", pt: "Voz de texto para fala" },
-      { en: "The OpenAI sidecar holds the media API key", pt: "O sidecar OpenAI guarda a chave de API de mídia" },
-      { en: "Requests are audited", pt: "As requisições são auditadas" },
     ],
     boundaries: [
-      { en: "Platform Brain and Telegram gateway only; no Assistant manifest grant or Assistant route exists", pt: "Somente o Cérebro da plataforma e o gateway do Telegram; não existe grant de manifesto nem rota para Assistants" },
+      { en: "Every request is audited; the media API key remains inside the sidecar", pt: "Toda requisição é auditada; a chave de API de mídia permanece dentro do sidecar" },
+      { en: "No Assistant Power or Assistant route exposes these operations yet", pt: "Nenhum Power nem rota de Assistant expõe essas operações ainda" },
       { en: "Only allow-listed image, transcription and speech operations are accepted", pt: "Somente operações permitidas de imagem, transcrição e fala são aceitas" },
     ],
   },
