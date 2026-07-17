@@ -27,6 +27,7 @@ from app.main import (
     _relay_upstream_events,
     _stream_queue_put,
     _upstream_error_event,
+    _validated_terminal_event,
     _ws_dispatch,
     _ws_receive_bounded_json,
     app,
@@ -34,6 +35,15 @@ from app.main import (
 from fastapi import Request, WebSocket
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+
+
+def _done(reply: str = "hello", *, assistant: str = "hello-pulse", power: str | None = None) -> dict:
+    return {
+        "type": "done",
+        "reply": reply,
+        "assistant": assistant,
+        "power": power,
+    }
 
 
 def _websocket_disconnect_code(client: TestClient, origin: str | None) -> int:
@@ -152,7 +162,7 @@ def test_websocket_allows_only_one_local_turn_task():
         await websocket.accept()
         blocker = asyncio.Event()
         active_turn = asyncio.create_task(blocker.wait())
-        state = {"seen": set(), "turns": {active_turn}}
+        state = {"turns": {active_turn}}
         try:
             await _ws_dispatch(
                 websocket,
@@ -175,6 +185,26 @@ def test_websocket_allows_only_one_local_turn_task():
     asyncio.run(scenario())
 
 
+def test_websocket_rejects_retired_answer_frames():
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        await _ws_dispatch(
+            websocket,
+            "test-capsule",
+            {},
+            {"type": "answer", "rid": "legacy", "answer": "yes"},
+            {"turns": set()},
+        )
+        assert json.loads(sent[-1]["text"]) == {
+            "type": "error",
+            "status": 400,
+            "detail": "unsupported chat frame",
+        }
+
+    asyncio.run(scenario())
+
+
 def test_websocket_returns_typed_429_when_global_turn_queue_is_full():
     async def scenario() -> None:
         capacity = main._TURN_ADMISSION.active_limit + main._TURN_ADMISSION.queue_limit
@@ -189,7 +219,7 @@ def test_websocket_returns_typed_429_when_global_turn_queue_is_full():
                 "test-capsule",
                 {},
                 {"type": "chat", "assistant": "hello-pulse", "message": "beyond the bound"},
-                {"seen": set(), "turns": set()},
+                {"turns": set()},
             )
             assert json.loads(sent[-1]["text"]) == {
                 "type": "error",
@@ -208,20 +238,22 @@ def test_websocket_returns_typed_429_when_global_turn_queue_is_full():
 def test_stream_queue_applies_backpressure_without_dropping_events():
     async def scenario() -> None:
         queue: asyncio.Queue = asyncio.Queue(maxsize=1)
-        await queue.put({"type": "text", "text": "first"})
+        first = {"type": "stopped"}
+        second = {"type": "error", "status": 502, "detail": "failed"}
+        await queue.put(first)
         loop = asyncio.get_running_loop()
         producer = asyncio.create_task(
             asyncio.to_thread(
                 _stream_queue_put,
                 queue,
                 loop,
-                {"type": "text", "text": "second"},
+                second,
             )
         )
 
-        assert (await queue.get())["text"] == "first"
+        assert await queue.get() == first
         assert await asyncio.wait_for(producer, timeout=1) is True
-        assert (await queue.get())["text"] == "second"
+        assert await queue.get() == second
 
     asyncio.run(scenario())
 
@@ -273,7 +305,7 @@ def test_queued_turn_stop_removes_its_fifo_lease_before_it_can_run():
         main._TURN_ADMISSION = admission
         websocket, sent = _websocket("{}")
         await websocket.accept()
-        state = {"seen": set(), "turns": set()}
+        state = {"turns": set()}
         try:
             await _ws_dispatch(
                 websocket,
@@ -288,12 +320,7 @@ def test_queued_turn_stop_removes_its_fifo_lease_before_it_can_run():
             await _ws_dispatch(websocket, "cap-queued", {}, {"type": "stop"}, state)
             assert admission.snapshot() == (1, 0)
             assert not state["turns"]
-            assert json.loads(sent[-1]["text"]) == {
-                "type": "stopped",
-                "status": 200,
-                "requested": True,
-                "queued": True,
-            }
+            assert json.loads(sent[-1]["text"]) == {"type": "stopped"}
 
             occupied.release()
             await asyncio.sleep(0)
@@ -305,6 +332,46 @@ def test_queued_turn_stop_removes_its_fifo_lease_before_it_can_run():
                 turn.cancel()
             await asyncio.gather(*state["turns"], return_exceptions=True)
             main._TURN_ADMISSION = previous
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"type": "text", "text": "legacy"},
+        _done("wrong Assistant", assistant="salesnator"),
+    ],
+)
+def test_final_websocket_gate_converts_invalid_or_mismatched_events(event: dict, monkeypatch):
+    async def scenario() -> None:
+        stops = []
+
+        async def stop(cid: str, headers: dict) -> tuple[int, dict]:
+            stops.append((cid, headers))
+            return 200, {"requested": True}
+
+        monkeypatch.setattr(main, "_driver_stop", stop)
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        turn = main._WsTurn(
+            websocket,
+            "cap-terminal-gate",
+            {"X-Shimpz-Account": "token"},
+            "hello-pulse",
+            "hello",
+            asyncio.Event(),
+            asyncio.Event(),
+        )
+        delivery = main._RelayDelivery()
+        await main._send_relay_event(turn, event, delivery)
+        assert json.loads(sent[-1]["text"]) == {
+            "type": "error",
+            "status": 502,
+            "detail": main.TERMINAL_CONTRACT_ERROR,
+        }
+        assert stops == [("cap-terminal-gate", {"X-Shimpz-Account": "token"})]
+        assert delivery.terminal_seen and delivery.aborted
 
     asyncio.run(scenario())
 
@@ -417,17 +484,56 @@ def test_retired_public_marketplace_routes_are_absent():
     assert [response.status_code for response in responses] == [405, 405]
 
 
-def test_upstream_errors_and_unterminated_final_lines_remain_typed():
+def test_upstream_http_errors_and_unterminated_terminal_lines_remain_typed():
     raw = json.dumps({"error": "already chatting"}).encode()
     assert _upstream_error_event(409, raw) == {
         "type": "error",
         "status": 409,
         "detail": "already chatting",
     }
-    assert _parsed_stream_event(b'{"type":"error","status":502}') == {
+    assert _parsed_stream_event(b'{"type":"error","status":502,"detail":"upstream failed"}') == {
         "type": "error",
         "status": 502,
+        "detail": "upstream failed",
     }
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        _done("complete", power="reports.read"),
+        {"type": "error", "status": 504, "detail": "provider timed out"},
+        {"type": "stopped"},
+    ],
+)
+def test_terminal_event_contract_accepts_only_exact_bounded_schemas(event: dict):
+    assert _validated_terminal_event(event) == event
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"type": "text", "text": "partial"},
+        {"type": "tool", "label": "shell"},
+        {"type": "ask", "text": "approve?"},
+        {"type": "answered", "answered": True},
+        {**_done(), "extra": True},
+        {"type": "done", "reply": "hello", "assistant": "hello-pulse"},
+        _done("hello", assistant="../escape"),
+        _done("hello", power="../escape"),
+        _done("x" * (main.MAX_CHAT_REPLY_CHARS + 1)),
+        {"type": "error", "status": True, "detail": "failed"},
+        {"type": "error", "status": 200, "detail": "not an error"},
+        {"type": "error", "status": 502, "detail": "x" * (main.MAX_CHAT_ERROR_DETAIL_CHARS + 1)},
+        {"type": "stopped", "requested": True},
+    ],
+)
+def test_terminal_event_contract_rejects_legacy_extra_and_unbounded_values(event: dict):
+    assert _validated_terminal_event(event) is None
+
+
+def test_terminal_event_parser_rejects_duplicate_fields():
+    assert _parsed_stream_event(b'{"type":"stopped","type":"done"}') is None
 
 
 @contextlib.contextmanager
@@ -508,12 +614,12 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
         worker.join(timeout=5)
 
 
-def test_upstream_relay_emits_first_event_before_response_eof():
+def test_upstream_relay_releases_nothing_before_one_complete_terminal_event():
     async def scenario() -> None:
         queue: asyncio.Queue = asyncio.Queue(maxsize=4)
         loop = asyncio.get_running_loop()
-        first = b'{"type":"text","text":"first"}\n'
-        rest = b'{"type":"done","reply":"first"}\n'
+        first = b'{"type":"done","reply":"first",'
+        rest = b'"assistant":"hello-pulse","power":null}\n'
         with _real_delayed_upstream(first, rest) as (
             response,
             first_flushed,
@@ -521,17 +627,12 @@ def test_upstream_relay_emits_first_event_before_response_eof():
         ):
             relay = asyncio.create_task(asyncio.to_thread(_relay_upstream_events, response, queue, loop))
             assert await asyncio.to_thread(first_flushed.wait, 1)
-            assert await asyncio.wait_for(queue.get(), timeout=1) == {
-                "type": "text",
-                "text": "first",
-            }
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(queue.get(), timeout=0.05)
             assert not relay.done()
             release_rest.set()
             await asyncio.wait_for(relay, timeout=2)
-            assert await asyncio.wait_for(queue.get(), timeout=1) == {
-                "type": "done",
-                "reply": "first",
-            }
+            assert await asyncio.wait_for(queue.get(), timeout=1) == _done("first")
 
     asyncio.run(scenario())
 
@@ -572,7 +673,7 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
         reply = "Olá, Capitão 🦐"
         encoded_reply = (
             json.dumps(
-                {"type": "done", "reply": reply},
+                _done(reply),
                 ensure_ascii=False,
                 separators=(",", ":"),
             ).encode()
@@ -606,7 +707,7 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
         }
         assert prompt.encode() in requests[0]
         assert b"\\u" not in requests[0]
-        assert await queue.get() == {"type": "done", "reply": reply}
+        assert await queue.get() == _done(reply)
         assert await queue.get() is None
 
     asyncio.run(scenario())
@@ -697,42 +798,30 @@ def test_real_upstream_non_2xx_reaches_websocket_unchanged(status: int, payload:
 
 
 def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
-    success = b'{"type":"text","text":"hello"}\n{"type":"done","reply":"hello"}'
-    assert _relay(success) == [
-        {"type": "text", "text": "hello"},
-        {"type": "done", "reply": "hello"},
-    ]
+    success = json.dumps(_done(), separators=(",", ":")).encode()
+    assert _relay(success) == [_done()]
 
-    malformed = b'{"type":"text","text":"partial"}\nnot-json\n{"type":"done"}\n'
-    assert _relay(malformed) == [
-        {"type": "text", "text": "partial"},
-        {
-            "type": "error",
-            "status": 502,
-            "detail": "brain stream contained malformed JSONL",
-            "_relay_abort": True,
-        },
-    ]
+    protocol_error = {
+        "type": "error",
+        "status": 502,
+        "detail": "capsule-driver stream violated the terminal event contract",
+        "_relay_abort": True,
+    }
+    legacy_then_terminal = (
+        b'{"type":"text","text":"partial"}\n' + json.dumps(_done()).encode() + b"\n"
+    )
+    assert _relay(legacy_then_terminal) == [protocol_error]
 
-    extra_after_terminal = b'{"type":"done"}\n{"type":"text","text":"late"}\n'
-    assert _relay(extra_after_terminal) == [
-        {
-            "type": "error",
-            "status": 502,
-            "detail": "brain stream emitted data after its terminal event",
-            "_relay_abort": True,
-        }
-    ]
+    malformed = b"not-json\n" + json.dumps(_done()).encode() + b"\n"
+    assert _relay(malformed) == [protocol_error]
+
+    extra_after_terminal = json.dumps(_done()).encode() + b'\n{"type":"stopped"}\n'
+    assert _relay(extra_after_terminal) == [protocol_error]
+
+    assert _relay(b"") == [protocol_error]
 
     oversized = b"x" * (MAX_UPSTREAM_STREAM_LINE_BYTES + 1)
-    assert _relay(oversized) == [
-        {
-            "type": "error",
-            "status": 502,
-            "detail": "brain stream line exceeded its size limit",
-            "_relay_abort": True,
-        }
-    ]
+    assert _relay(oversized) == [protocol_error]
 
 
 def test_stream_workers_cannot_starve_the_default_control_pool():
@@ -750,7 +839,7 @@ def test_stream_workers_cannot_starve_the_default_control_pool():
         occupied = loop.run_in_executor(None, occupy_only_default_thread)
         await asyncio.wait_for(default_started.wait(), timeout=1)
 
-        reply = b'{"type":"done","reply":"reserved"}\n'
+        reply = json.dumps(_done("reserved"), separators=(",", ":")).encode() + b"\n"
         queue: asyncio.Queue = asyncio.Queue(maxsize=4)
         started = asyncio.Event()
         try:
@@ -762,7 +851,7 @@ def test_stream_workers_cannot_starve_the_default_control_pool():
                 )
                 await asyncio.wait_for(started.wait(), timeout=1)
                 await asyncio.wait_for(worker, timeout=2)
-            assert await queue.get() == {"type": "done", "reply": "reserved"}
+            assert await queue.get() == _done("reserved")
             assert await queue.get() is None
             assert not occupied.done()
         finally:
@@ -828,11 +917,10 @@ def test_local_relay_eof_stops_provider_before_browser_error():
             )
         events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
         assert events == [
-            {"type": "text", "text": "partial"},
             {
                 "type": "error",
                 "status": 502,
-                "detail": "brain stream ended without a terminal event",
+                "detail": "capsule-driver stream violated the terminal event contract",
             },
         ]
         assert calls == [
@@ -857,7 +945,7 @@ def test_browser_disconnect_requests_provider_stop_exactly_once():
         websocket = WebSocket({"type": "websocket", "path": "/"}, receive, send)
         await websocket.accept()
         queue: asyncio.Queue = asyncio.Queue()
-        queue.put_nowait({"type": "text", "text": "partial"})
+        queue.put_nowait(_done("complete"))
         stopped = threading.Event()
 
         with _real_relay_abort_driver(stopped.set) as calls:

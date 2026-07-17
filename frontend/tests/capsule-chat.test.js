@@ -6,6 +6,7 @@ import {
   createAssistantChatTurn,
   parseCapsuleStorage,
   parseCapsuleUpload,
+  parseChatTerminalEvent,
   parseInstalledAssistants,
   selectRunnableAssistant,
 } from "../src/lib/capsuleChat.js";
@@ -39,6 +40,35 @@ test("creates only an Assistant-scoped chat turn", () => {
     Array.from({ length: 9 }, (_, index) => index.toString(16).padStart(32, "0")),
   ]) {
     assert.throws(() => createAssistantChatTurn("hello-pulse", "hello", files));
+  }
+});
+
+test("accepts only exact bounded terminal chat events", () => {
+  const terminalEvents = [
+    { type: "done", reply: "complete", assistant: "hello-pulse", power: "reports.read" },
+    { type: "done", reply: "complete", assistant: "hello-pulse", power: null },
+    { type: "error", status: 504, detail: "provider timed out" },
+    { type: "stopped" },
+  ];
+  for (const event of terminalEvents) {
+    assert.deepEqual(parseChatTerminalEvent(event), event);
+  }
+
+  for (const event of [
+    { type: "text", text: "partial" },
+    { type: "tool", label: "shell" },
+    { type: "ask", text: "approve?" },
+    { type: "answered", answered: true },
+    { type: "done", reply: "complete", assistant: "hello-pulse", power: null, extra: true },
+    { type: "done", reply: "complete", assistant: "../escape", power: null },
+    { type: "done", reply: "complete", assistant: "hello-pulse", power: "../escape" },
+    { type: "done", reply: "x".repeat(60_001), assistant: "hello-pulse", power: null },
+    { type: "error", status: true, detail: "failed" },
+    { type: "error", status: 200, detail: "not an error" },
+    { type: "error", status: 502, detail: "x".repeat(801) },
+    { type: "stopped", requested: true },
+  ]) {
+    assert.throws(() => parseChatTerminalEvent(event));
   }
 });
 

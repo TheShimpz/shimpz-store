@@ -7,6 +7,8 @@ const MAX_POWERS = 64;
 const MAX_FILES = 256;
 const MAX_FILES_PER_TURN = 8;
 const MAX_MESSAGE_CHARS = 16_000;
+const MAX_REPLY_CHARS = 60_000;
+const MAX_ERROR_DETAIL_CHARS = 800;
 
 /** @typedef {{ used_bytes: number, limit_bytes: number, remaining_bytes: number }} StorageUsage */
 /** @typedef {{ id: string, name: string, media_type: string, size: number, sha256: string, created_at?: number }} StoredFile */
@@ -15,6 +17,12 @@ const MAX_MESSAGE_CHARS = 16_000;
 /** @param {any} value @returns {Record<string, any> | null} */
 function record(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+/** @param {Record<string, any>} value @param {string[]} keys @returns {boolean} */
+function hasExactKeys(value, keys) {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && keys.every((key) => Object.hasOwn(value, key));
 }
 
 /** @param {any} value @returns {string} */
@@ -136,6 +144,54 @@ export function createAssistantChatTurn(assistant, message, files = []) {
   return opaqueIds.length
     ? { assistant: selected, message: text, files: opaqueIds }
     : { assistant: selected, message: text };
+}
+
+/**
+ * @param {any} value
+ * @returns {{ type: "done", reply: string, assistant: string, power: string | null } | { type: "error", status: number, detail: string } | { type: "stopped" }}
+ */
+export function parseChatTerminalEvent(value) {
+  const source = record(value);
+  if (!source) throw new TypeError("invalid chat terminal event");
+  if (source.type === "done") {
+    if (!hasExactKeys(source, ["type", "reply", "assistant", "power"])) {
+      throw new TypeError("invalid chat completion event");
+    }
+    const assistant = canonicalAssistant(source.assistant);
+    if (
+      typeof source.reply !== "string" ||
+      !source.reply.trim() ||
+      source.reply.length > MAX_REPLY_CHARS ||
+      /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(source.reply) ||
+      (source.power !== null &&
+        (typeof source.power !== "string" ||
+          source.power.length > 80 ||
+          !POWER_ID.test(source.power)))
+    ) {
+      throw new TypeError("invalid chat completion event");
+    }
+    return { type: "done", reply: source.reply, assistant, power: source.power };
+  }
+  if (source.type === "error") {
+    if (
+      !hasExactKeys(source, ["type", "status", "detail"]) ||
+      !Number.isInteger(source.status) ||
+      source.status < 400 ||
+      source.status > 599 ||
+      typeof source.detail !== "string" ||
+      !source.detail ||
+      source.detail !== source.detail.trim() ||
+      source.detail.length > MAX_ERROR_DETAIL_CHARS ||
+      /[\u0000-\u001f\u007f]/.test(source.detail)
+    ) {
+      throw new TypeError("invalid chat error event");
+    }
+    return { type: "error", status: source.status, detail: source.detail };
+  }
+  if (source.type === "stopped" && hasExactKeys(source, ["type"])) {
+    return { type: "stopped" };
+  }
+  throw new TypeError("invalid chat terminal event");
 }
 
 /** @param {any} value @returns {{ files: StoredFile[] } & StorageUsage} */

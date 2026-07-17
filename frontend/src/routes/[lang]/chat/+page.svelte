@@ -6,6 +6,7 @@
     createAssistantChatTurn,
     parseCapsuleStorage,
     parseCapsuleUpload,
+    parseChatTerminalEvent,
     parseInstalledAssistants,
     selectRunnableAssistant,
   } from "$lib/capsuleChat.js";
@@ -38,7 +39,7 @@
   let messages = $state<any[]>([]);
   let draft = $state("");
   let busy = $state(false);
-  let status = $state(""); // the tool-status ticker while the brain works
+  let status = $state("");
   let uploading = $state(false);
   let thread = $state<HTMLElement | null>(null);
   let fileInput = $state<HTMLInputElement | null>(null);
@@ -94,8 +95,7 @@
   // the browser build. Until it loads, replies render as safe escaped text.
   let renderMd = $state<(s: string) => string>((s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string));
 
-  // The live bridge: one WebSocket per open capsule chat — the reply STREAMS in (text events), the
-  // brain's mid-turn questions (shimpz-ask) arrive as pushes, tool activity ticks a status line.
+  // One WebSocket per Capsule releases one closed terminal event for each admitted turn.
   let ws = $state<WebSocket | null>(null);
   let wsReady = $state(false);
 
@@ -104,27 +104,6 @@
     if (!cid) return;
     const current = await fetch(`/api/capsules/${cid}/brain`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (current && selected === cid) brain = current;
-  }
-
-  function liveBrainMsg() {
-    // the brain bubble currently being streamed into (create one if the last isn't it)
-    let last = messages[messages.length - 1];
-    if (!last || last.role !== "brain" || !last.streaming) {
-      last = { role: "brain", text: "", streaming: true };
-      messages.push(last);
-    }
-    return last;
-  }
-
-  function finishStreamingBrainMessage() {
-    // A pushed question can sit after the live reply, so find the bubble instead of assuming it is last.
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      if (message?.role === "brain" && message.streaming) {
-        message.streaming = false;
-        return;
-      }
-    }
   }
 
   function chatErrorText(statusCode: unknown, detailValue: unknown) {
@@ -157,7 +136,6 @@
       wsReady = false;
       ws = null;
       if (busy) {
-        finishStreamingBrainMessage();
         busy = false;
         status = "";
         messages.push({ role: "system", tone: "error", text: tr("chat_disconnected", lang) });
@@ -166,55 +144,42 @@
     };
     sock.onmessage = (ev) => {
       if (ws !== sock || selected !== cid) return;
-      let m: any = {};
+      let m;
       try {
-        m = JSON.parse(ev.data);
+        m = parseChatTerminalEvent(JSON.parse(ev.data));
+        if (m.type === "done" && m.assistant !== selectedAssistant) {
+          throw new TypeError("Assistant identity mismatch");
+        }
       } catch {
+        busy = false;
+        status = "";
+        messages.push({ role: "system", tone: "error", text: tr("chat_protocol_error", lang) });
+        wsReady = false;
+        ws = null;
+        sock.close(1002, "invalid terminal event");
+        scrollDown(true);
         return;
       }
-      if (m.type === "text") {
-        // the growing answer — each event is the full text so far (mirrors the Telegram relay)
-        liveBrainMsg().text = m.text || "";
-      } else if (m.type === "tool") {
-        status = "▸ " + (m.label || "");
-      } else if (m.type === "done") {
-        const b = liveBrainMsg();
-        b.text = m.reply || b.text || "…";
-        b.streaming = false;
+      if (m.type === "done") {
+        messages.push({ role: "assistant", text: m.reply });
         busy = false;
         status = "";
         void refreshBrainStatus();
       } else if (m.type === "stopped") {
-        finishStreamingBrainMessage();
         busy = false;
         status = "";
       } else if (m.type === "error") {
-        finishStreamingBrainMessage();
         busy = false;
         status = "";
-        messages.push({ role: "system", tone: "error", text: chatErrorText(m.status, m.detail ?? m.error) });
-      } else if (m.type === "ask") {
-        messages.push({ role: "ask", rid: m.rid, text: m.text, options: m.options ?? [], answered: false, custom: "" });
-      } else if (m.type === "answered" && m.answered) {
-        const card = messages.find((x) => x.role === "ask" && x.rid === m.rid);
-        if (card) card.answered = true;
+        messages.push({ role: "system", tone: "error", text: chatErrorText(m.status, m.detail) });
       }
-      // a fresh discrete message (a question, an error) may scroll smooth; a streaming delta must not
-      scrollDown(m.type === "ask" || m.type === "error");
+      scrollDown(true);
     };
     ws = sock;
   }
 
   function stopTurn() {
     if (wsReady && ws) ws.send(JSON.stringify({ type: "stop" }));
-  }
-
-  function answerAsk(card: any, answer: string) {
-    if (!answer.trim() || card.answered || !wsReady) return;
-    ws?.send(JSON.stringify({ type: "answer", rid: card.rid, answer: answer.trim() }));
-    messages.push({ role: "captain", text: answer.trim() });
-    stick = true;
-    scrollDown(true);
   }
 
   let configureBusy = $state(false);
@@ -262,11 +227,8 @@
     }
   }
 
-  // Auto-follow the stream ONLY when the Captain is already at the bottom — never yank them back up
-  // while they're reading history. During a stream we scroll with behavior:auto (smooth would restart
-  // its animation every token and jank); discrete new messages may scroll smooth.
+  // Auto-follow only when the Captain is already at the bottom; never yank them while reading.
   let stick = $state(true);
-  const escapeHtml = (s: string) => (s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);
 
   function onThreadScroll() {
     if (!thread) return;
@@ -468,7 +430,7 @@
     stick = true; // sending re-engages auto-follow
     scrollDown(true);
     if (wsReady && ws) {
-      ws.send(JSON.stringify({ type: "chat", ...turn })); // reply STREAMS back as pushes
+      ws.send(JSON.stringify({ type: "chat", ...turn }));
       return;
     }
     // fallback: socket down → the non-streaming POST
@@ -480,7 +442,7 @@
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok) {
-        messages.push({ role: "brain", text: d.reply || "…" });
+        messages.push({ role: "assistant", text: d.reply || "…" });
         await refreshBrainStatus();
       } else {
         messages.push({ role: "system", tone: "error", text: chatErrorText(r.status, d.detail ?? d.error) });
@@ -820,32 +782,8 @@
                   </span>
                 {/if}
               </div>
-            {:else if m.role === "brain"}
-              <div class="md message brain-message" class:caret={m.streaming} class:whitespace-pre-wrap={m.streaming}>{@html m.streaming ? escapeHtml(m.text) : renderMd(m.text || "")}</div>
-            {:else if m.role === "ask"}
-              <div class="message ask-message" class:opacity-60={m.answered}>
-                <p class="whitespace-pre-wrap"><span style="color:var(--color-primary)">?</span> {m.text}</p>
-                {#if !m.answered}
-                  <div class="flex flex-wrap gap-2">
-                    {#each m.options as opt, oi (oi)}
-                      <button class="btn-ghost min-h-11 !px-3 !py-1.5 text-xs" onclick={() => answerAsk(m, opt)}>
-                        {#if oi === 0}
-                          <svg class="size-3.5 shrink-0" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="miter">
-                            <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
-                          </svg>
-                        {/if}
-                        {opt}
-                      </button>
-                    {/each}
-                  </div>
-                  <div class="flex gap-2">
-                    <input class="field field-sm min-h-11 min-w-0 flex-1 !text-xs" placeholder={tr("ask_custom", lang)} bind:value={m.custom} onkeydown={(event) => event.key === "Enter" && !event.isComposing && answerAsk(m, m.custom)} />
-                    <button class="btn-ghost min-h-11 !px-3 !py-1.5 text-xs" disabled={!m.custom?.trim()} onclick={() => answerAsk(m, m.custom)}>{tr("chat_send", lang)}</button>
-                  </div>
-                {:else}
-                  <p class="text-xs dim">{tr("ask_answered", lang)}</p>
-                {/if}
-              </div>
+            {:else if m.role === "assistant"}
+              <div class="md message assistant-message">{@html renderMd(m.text || "")}</div>
             {:else}
               <p
                 class="px-3 py-2 text-center text-xs"
@@ -1248,16 +1186,12 @@
   .message-files { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; }
   .message-files code { max-width: 12rem; overflow: hidden; padding: 0.18rem 0.35rem; color: var(--color-cyan); background: #000; font-size: 0.56rem; text-overflow: ellipsis; white-space: nowrap; }
 
-  .brain-message,
-  .ask-message {
+  .assistant-message {
     align-self: flex-start;
     background: var(--color-elevated);
     box-shadow: inset 2px 0 0 var(--color-magenta), inset 0 0 0 1px var(--color-border-strong);
     clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   }
-
-  .ask-message { display: grid; gap: 0.7rem; border-left-color: var(--color-yellow); box-shadow: inset 2px 0 0 var(--color-yellow), inset 0 0 0 1px var(--color-border-strong); }
-  .ask-message p { margin: 0; }
 
   .conversation-empty {
     display: grid;

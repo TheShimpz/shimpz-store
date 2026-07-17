@@ -70,10 +70,6 @@ STOP_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_STOP_QUEUE_MAX", "4")))
 WS_GLOBAL_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_GLOBAL_CONNECTION_LIMIT", "64")))
 WS_ACCOUNT_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_ACCOUNT_CONNECTION_LIMIT", "4")))
 WS_CAPSULE_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_CAPSULE_CONNECTION_LIMIT", "2")))
-WS_POLL_WORKER_THREADS = min(
-    WS_GLOBAL_CONNECTION_LIMIT,
-    max(1, int(os.environ.get("SHIMPZ_STORE_WS_POLL_WORKER_THREADS", "8"))),
-)
 MAX_UPSTREAM_ERROR_BYTES = 64 * 1024
 MAX_UPSTREAM_STREAM_LINE_BYTES = 256 * 1024
 MAX_UPSTREAM_STREAM_BYTES = 2 * 1024 * 1024
@@ -291,11 +287,6 @@ _STOP_EXECUTOR = _BoundedThreadPoolExecutor(
     max_outstanding=STOP_WORKER_THREADS + STOP_QUEUE_MAX,
     thread_name_prefix="shimpz-stop",
 )
-_POLL_EXECUTOR = _BoundedThreadPoolExecutor(
-    max_workers=WS_POLL_WORKER_THREADS,
-    max_outstanding=WS_GLOBAL_CONNECTION_LIMIT,
-    thread_name_prefix="shimpz-poll",
-)
 _WS_CONNECTION_ADMISSION = _WsConnectionAdmission(
     WS_GLOBAL_CONNECTION_LIMIT,
     WS_ACCOUNT_CONNECTION_LIMIT,
@@ -334,6 +325,7 @@ WS_ALLOWED_ORIGINS = frozenset(
 ASSISTANT_MUTATION_ALLOWED_ORIGINS = WS_ALLOWED_ORIGINS
 CAPSULE_ID_RE = re.compile(r"^[a-z0-9_]{1,40}$")
 ASSISTANT_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+ASSISTANT_POWER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 CAPSULE_FILE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 CAPSULE_FILE_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 RELEASED_CLOUD_ASSISTANTS = frozenset({"hello-pulse"})
@@ -341,6 +333,9 @@ PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
 MAX_CHAT_MESSAGE_CHARS = 16_000
 MAX_CHAT_FILES = 8
 MAX_CAPSULE_FILES = 256
+MAX_CHAT_REPLY_CHARS = 60_000
+MAX_CHAT_ERROR_DETAIL_CHARS = 800
+TERMINAL_CONTRACT_ERROR = "capsule-driver stream violated the terminal event contract"
 
 
 def _ws_origin_allowed(origin: str | None) -> bool:
@@ -1229,49 +1224,6 @@ async def capsule_chat(request: Request, cid: str) -> JSONResponse:
     return JSONResponse(data, status_code=status)
 
 
-@app.get("/api/capsules/{cid}/chat/asks")
-async def capsule_chat_asks(request: Request, cid: str) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _POLL_EXECUTOR,
-        CAPSULEDRIVER_URL,
-        "GET",
-        f"/v1/capsules/{cid}/chat/asks",
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.post("/api/capsules/{cid}/chat/answer")
-async def capsule_chat_answer(request: Request, cid: str) -> JSONResponse:
-    token, account_id, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    try:
-        payload = await _read_bounded_json(request, MAX_CHAT_BODY_BYTES)
-    except ClientPayloadError as exc:
-        return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-    body = {"rid": (payload or {}).get("rid"), "answer": (payload or {}).get("answer")}
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        CAPSULEDRIVER_URL,
-        "POST",
-        f"/v1/capsules/{cid}/chat/answer",
-        body,
-        {"X-Shimpz-Account": token},
-    )
-    log.info(
-        "chat_answer",
-        account=account_id,
-        capsule=cid,
-        status=status,
-        answered=data.get("answered"),
-    )
-    return JSONResponse(data, status_code=status)
-
-
 @app.get("/api/capsules/{cid}/files")
 async def capsule_files(request: Request, cid: str) -> JSONResponse:
     """List opaque file metadata; file bytes and host paths remain controller-private."""
@@ -1379,11 +1331,7 @@ async def capsule_file_delete(request: Request, cid: str, file_id: str) -> JSONR
     return _private_json(deleted)
 
 
-# ── the Captain's LIVE bridge: WebSocket chat (push, not poll) ───────────────────
-# One socket per open chat: the Captain's messages go down it, the brain's replies AND the brain's
-# own mid-turn QUESTIONS (shimpz-ask → the capsule's ipc dir) come back up as pushes. Inter-container
-# hops stay HTTP (cheap, internal); the browser never polls.
-WS_ASK_POLL_SECONDS = 1.0
+# ── the Captain's LIVE bridge: one closed terminal event per WebSocket turn ─────
 
 
 class WebSocketPayloadError(Exception):
@@ -1427,41 +1375,6 @@ async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
     return (token, str(account_id)) if account_id else ("", "")
 
 
-async def _ws_push_asks(ws: WebSocket, cid: str, hdr: dict, seen: set[str]) -> None:
-    """Push the brain's pending shimpz-ask questions the moment they appear; hang up on 404."""
-    while True:
-        try:
-            status, data = await _bounded_call(
-                _POLL_EXECUTOR,
-                CAPSULEDRIVER_URL,
-                "GET",
-                f"/v1/capsules/{cid}/chat/asks",
-                None,
-                hdr,
-            )
-        except _ExecutorSaturatedError:
-            await ws.send_json(
-                {
-                    "type": "error",
-                    "status": 429,
-                    "detail": "chat poll capacity reached",
-                }
-            )
-            await ws.close(code=4429)
-            return
-        if status == 404:  # not the Captain's capsule (the driver's owner-scoping)
-            await ws.send_json({"type": "error", "status": 404, "detail": "capsule not found"})
-            await ws.close(code=4404)
-            return
-        if status == 200:
-            for ask in data.get("asks", []):
-                rid = str(ask.get("rid", ""))
-                if rid and rid not in seen:
-                    seen.add(rid)
-                    await ws.send_json({"type": "ask", **ask})
-        await asyncio.sleep(WS_ASK_POLL_SECONDS)
-
-
 def _stream_queue_put(queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, item: dict | None) -> bool:
     """Thread→event-loop handoff with a hard queue bound and real producer backpressure."""
     pending = None
@@ -1475,23 +1388,94 @@ def _stream_queue_put(queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, ite
     return True
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict:
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate JSON field")
+        value[key] = item
+    return value
+
+
+def _validated_done_event(value: dict) -> dict | None:
+    if set(value) != {"type", "reply", "assistant", "power"}:
+        return None
+    reply = value["reply"]
+    assistant = _canonical_assistant_id(value["assistant"])
+    power = value["power"]
+    if (
+        not isinstance(reply, str)
+        or not reply.strip()
+        or len(reply) > MAX_CHAT_REPLY_CHARS
+        or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", reply) is not None
+        or assistant is None
+        or (
+            power is not None
+            and (
+                not isinstance(power, str)
+                or len(power) > 80
+                or ASSISTANT_POWER_ID_RE.fullmatch(power) is None
+            )
+        )
+    ):
+        return None
+    return {"type": "done", "reply": reply, "assistant": assistant, "power": power}
+
+
+def _validated_error_event(value: dict) -> dict | None:
+    if set(value) != {"type", "status", "detail"}:
+        return None
+    status = value["status"]
+    detail = value["detail"]
+    if (
+        isinstance(status, bool)
+        or not isinstance(status, int)
+        or not 400 <= status <= 599
+        or not isinstance(detail, str)
+        or not detail
+        or detail != detail.strip()
+        or len(detail) > MAX_CHAT_ERROR_DETAIL_CHARS
+        or re.search(r"[\x00-\x1f\x7f]", detail) is not None
+    ):
+        return None
+    return {"type": "error", "status": status, "detail": detail}
+
+
+def _validated_terminal_event(value: object) -> dict | None:
+    """Project an untrusted controller value onto the only browser-visible chat events."""
+    if not isinstance(value, dict):
+        return None
+    if value.get("type") == "done":
+        return _validated_done_event(value)
+    if value.get("type") == "error":
+        return _validated_error_event(value)
+    if value.get("type") == "stopped" and set(value) == {"type"}:
+        return {"type": "stopped"}
+    return None
+
+
 def _parsed_stream_event(line: bytes) -> dict | None:
     if not line.strip():
         return None
     try:
-        event = jsonlib.loads(line)
-    except jsonlib.JSONDecodeError:
+        event = jsonlib.loads(line, object_pairs_hook=_unique_json_object)
+    except (jsonlib.JSONDecodeError, UnicodeDecodeError, ValueError):
         return None
-    return event if isinstance(event, dict) else None
+    return _validated_terminal_event(event)
 
 
 def _upstream_error_event(status: int, raw: bytes) -> dict:
-    detail = f"capsule-driver returned HTTP {status}"
-    with contextlib.suppress(jsonlib.JSONDecodeError):
+    safe_status = status if isinstance(status, int) and not isinstance(status, bool) and 400 <= status <= 599 else 502
+    detail = f"capsule-driver returned HTTP {safe_status}"
+    with contextlib.suppress(jsonlib.JSONDecodeError, UnicodeDecodeError):
         payload = jsonlib.loads(raw)
         if isinstance(payload, dict):
-            detail = str(payload.get("detail") or payload.get("error") or detail)[:800]
-    return {"type": "error", "status": status, "detail": detail}
+            candidate = payload.get("detail") or payload.get("error")
+            if isinstance(candidate, str):
+                candidate = re.sub(r"[\x00-\x1f\x7f]", " ", candidate).strip()
+                if candidate:
+                    detail = candidate[:MAX_CHAT_ERROR_DETAIL_CHARS]
+    return {"type": "error", "status": safe_status, "detail": detail}
 
 
 class _StreamLimitError(ValueError):
@@ -1528,7 +1512,7 @@ def _relay_upstream_events(
     queue: asyncio.Queue,
     loop: asyncio.AbstractEventLoop,
 ) -> None:
-    """Relay one successful NDJSON response and synthesize an error on nonterminal EOF."""
+    """Release exactly one validated terminal event after the controller closes its response."""
     terminal_event = None
     try:
         for line in _bounded_upstream_lines(resp):
@@ -1536,22 +1520,18 @@ def _relay_upstream_events(
                 continue
             event = _parsed_stream_event(line)
             if event is None:
-                raise _StreamProtocolError("brain stream contained malformed JSONL")
+                raise _StreamProtocolError
             if terminal_event is not None:
-                raise _StreamProtocolError("brain stream emitted data after its terminal event")
-            if event.get("type") in {"done", "error", "stopped"}:
-                terminal_event = event
-                continue
-            if not _stream_queue_put(queue, loop, event):
-                return
-    except (_StreamLimitError, _StreamProtocolError) as exc:
+                raise _StreamProtocolError
+            terminal_event = event
+    except (_StreamLimitError, _StreamProtocolError):
         _stream_queue_put(
             queue,
             loop,
             {
                 "type": "error",
                 "status": 502,
-                "detail": str(exc),
+                "detail": TERMINAL_CONTRACT_ERROR,
                 "_relay_abort": True,
             },
         )
@@ -1563,7 +1543,7 @@ def _relay_upstream_events(
             {
                 "type": "error",
                 "status": 502,
-                "detail": "brain stream ended without a terminal event",
+                "detail": TERMINAL_CONTRACT_ERROR,
                 "_relay_abort": True,
             },
         )
@@ -1603,22 +1583,22 @@ async def _stop_delivery_once(
 
 
 async def _send_relay_event(
-    ws: WebSocket,
-    cid: str,
-    hdr: dict,
+    turn: _WsTurn,
     event: dict,
     delivery: _RelayDelivery,
 ) -> None:
-    if event.pop("_relay_abort", False):
+    projected = dict(event)
+    relay_abort = bool(projected.pop("_relay_abort", False))
+    terminal = _validated_terminal_event(projected)
+    if terminal is None or (terminal["type"] == "done" and terminal["assistant"] != turn.assistant):
+        terminal = {"type": "error", "status": 502, "detail": TERMINAL_CONTRACT_ERROR}
+        relay_abort = True
+    if relay_abort:
         if not delivery.aborted:
-            await _stop_delivery_once(cid, hdr, delivery)
+            await _stop_delivery_once(turn.cid, turn.headers, delivery)
         delivery.aborted = True
-    delivery.terminal_seen = delivery.terminal_seen or event.get("type") in {
-        "done",
-        "error",
-        "stopped",
-    }
-    await ws.send_json(event)
+    delivery.terminal_seen = True
+    await turn.ws.send_json(terminal)
 
 
 def _stream_lines(relay: _StreamRelay) -> None:
@@ -1647,13 +1627,14 @@ def _stream_lines(relay: _StreamRelay) -> None:
             return
         _relay_upstream_events(resp, relay.queue, relay.loop)
     except (OSError, http.client.HTTPException) as exc:
+        log.warning("chat_stream_failed", capsule=relay.cid, error=type(exc).__name__)
         _stream_queue_put(
             relay.queue,
             relay.loop,
             {
                 "type": "error",
                 "status": 502,
-                "detail": f"stream failed: {exc}",
+                "detail": "capsule-driver stream failed",
                 "_relay_abort": True,
             },
         )
@@ -1712,19 +1693,19 @@ async def _deliver_turn(turn: _WsTurn, queue: asyncio.Queue, worker: asyncio.Fut
                 while not queue.empty():
                     evt = queue.get_nowait()
                     if evt is not None:
-                        await _send_relay_event(turn.ws, turn.cid, turn.headers, evt, delivery)
+                        await _send_relay_event(turn, evt, delivery)
                 break
             evt = pending.result()
             if evt is None:
                 break
-            await _send_relay_event(turn.ws, turn.cid, turn.headers, evt, delivery)
+            await _send_relay_event(turn, evt, delivery)
         if not delivery.terminal_seen:
             await _stop_delivery_once(turn.cid, turn.headers, delivery)
             await turn.ws.send_json(
                 {
                     "type": "error",
                     "status": 502,
-                    "detail": "brain stream relay ended before a terminal event",
+                    "detail": "capsule-driver relay ended before a terminal event",
                 }
             )
     except (WebSocketDisconnect, OSError, RuntimeError, asyncio.CancelledError):
@@ -1771,7 +1752,7 @@ async def _ws_run_turn(
     payload: dict[str, object],
     started: asyncio.Event,
 ) -> None:
-    """Relay a LIVE streaming turn: text/tool/done/error events pushed as the brain produces them."""
+    """Relay one terminal controller event for a live turn."""
     admitted = _TURN_ADMISSION.reserve()
     if admitted is None:
         started.set()
@@ -1831,46 +1812,26 @@ async def _ws_stop_turn(ws: WebSocket, cid: str, hdr: dict, state: dict) -> None
     if queued or not state["dispatches"][active].is_set():
         active.cancel()
         await asyncio.gather(active, return_exceptions=True)
-        await ws.send_json(
-            {
-                "type": "stopped",
-                "status": 200,
-                "requested": True,
-                "queued": queued,
-            }
-        )
+        await ws.send_json({"type": "stopped"})
         return
     with contextlib.suppress(TimeoutError):
         await asyncio.wait_for(state["starts"][active].wait(), timeout=10)
     status, data = await _driver_stop(cid, hdr)
     if status != 200 or not data.get("requested"):
+        error_status = status if status != 200 else 409
+        detail = data.get("detail") or data.get("error")
+        if not isinstance(detail, str):
+            detail = "chat turn could not be stopped"
         await ws.send_json(
-            {
-                "type": "error",
-                "status": status if status != 200 else 409,
-                "detail": data.get("detail") or data.get("error") or "chat turn could not be stopped",
-            }
+            _upstream_error_event(
+                error_status,
+                jsonlib.dumps({"detail": detail}, ensure_ascii=False).encode(),
+            )
         )
-
-
-async def _ws_answer(ws: WebSocket, cid: str, hdr: dict, msg: dict, seen: set) -> None:
-    try:
-        status, data = await _bounded_call(
-            _CONTROL_EXECUTOR,
-            CAPSULEDRIVER_URL,
-            "POST",
-            f"/v1/capsules/{cid}/chat/answer",
-            {"rid": msg.get("rid"), "answer": msg.get("answer")},
-            hdr,
-        )
-    except _ExecutorSaturatedError:
-        status, data = 429, {"detail": "chat control capacity reached"}
-    seen.discard(str(msg.get("rid", "")))
-    await ws.send_json({"type": "answered", "status": status, **data})
 
 
 async def _ws_dispatch(ws: WebSocket, cid: str, hdr: dict, msg: dict, state: dict) -> None:
-    seen, turns = state["seen"], state["turns"]
+    turns = state["turns"]
     starts = state.setdefault("starts", {})
     dispatches = state.setdefault("dispatches", {})
     leases = state.setdefault("leases", {})
@@ -1909,9 +1870,8 @@ async def _ws_dispatch(ws: WebSocket, cid: str, hdr: dict, msg: dict, state: dic
                 }
             )
             return
-        # a background task, NOT awaited inline: the brain may shimpz-ask mid-turn and that
-        # question must reach the Captain while this very turn is still streaming. The set is
-        # capped at one; the driver independently enforces the same invariant across sockets.
+        # The background task keeps the socket responsive to Stop. The set is capped at one;
+        # the controller independently enforces the same invariant across sockets.
         try:
             turn, started, dispatched = _start_ws_turn(ws, cid, hdr, msg, lease)
         except BaseException:
@@ -1930,10 +1890,10 @@ async def _ws_dispatch(ws: WebSocket, cid: str, hdr: dict, msg: dict, state: dic
             leases.pop(completed, None)
 
         turn.add_done_callback(turn_done)
-    elif msg.get("type") == "stop":
+    elif msg.get("type") == "stop" and set(msg) == {"type"}:
         await _ws_stop_turn(ws, cid, hdr, state)
-    elif msg.get("type") == "answer":
-        await _ws_answer(ws, cid, hdr, msg, seen)
+    else:
+        await ws.send_json({"type": "error", "status": 400, "detail": "unsupported chat frame"})
 
 
 @app.websocket("/api/capsules/{cid}/ws")
@@ -1975,13 +1935,11 @@ async def capsule_ws(ws: WebSocket, cid: str) -> None:
         await ws.accept()
         hdr = {"X-Shimpz-Account": token}
         state: dict = {
-            "seen": set(),
             "turns": set(),
             "starts": {},
             "dispatches": {},
             "leases": {},
         }
-        pusher = asyncio.create_task(_ws_push_asks(ws, cid, hdr, state["seen"]))
         try:
             while True:
                 try:
@@ -2000,11 +1958,10 @@ async def capsule_ws(ws: WebSocket, cid: str) -> None:
         except WebSocketDisconnect:
             return
         finally:
-            pusher.cancel()
             turns = list(state["turns"])
             for turn in turns:
                 turn.cancel()
-            await asyncio.gather(pusher, *turns, return_exceptions=True)
+            await asyncio.gather(*turns, return_exceptions=True)
     finally:
         connection.release()
 
