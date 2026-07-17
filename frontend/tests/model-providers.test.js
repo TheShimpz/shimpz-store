@@ -1,3 +1,4 @@
+// @ts-nocheck -- executed by Node's built-in test runner; the browser bundle has no Node typings.
 import assert from "node:assert/strict";
 import test from "node:test";
 

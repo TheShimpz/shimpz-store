@@ -5,16 +5,19 @@ export const MODEL_PROVIDERS = Object.freeze([
   Object.freeze({ id: "anthropic", title: "Anthropic", defaultModel: "claude-sonnet-5" }),
 ]);
 
-const PROVIDER_BY_ID = new Map(MODEL_PROVIDERS.map((provider) => [provider.id, provider]));
-
+/** @param {unknown} value */
 export function modelProvider(value) {
-  return typeof value === "string" ? (PROVIDER_BY_ID.get(value.trim().toLowerCase()) ?? null) : null;
+  if (typeof value !== "string") return null;
+  const id = value.trim().toLowerCase();
+  return MODEL_PROVIDERS.find((provider) => provider.id === id) ?? null;
 }
 
+/** @param {unknown} value */
 export function defaultModelFor(value) {
   return modelProvider(value)?.defaultModel ?? "";
 }
 
+/** @param {unknown} provider @param {unknown} model */
 export function normalizeInferenceSelection(provider, model) {
   const definition = modelProvider(provider);
   if (!definition) throw new TypeError("Unsupported model provider");
