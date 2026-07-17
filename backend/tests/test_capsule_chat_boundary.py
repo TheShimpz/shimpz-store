@@ -4,10 +4,10 @@ import hashlib
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import ClassVar
 
 from app import main
 from fastapi.testclient import TestClient
-
 
 FILE_ID = "a" * 32
 FILE_SHA256 = hashlib.sha256(b"hello").hexdigest()
@@ -15,7 +15,7 @@ USAGE = {"used_bytes": 5, "limit_bytes": 100 * 1024 * 1024, "remaining_bytes": 1
 
 
 class _ControlPlaneHandler(BaseHTTPRequestHandler):
-    calls: list[tuple[str, str, dict]] = []
+    calls: ClassVar[list[tuple[str, str, dict]]] = []
 
     def _json(self, status: int, payload: dict) -> None:
         body = json.dumps(payload).encode()
@@ -228,9 +228,9 @@ def test_capsule_file_mutations_reject_untrusted_origins_and_ids_before_the_driv
 
 
 def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade():
-    assert main._public_storage_usage(
-        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
-    ) == {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
-    assert main._public_storage_usage(
-        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}
-    ) is None
+    assert main._public_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}) == {
+        "used_bytes": 8,
+        "limit_bytes": 4,
+        "remaining_bytes": 0,
+    }
+    assert main._public_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
