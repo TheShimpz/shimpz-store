@@ -1147,7 +1147,17 @@ def test_capsule_create_forwards_the_account_scoped_model_to_the_real_control_pl
             "/api/capsules",
             json={"name": "Astra", "provider": "openai", "model": "gpt-5.5"},
         )
+        legacy = client.post(
+            "/api/capsules",
+            json={
+                "name": "Legacy",
+                "provider": "openai",
+                "model": "gpt-5.5",
+                "brain": "codex",
+            },
+        )
     assert response.status_code == 201
+    assert legacy.status_code == 400
     creates = [
         call
         for call in calls

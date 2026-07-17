@@ -398,6 +398,22 @@ def _chat_turn_payload(payload: dict) -> dict[str, object]:
     return turn
 
 
+def _capsule_create_payload(payload: dict, account_id: str) -> tuple[str, dict[str, str]]:
+    if set(payload) != {"name", "provider", "model"}:
+        raise ClientPayloadError(400, "Capsule requires name, provider, and model")
+    name = str(payload.get("name", "")).strip()
+    provider = _brain_provider(payload.get("provider"))
+    model = str(payload.get("model") or "").strip()
+    cid = _cid_for(account_id, name)
+    if not name or not cid.strip("_"):
+        raise ClientPayloadError(400, "bad capsule name")
+    if provider is None:
+        raise ClientPayloadError(400, "unsupported model provider")
+    if MODEL_ID_RE.fullmatch(model) is None:
+        raise ClientPayloadError(400, "invalid model identifier")
+    return cid, {"name": name, "provider": provider, "model": model}
+
+
 def _public_file_metadata(value: object) -> dict | None:
     """Copy only opaque, non-path file metadata from the trusted controller response."""
     if not isinstance(value, dict):
@@ -882,28 +898,15 @@ async def capsules_create(request: Request) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     try:
         payload = await _read_bounded_json(request, MAX_CAPSULE_CREATE_BODY_BYTES)
+        cid, create_payload = _capsule_create_payload(payload, account_id)
     except ClientPayloadError as exc:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-    name = str(payload.get("name", "")).strip()
-    provider = _brain_provider(payload.get("provider"))
-    model = str(payload.get("model") or "").strip()
-    cid = _cid_for(account_id, name)
-    if not name or not cid.strip("_"):
-        return JSONResponse({"detail": "bad capsule name"}, status_code=400)
-    if provider is None:
-        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
-    if MODEL_ID_RE.fullmatch(model) is None:
-        return JSONResponse({"detail": "invalid model identifier"}, status_code=400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
         CAPSULEDRIVER_URL,
         "POST",
         f"/v1/capsules/{cid}/create",
-        {
-            "name": name,
-            "provider": provider,
-            "model": model,
-        },
+        create_payload,
         {"X-Shimpz-Account": token},
     )
     return JSONResponse(data, status_code=status)
