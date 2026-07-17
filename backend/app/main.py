@@ -1381,7 +1381,7 @@ def _stream_queue_put(queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, ite
     try:
         pending = asyncio.run_coroutine_threadsafe(queue.put(item), loop)
         pending.result(timeout=STREAM_QUEUE_PUT_TIMEOUT)
-    except (TimeoutError, concurrent.futures.CancelledError, RuntimeError):
+    except TimeoutError, concurrent.futures.CancelledError, RuntimeError:
         if pending is not None:
             pending.cancel()
         return False
@@ -1411,11 +1411,7 @@ def _validated_done_event(value: dict) -> dict | None:
         or assistant is None
         or (
             power is not None
-            and (
-                not isinstance(power, str)
-                or len(power) > 80
-                or ASSISTANT_POWER_ID_RE.fullmatch(power) is None
-            )
+            and (not isinstance(power, str) or len(power) > 80 or ASSISTANT_POWER_ID_RE.fullmatch(power) is None)
         )
     ):
         return None
@@ -1459,7 +1455,7 @@ def _parsed_stream_event(line: bytes) -> dict | None:
         return None
     try:
         event = jsonlib.loads(line, object_pairs_hook=_unique_json_object)
-    except (jsonlib.JSONDecodeError, UnicodeDecodeError, ValueError):
+    except jsonlib.JSONDecodeError, UnicodeDecodeError, ValueError:
         return None
     return _validated_terminal_event(event)
 
@@ -1524,7 +1520,7 @@ def _relay_upstream_events(
             if terminal_event is not None:
                 raise _StreamProtocolError
             terminal_event = event
-    except (_StreamLimitError, _StreamProtocolError):
+    except _StreamLimitError, _StreamProtocolError:
         _stream_queue_put(
             queue,
             loop,
@@ -1708,7 +1704,7 @@ async def _deliver_turn(turn: _WsTurn, queue: asyncio.Queue, worker: asyncio.Fut
                     "detail": "capsule-driver relay ended before a terminal event",
                 }
             )
-    except (WebSocketDisconnect, OSError, RuntimeError, asyncio.CancelledError):
+    except WebSocketDisconnect, OSError, RuntimeError, asyncio.CancelledError:
         await _stop_delivery_once(turn.cid, turn.headers, delivery)
         raise
     finally:

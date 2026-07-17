@@ -807,9 +807,7 @@ def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
         "detail": "capsule-driver stream violated the terminal event contract",
         "_relay_abort": True,
     }
-    legacy_then_terminal = (
-        b'{"type":"text","text":"partial"}\n' + json.dumps(_done()).encode() + b"\n"
-    )
+    legacy_then_terminal = b'{"type":"text","text":"partial"}\n' + json.dumps(_done()).encode() + b"\n"
     assert _relay(legacy_then_terminal) == [protocol_error]
 
     malformed = b"not-json\n" + json.dumps(_done()).encode() + b"\n"
