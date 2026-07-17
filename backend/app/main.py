@@ -451,7 +451,9 @@ def _public_storage_usage(value: object) -> dict | None:
         if isinstance(amount, bool) or not isinstance(amount, int) or amount < 0:
             return None
         usage[key] = amount
-    if usage["used_bytes"] + usage["remaining_bytes"] != usage["limit_bytes"]:
+    over_quota = usage["used_bytes"] >= usage["limit_bytes"] and usage["remaining_bytes"] == 0
+    within_quota = usage["used_bytes"] + usage["remaining_bytes"] == usage["limit_bytes"]
+    if not (over_quota or within_quota):
         return None
     return usage
 

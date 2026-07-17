@@ -225,3 +225,12 @@ def test_capsule_file_mutations_reject_untrusted_origins_and_ids_before_the_driv
     assert upload.status_code == 403
     assert deletion.status_code == 404
     assert not any(path.endswith("/files") or "/files/" in path for _method, path, _body in calls)
+
+
+def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade():
+    assert main._public_storage_usage(
+        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
+    ) == {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
+    assert main._public_storage_usage(
+        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}
+    ) is None
