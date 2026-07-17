@@ -11,7 +11,7 @@
     brand ? `color-mix(in oklab, ${brand} 72%, white)` : "var(--color-cyan)",
   );
   const secondary = $derived(
-    icon === "edge" || icon === "object-storage" || icon === "secure-route"
+    icon === "edge" || icon === "object-storage"
       ? "var(--color-magenta)"
       : "var(--color-cyan)",
   );
@@ -43,14 +43,10 @@
       <path class="glyph" d="m32 14 17 9v19l-17 9-17-9V23Z" />
       <path class="accent" d="m15 23 17 9 17-9M32 32v19M23 19l17 9" />
       <path class="node" d="M29 29h6v6h-6z" />
-    {:else if icon === "neural-media"}
+    {:else}
       <path class="glyph" d="m32 14 14 8v18l-14 9-14-9V22Z" />
       <path class="accent" d="m32 20-7 7 7 5 7-5-7-7Zm0 12v10M25 27l-3 10M39 27l3 10" />
       <path class="node" d="M29 29h6v6h-6zM19 36h5v5h-5zM40 36h5v5h-5z" />
-    {:else}
-      <path class="glyph" d="m32 14 15 6v12c0 9-6 15-15 19-9-4-15-10-15-19V20Z" />
-      <path class="accent" d="M23 32h8l5-6h7M28 41h7l5-6" />
-      <path class="node" d="M20 29h5v6h-5zM40 23h5v6h-5zM38 32h5v6h-5z" />
     {/if}
 
     <path class="status" d="M13 52h9" />

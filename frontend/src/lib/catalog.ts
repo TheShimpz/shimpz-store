@@ -16,8 +16,7 @@ export type ServiceIconName =
   | "database"
   | "event-bus"
   | "object-storage"
-  | "neural-media"
-  | "secure-route";
+  | "neural-media";
 
 export interface Driver {
   id: string;
@@ -128,24 +127,6 @@ export const DRIVERS: Driver[] = [
     boundaries: [
       { en: "Platform Brain and Telegram gateway only; no Assistant manifest grant or Assistant route exists", pt: "Somente o Cérebro da plataforma e o gateway do Telegram; não existe grant de manifesto nem rota para Assistants" },
       { en: "Only allow-listed image, transcription and speech operations are accepted", pt: "Somente operações permitidas de imagem, transcrição e fala são aceitas" },
-    ],
-  },
-  {
-    id: "proxy", name: "Residential Proxy", category: "Network", icon: "secure-route",
-    summary: { en: "Optional residential egress for the platform Browser.", pt: "Egress residencial opcional para o Browser da plataforma." },
-    blurb: {
-      en: "When the operator configures IPRoyal credentials, the Browser container routes Chrome through that residential upstream. This is a Browser setting, not an Assistant egress permission.",
-      pt: "Quando o operador configura credenciais IPRoyal, o container do Browser roteia o Chrome por esse upstream residencial. Essa é uma configuração do Browser, não uma permissão de egress para Assistants.",
-    },
-    features: [
-      { en: "Optionally route Chrome through a configured residential ISP upstream", pt: "Opcionalmente roteia o Chrome por um upstream residencial configurado" },
-      { en: "Use a local authenticated relay because Chrome does not accept upstream proxy credentials", pt: "Usa um relay local autenticado porque o Chrome não aceita credenciais do proxy upstream" },
-      { en: "Select one configured upstream when the Browser starts", pt: "Seleciona um upstream configurado quando o Browser inicia" },
-      { en: "Keep residential proxy credentials inside the Browser container", pt: "Mantém as credenciais do proxy residencial dentro do container do Browser" },
-    ],
-    boundaries: [
-      { en: "Browser container only; Assistants never receive this egress path or its credentials", pt: "Somente o container do Browser; Assistants nunca recebem esse caminho de egress nem suas credenciais" },
-      { en: "Assistant egress uses the separate destination-allowlisted proxy", pt: "O egress de Assistants usa o proxy separado com destinos permitidos" },
     ],
   },
 ];
