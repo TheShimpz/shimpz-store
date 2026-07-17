@@ -135,7 +135,7 @@ def test_chat_requires_and_forwards_one_selected_assistant():
             ),
             client.post(
                 "/api/capsules/cap_one/chat",
-                json={"assistant": "hello-pulse", "message": "hello", "provider": "codex"},
+                json={"assistant": "hello-pulse", "message": "hello", "provider": "openai"},
             ),
             client.post(
                 "/api/capsules/cap_one/chat",

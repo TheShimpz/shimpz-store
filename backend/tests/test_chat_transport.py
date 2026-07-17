@@ -984,16 +984,17 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
-        if self.path == "/v1/capsules":
-            self._json(
-                200,
-                {
-                    "capsules": [
-                        {"id": "cap-codex", "brain": "codex"},
-                        {"id": "cap-claude", "brain": "claude-code"},
-                    ]
-                },
-            )
+        if self.path == "/v1/capsules/cap-openai/inference":
+            self._json(200, {"provider": "openai", "model": "gpt-5.5"})
+            return
+        self._json(404, {"error": "not found"})
+
+    def do_PUT(self) -> None:
+        length = int(self.headers.get("Content-Length", "0"))
+        body = json.loads(self.rfile.read(length) or b"{}")
+        self.calls.append(("PUT", self.path, body))
+        if self.path == "/v1/capsules/cap-openai/inference":
+            self._json(200, {"capsule": "cap-openai", **body})
             return
         self._json(404, {"error": "not found"})
 
@@ -1003,6 +1004,15 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
             self._json(200, {"account_id": "account-1", "username": "captain"})
+        elif self.path == "/v1/brains/upsert":
+            self._json(
+                200,
+                {
+                    "provider": body.get("provider"),
+                    "auth_type": body.get("auth_type"),
+                    "status": "configured",
+                },
+            )
         elif self.path == "/v1/brains/revoke-begin":
             self.state["begin_count"] += 1
             self._json(
@@ -1015,13 +1025,6 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                     "already_revoking": self.state["begin_count"] > 1,
                 },
             )
-        elif self.path == "/v1/capsules/cap-codex/brain/deconfigure":
-            status = 500 if self.state["revoke_failures"] else 200
-            self.state["revoke_failures"] = max(0, self.state["revoke_failures"] - 1)
-            self._json(
-                status,
-                {"configured": False} if status == 200 else {"error": "failed"},
-            )
         elif self.path == "/v1/internal/brains/revoke-finalize":
             if self.headers.get("Authorization") != f"Bearer {self.finalize_token}":
                 self._json(403, {"error": "invalid or missing credentials"})
@@ -1030,8 +1033,6 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                 self._json(409, {"detail": "generation mismatch"})
             else:
                 self._json(200, {"deleted": True, "generation": 7})
-        elif self.path == "/v1/capsules/cap-codex/brain/login/cancel":
-            self._json(200, {"provider": "codex", "mode": "device_code", "cancelled": True})
         elif self.path.startswith("/v1/capsules/") and self.path.endswith("/create"):
             self._json(201, {"created": True, **body})
         else:
@@ -1042,7 +1043,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
 
 
 @contextlib.contextmanager
-def _brain_control_plane(*, revoke_status: int = 200, finalize_token_available: bool = True):
+def _brain_control_plane(*, finalize_token_available: bool = True):
     calls: list[tuple[str, str, dict]] = []
     finalize_token = secrets.token_hex(32)
     handler = type(
@@ -1052,7 +1053,6 @@ def _brain_control_plane(*, revoke_status: int = 200, finalize_token_available: 
             "calls": calls,
             "state": {
                 "begin_count": 0,
-                "revoke_failures": 1 if revoke_status != 200 else 0,
             },
             "finalize_token": finalize_token,
         },
@@ -1086,27 +1086,58 @@ def _brain_control_plane(*, revoke_status: int = 200, finalize_token_available: 
             worker.join(timeout=5)
 
 
-def test_brain_delete_revokes_every_matching_capsule_before_deleting_ciphertext():
+def test_provider_key_delete_revokes_generation_without_touching_capsules():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.delete("/api/brains/codex")
+        response = client.delete("/api/brains/openai")
     assert response.status_code == 200
     begin = (
         "POST",
         "/v1/brains/revoke-begin",
-        {"token": "valid-token", "provider": "codex"},
+        {"token": "valid-token", "provider": "openai"},
     )
-    inventory = ("GET", "/v1/capsules", {})
-    deconfigure = ("POST", "/v1/capsules/cap-codex/brain/deconfigure", {})
     finalize = (
         "POST",
         "/v1/internal/brains/revoke-finalize",
-        {"token": "valid-token", "provider": "codex", "generation": 7},
+        {"token": "valid-token", "provider": "openai", "generation": 7},
     )
     assert begin in calls
-    assert deconfigure in calls
-    assert not any(call[1] == "/v1/capsules/cap-claude/brain/deconfigure" for call in calls)
-    assert calls.index(begin) < calls.index(inventory) < calls.index(deconfigure) < calls.index(finalize)
+    assert finalize in calls
+    assert calls.index(begin) < calls.index(finalize)
+    assert not any(call[1].startswith("/v1/capsules/") for call in calls)
+
+
+def test_model_credentials_accept_only_generic_provider_api_keys():
+    with _brain_control_plane() as calls, TestClient(app) as client:
+        client.cookies.set(ACCOUNT_COOKIE, "valid-token")
+        valid = client.post(
+            "/api/brains/anthropic",
+            json={"auth_type": "api_key", "secret": "secret-key"},
+        )
+        oauth = client.post(
+            "/api/brains/anthropic",
+            json={"auth_type": "oauth", "secret": "oauth-token"},
+        )
+        legacy = client.post(
+            "/api/brains/codex",
+            json={"auth_type": "api_key", "secret": "secret-key"},
+        )
+
+    assert valid.status_code == 200
+    assert valid.json() == {"provider": "anthropic", "auth_type": "api_key", "status": "configured"}
+    assert oauth.status_code == legacy.status_code == 400
+    assert [call for call in calls if call[1] == "/v1/brains/upsert"] == [
+        (
+            "POST",
+            "/v1/brains/upsert",
+            {
+                "token": "valid-token",
+                "provider": "anthropic",
+                "auth_type": "api_key",
+                "secret": "secret-key",
+            },
+        )
+    ]
 
 
 def test_capsule_create_forwards_the_account_scoped_model_to_the_real_control_plane():
@@ -1114,7 +1145,7 @@ def test_capsule_create_forwards_the_account_scoped_model_to_the_real_control_pl
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         response = client.post(
             "/api/capsules",
-            json={"name": "Astra", "brain": "codex", "model": "gpt-5.2-codex"},
+            json={"name": "Astra", "provider": "openai", "model": "gpt-5.5"},
         )
     assert response.status_code == 201
     creates = [
@@ -1126,22 +1157,36 @@ def test_capsule_create_forwards_the_account_scoped_model_to_the_real_control_pl
         (
             "POST",
             f"/v1/capsules/{main._cid_for('account-1', 'Astra')}/create",
-            {"name": "Astra", "brain": "codex", "model": "gpt-5.2-codex"},
+            {"name": "Astra", "provider": "openai", "model": "gpt-5.5"},
         )
     ]
 
 
-def test_codex_device_login_cancel_is_forwarded_as_a_post():
+def test_capsule_inference_is_read_and_updated_without_recreating_capsule():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.post("/api/capsules/cap-codex/brain/login/cancel")
-    assert response.status_code == 200
-    assert response.json() == {
-        "provider": "codex",
-        "mode": "device_code",
-        "cancelled": True,
+        current = client.get("/api/capsules/cap-openai/inference")
+        updated = client.put(
+            "/api/capsules/cap-openai/inference",
+            json={"provider": "anthropic", "model": "claude-sonnet-5"},
+        )
+        retired_login = client.post("/api/capsules/cap-openai/brain/login/start")
+
+    assert current.status_code == updated.status_code == 200
+    assert current.json() == {"provider": "openai", "model": "gpt-5.5"}
+    assert updated.json() == {
+        "capsule": "cap-openai",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5",
     }
-    assert ("POST", "/v1/capsules/cap-codex/brain/login/cancel", {}) in calls
+    assert retired_login.status_code in {404, 405}
+    assert ("GET", "/v1/capsules/cap-openai/inference", {}) in calls
+    assert (
+        "PUT",
+        "/v1/capsules/cap-openai/inference",
+        {"provider": "anthropic", "model": "claude-sonnet-5"},
+    ) in calls
+    assert not any(call[1].endswith("/create") for call in calls)
 
 
 def test_capsule_ids_bind_the_complete_account_and_normalized_name():
@@ -1179,7 +1224,7 @@ def test_capsule_create_and_install_reject_bodies_before_control_plane_forwardin
             headers={"Content-Type": "application/json"},
         )
         install = client.post(
-            "/api/capsules/cap_codex/install",
+            "/api/capsules/cap_openai/install",
             content=install_body,
             headers={"Content-Type": "application/json", "Origin": "https://shimpz.com"},
         )
@@ -1191,41 +1236,13 @@ def test_capsule_create_and_install_reject_bodies_before_control_plane_forwardin
     assert forwarded_mutations == []
 
 
-def test_brain_delete_keeps_ciphertext_when_any_runtime_revoke_fails():
-    with _brain_control_plane(revoke_status=500) as calls, TestClient(app) as client:
-        client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.delete("/api/brains/codex")
-    assert response.status_code == 502
-    assert not any(call[1] == "/v1/internal/brains/revoke-finalize" for call in calls)
-
-
-def test_brain_delete_fails_closed_without_the_finalizer_bearer_after_purge():
+def test_provider_key_delete_fails_closed_without_the_finalizer_bearer():
     with (
         _brain_control_plane(finalize_token_available=False) as calls,
         TestClient(app) as client,
     ):
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.delete("/api/brains/codex")
+        response = client.delete("/api/brains/openai")
     assert response.status_code == 502
     assert response.json() == {"detail": "Brain credential finalization is unavailable"}
-    assert any(call[1].endswith("/brain/deconfigure") for call in calls)
     assert not any(call[1] == "/v1/internal/brains/revoke-finalize" for call in calls)
-
-
-def test_brain_delete_retry_resumes_the_same_revoking_generation():
-    with _brain_control_plane(revoke_status=500) as calls, TestClient(app) as client:
-        client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        first = client.delete("/api/brains/codex")
-        second = client.delete("/api/brains/codex")
-    assert first.status_code == 502
-    assert second.status_code == 200
-    begins = [call for call in calls if call[1] == "/v1/brains/revoke-begin"]
-    finalizes = [call for call in calls if call[1] == "/v1/internal/brains/revoke-finalize"]
-    assert len(begins) == 2
-    assert finalizes == [
-        (
-            "POST",
-            "/v1/internal/brains/revoke-finalize",
-            {"token": "valid-token", "provider": "codex", "generation": 7},
-        )
-    ]

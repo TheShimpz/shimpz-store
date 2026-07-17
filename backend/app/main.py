@@ -3,7 +3,7 @@
 One FastAPI process serves the prerendered SvelteKit build and `/api`: signup/login, Capsule selection,
 and installed-App management. It holds no driver/admin credential; it forwards the user's account token
 to the socket-holding `capsule-driver`, which enforces ownership. Its one narrow service capability can
-only finalize an exact already-revoking Brain generation after Capsule purge. It is reached over the
+only finalize an exact already-revoking model credential generation. It is reached over the
 Space's internal networks (accounts_net + capsuledriver_net) and uses stdlib http.client for proxy hops.
 """
 
@@ -50,6 +50,10 @@ MAX_CHAT_BODY_BYTES = max(1024, int(os.environ.get("SHIMPZ_STORE_MAX_CHAT_BODY_B
 MAX_CAPSULE_CREATE_BODY_BYTES = max(
     1024,
     int(os.environ.get("SHIMPZ_STORE_MAX_CAPSULE_CREATE_BODY_BYTES", str(16 * 1024))),
+)
+MAX_INFERENCE_BODY_BYTES = max(
+    1024,
+    int(os.environ.get("SHIMPZ_STORE_MAX_INFERENCE_BODY_BYTES", str(4 * 1024))),
 )
 MAX_CAPSULE_INSTALL_BODY_BYTES = max(
     1024,
@@ -328,6 +332,7 @@ ASSISTANT_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 ASSISTANT_POWER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 CAPSULE_FILE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 CAPSULE_FILE_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$")
 RELEASED_CLOUD_ASSISTANTS = frozenset({"hello-pulse"})
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
 MAX_CHAT_MESSAGE_CHARS = 16_000
@@ -714,8 +719,8 @@ async def me(request: Request) -> JSONResponse:
     )
 
 
-# ── Account Brains (D4/D8: one encrypted-at-rest credential per provider) ──────
-BRAIN_PROVIDERS = frozenset({"claude-code", "codex"})
+# ── Account model credentials (one encrypted-at-rest API key per provider) ────
+BRAIN_PROVIDERS = frozenset({"anthropic", "openai"})
 MAX_BRAIN_CREDENTIAL_BODY_BYTES = 72 * 1024
 
 
@@ -755,9 +760,11 @@ async def brain_upsert(request: Request, provider: str) -> JSONResponse:
         )
     except ClientPayloadError as exc:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status)
+    if set(payload) != {"auth_type", "secret"}:
+        return JSONResponse({"detail": "credential requires auth_type and secret"}, status_code=400)
     auth_type = str(payload.get("auth_type") or "").strip().lower()
     secret = payload.get("secret")
-    if auth_type not in {"api_key", "oauth"} or not isinstance(secret, str):
+    if auth_type != "api_key" or not isinstance(secret, str):
         return JSONResponse({"detail": "invalid Brain credential"}, status_code=400)
     status, data = await _bounded_call(
         _AUTH_EXECUTOR,
@@ -801,36 +808,6 @@ def _revocation_state(begin_data: dict) -> tuple[bool, int | None]:
     return already_absent, generation
 
 
-def _purge_brain_from_capsules(token: str, provider: str) -> str | None:
-    capsule_status, capsule_data = _call(
-        CAPSULEDRIVER_URL,
-        "GET",
-        "/v1/capsules",
-        extra={"X-Shimpz-Account": token},
-    )
-    if (
-        capsule_status != 200
-        or not isinstance(capsule_data, dict)
-        or not isinstance(capsule_data.get("capsules"), list)
-    ):
-        return "could not revoke the credential from existing Capsules"
-    for capsule in capsule_data["capsules"]:
-        if not isinstance(capsule, dict) or capsule.get("brain") != provider:
-            continue
-        cid = capsule.get("id")
-        if not isinstance(cid, str):
-            return "could not revoke the credential from existing Capsules"
-        revoke_status, _revoke_data = _call(
-            CAPSULEDRIVER_URL,
-            "POST",
-            f"/v1/capsules/{cid}/brain/deconfigure",
-            extra={"X-Shimpz-Account": token},
-        )
-        if revoke_status != 200:
-            return "could not revoke the credential from every existing Capsule"
-    return None
-
-
 def _delete_brain_for_token(token: str, provider: str, forwarded_for: str) -> JSONResponse:
     begin_status, begin_data = _call(
         ACCOUNTS_URL,
@@ -848,9 +825,6 @@ def _delete_brain_for_token(token: str, provider: str, forwarded_for: str) -> JS
             {"detail": str(exc)},
             status_code=502,
         )
-    purge_error = _purge_brain_from_capsules(token, provider)
-    if purge_error is not None:
-        return JSONResponse({"detail": purge_error}, status_code=502)
     if already_absent:
         log.info("brain_delete", provider=provider, status=200, already_absent=True)
         return JSONResponse(
@@ -911,11 +885,15 @@ async def capsules_create(request: Request) -> JSONResponse:
     except ClientPayloadError as exc:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status)
     name = str(payload.get("name", "")).strip()
-    brain = str(payload.get("brain", "") or "claude-code").strip()
-    model = payload.get("model")
+    provider = _brain_provider(payload.get("provider"))
+    model = str(payload.get("model") or "").strip()
     cid = _cid_for(account_id, name)
     if not name or not cid.strip("_"):
         return JSONResponse({"detail": "bad capsule name"}, status_code=400)
+    if provider is None:
+        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
+    if MODEL_ID_RE.fullmatch(model) is None:
+        return JSONResponse({"detail": "invalid model identifier"}, status_code=400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
         CAPSULEDRIVER_URL,
@@ -923,9 +901,9 @@ async def capsules_create(request: Request) -> JSONResponse:
         f"/v1/capsules/{cid}/create",
         {
             "name": name,
-            "brain": brain,
+            "provider": provider,
             "model": model,
-        },  # the driver's Brain/model registry validates both fields (invalid → 400)
+        },
         {"X-Shimpz-Account": token},
     )
     return JSONResponse(data, status_code=status)
@@ -1130,8 +1108,8 @@ async def cloud_assistant_uninstall(request: Request, cid: str, assistant: str) 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # well under Cloudflare's 100 MB proxied-body cap; big files → R2 later
 
 
-@app.get("/api/capsules/{cid}/brain")
-async def capsule_brain(request: Request, cid: str) -> JSONResponse:
+@app.get("/api/capsules/{cid}/inference")
+async def capsule_inference(request: Request, cid: str) -> JSONResponse:
     token, _, _ = await _authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
@@ -1139,57 +1117,35 @@ async def capsule_brain(request: Request, cid: str) -> JSONResponse:
         _CONTROL_EXECUTOR,
         CAPSULEDRIVER_URL,
         "GET",
-        f"/v1/capsules/{cid}/brain",
+        f"/v1/capsules/{cid}/inference",
         extra={"X-Shimpz-Account": token},
     )
     return JSONResponse(data, status_code=status)
 
 
-@app.post("/api/capsules/{cid}/brain/configure")
-async def capsule_brain_configure(request: Request, cid: str) -> JSONResponse:
+@app.put("/api/capsules/{cid}/inference")
+async def capsule_inference_configure(request: Request, cid: str) -> JSONResponse:
     token, _, _ = await _authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    try:
+        payload = await _read_bounded_json(request, MAX_INFERENCE_BODY_BYTES)
+    except ClientPayloadError as exc:
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status)
+    if set(payload) != {"provider", "model"}:
+        return JSONResponse({"detail": "inference requires provider and model"}, status_code=400)
+    provider = _brain_provider(payload.get("provider"))
+    model = str(payload.get("model") or "").strip()
+    if provider is None:
+        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
+    if MODEL_ID_RE.fullmatch(model) is None:
+        return JSONResponse({"detail": "invalid model identifier"}, status_code=400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
         CAPSULEDRIVER_URL,
-        "POST",
-        f"/v1/capsules/{cid}/brain/configure",
-        {},
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.post("/api/capsules/{cid}/brain/login/start")
-@app.get("/api/capsules/{cid}/brain/login/url")
-@app.post("/api/capsules/{cid}/brain/login/code")
-@app.get("/api/capsules/{cid}/brain/login/status")
-@app.post("/api/capsules/{cid}/brain/login/cancel")
-async def capsule_brain_login(request: Request, cid: str) -> JSONResponse:
-    """Forward the per-Capsule provider OAuth bridge.
-
-    Claude returns an authorization URL and accepts its callback code. Codex returns a device user
-    code that is entered only on OpenAI's website; cancel stops that bounded background writer.
-    """
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    step = request.url.path.rsplit("/", 1)[-1]
-    method = "POST" if step in ("start", "code", "cancel") else "GET"
-    payload = {}
-    if step == "code":
-        try:
-            payload = await _read_bounded_json(request, MAX_AUTH_BODY_BYTES)
-        except ClientPayloadError as exc:
-            return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-    body = {"code": payload.get("code")} if step == "code" else None
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        CAPSULEDRIVER_URL,
-        method,
-        f"/v1/capsules/{cid}/brain/login/{step}",
-        body,
+        "PUT",
+        f"/v1/capsules/{cid}/inference",
+        {"provider": provider, "model": model},
         extra={"X-Shimpz-Account": token},
     )
     return JSONResponse(data, status_code=status)
