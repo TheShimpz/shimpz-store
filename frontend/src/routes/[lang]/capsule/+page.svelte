@@ -331,9 +331,9 @@
         <span class="kicker">{tr("capsule_name_label", lang)}</span>
         <input class="field mt-2" placeholder={tr("capsule_name_ph", lang)} bind:value={capName} onkeydown={(e) => e.key === "Enter" && createCapsule()} />
       </div>
-      <label class="flex items-center gap-3 text-sm dim">
+      <label class="block text-sm dim">
         <span class="kicker !text-[10px]">{tr("brain_label", lang)}</span>
-        <select class="field field-sm w-auto" value={provider} onchange={chooseProvider}>
+        <select class="field mt-2" value={provider} onchange={chooseProvider}>
           {#each MODEL_PROVIDERS as option (option.id)}
             <option value={option.id}>{option.title}</option>
           {/each}
@@ -346,7 +346,6 @@
             <option value={option.id}>{modelOptionLabel(option, lang)}</option>
           {/each}
         </select>
-        <span class="mt-1 block text-xs dim">{tr("model_price_note", lang)}</span>
       </label>
       {#if error}<p class="text-sm" style="color:var(--color-magenta)">{error}</p>{/if}
       <button class="btn-primary w-full justify-center" disabled={busy || !capName.trim()} onclick={createCapsule}>{tr("capsule_submit", lang)}</button>
