@@ -8,6 +8,12 @@ const MAX_REPLY_CHARS = 60_000;
 const MAX_ERROR_DETAIL_CHARS = 800;
 export const CHAT_WS_SUBPROTOCOL = "shimpz.chat.v1";
 
+/** Capped reconnect delay. Reconnection never implies replaying a chat frame. @param {any} attempt */
+export function teamChatReconnectDelay(attempt) {
+  if (!Number.isSafeInteger(attempt) || attempt < 0) throw new TypeError("invalid reconnect attempt");
+  return Math.min(400 * (2 ** Math.min(attempt, 4)), 5_000);
+}
+
 /** @param {any} capsuleId @returns {string} */
 export function teamChatWebSocketPath(capsuleId) {
   if (typeof capsuleId !== "string" || !CAPSULE_ID.test(capsuleId)) {

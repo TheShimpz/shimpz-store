@@ -8,6 +8,7 @@
     parseCapsuleStorage,
     parseCapsuleUpload,
     parseChatTerminalEvent,
+    teamChatReconnectDelay,
     teamChatWebSocketPath,
   } from "$lib/capsuleChat.js";
   import { tr } from "$lib/i18n";
@@ -97,6 +98,9 @@
   // One WebSocket per Capsule releases one closed terminal event for each admitted turn.
   let ws = $state<WebSocket | null>(null);
   let wsReady = $state(false);
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectAttempt = 0;
+  let chatDestroyed = false;
   const canSend = $derived(canChat && wsReady);
 
   function chatErrorText(statusCode: unknown, detailValue: unknown) {
@@ -114,18 +118,30 @@
   }
 
   function connectWs(cid = selected) {
+    if (reconnectTimer !== null) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     const previous = ws;
     ws = null;
     previous?.close();
     wsReady = false;
-    if (!cid || selected !== cid) return;
+    if (!cid || selected !== cid || chatDestroyed) return;
     const proto = location.protocol === "https:" ? "wss://" : "ws://";
     const sock = new WebSocket(
       `${proto}${location.host}${teamChatWebSocketPath(cid)}`,
       CHAT_WS_SUBPROTOCOL,
     );
     sock.onopen = () => {
-      if (ws === sock && selected === cid) wsReady = true;
+      if (ws !== sock || selected !== cid) return;
+      if (sock.protocol !== CHAT_WS_SUBPROTOCOL) {
+        ws = null;
+        sock.close(1002, "required subprotocol missing");
+        messages.push({ role: "system", tone: "error", text: tr("chat_protocol_error", lang) });
+        return;
+      }
+      reconnectAttempt = 0;
+      wsReady = true;
     };
     sock.onclose = () => {
       if (ws !== sock || selected !== cid) return;
@@ -136,6 +152,14 @@
         status = "";
         messages.push({ role: "system", tone: "error", text: tr("chat_disconnected", lang) });
         scrollDown(true);
+      }
+      if (!chatDestroyed && phase === "ready" && selected === cid && reconnectTimer === null) {
+        const delay = teamChatReconnectDelay(reconnectAttempt);
+        reconnectAttempt += 1;
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null;
+          if (!chatDestroyed && phase === "ready" && selected === cid) connectWs(cid);
+        }, delay);
       }
     };
     sock.onmessage = (ev) => {
@@ -250,6 +274,11 @@
     const previous = ws;
     ws = null;
     previous?.close();
+    if (reconnectTimer !== null) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    reconnectAttempt = 0;
     wsReady = false;
     busy = false;
     status = "";
@@ -437,7 +466,11 @@
     }
     boot();
   });
-  onDestroy(() => ws?.close());
+  onDestroy(() => {
+    chatDestroyed = true;
+    if (reconnectTimer !== null) clearTimeout(reconnectTimer);
+    ws?.close();
+  });
 </script>
 
 <svelte:window onpopstate={syncCapsuleFromUrl} />

@@ -8,6 +8,7 @@ import {
   parseCapsuleStorage,
   parseCapsuleUpload,
   parseChatTerminalEvent,
+  teamChatReconnectDelay,
   teamChatWebSocketPath,
 } from "../src/lib/capsuleChat.js";
 
@@ -70,6 +71,16 @@ test("uses the single versioned Team chat WebSocket contract", () => {
   assert.equal(teamChatWebSocketPath("cap_one"), "/api/capsules/cap_one/chat/ws");
   for (const capsuleId of ["", "../escape", "cap-one", "A"]) {
     assert.throws(() => teamChatWebSocketPath(capsuleId));
+  }
+});
+
+test("caps chat reconnect backoff without encoding automatic replay", () => {
+  assert.deepEqual(
+    [0, 1, 2, 3, 4, 20].map(teamChatReconnectDelay),
+    [400, 800, 1600, 3200, 5000, 5000],
+  );
+  for (const invalid of [-1, 0.5, "1", null]) {
+    assert.throws(() => teamChatReconnectDelay(invalid));
   }
 });
 
