@@ -3,12 +3,12 @@
   import { goto } from "$app/navigation";
   import { ASSISTANT_BY_ID, type Locale } from "$lib/catalog";
   import {
-    createAssistantChatTurn,
+    createTeamChatTurn,
     parseCapsuleStorage,
     parseCapsuleUpload,
     parseChatTerminalEvent,
     parseInstalledAssistants,
-    selectRunnableAssistant,
+    parseTeamChatResponse,
   } from "$lib/capsuleChat.js";
   import { tr } from "$lib/i18n";
   import { MODEL_PROVIDERS, defaultModelFor, normalizeInferenceSelection } from "$lib/modelProviders.js";
@@ -28,7 +28,6 @@
   let inference = $state<any>(null); // {provider, model}
   let configuredProviders = $state<string[]>([]);
   let crew = $state<any[]>([]);
-  let selectedAssistant = $state("");
   let capsuleFiles = $state<any[]>([]);
   let storageUsed = $state(0);
   let storageLimit = $state(100 * 1024 * 1024);
@@ -45,9 +44,10 @@
   let thread = $state<HTMLElement | null>(null);
   let fileInput = $state<HTMLInputElement | null>(null);
 
-  const activeAssistant = $derived(crew.find((assistant) => assistant.id === selectedAssistant) ?? null);
+  const activeTeam = $derived(capsules.find((team) => team.id === selected) ?? null);
+  const teamName = $derived(typeof activeTeam?.name === "string" ? activeTeam.name : "");
   const providerReady = $derived(Boolean(inference?.provider && configuredProviders.includes(inference.provider)));
-  const canChat = $derived(Boolean(activeAssistant && providerReady));
+  const canChat = $derived(Boolean(teamName && providerReady));
   const storagePercent = $derived(
     storageLimit > 0 ? Math.min(100, Math.max(0, (storageUsed / storageLimit) * 100)) : 0,
   );
@@ -55,10 +55,6 @@
 
   function assistantName(id: string) {
     return ASSISTANT_BY_ID.get(id)?.name ?? id;
-  }
-
-  function assistantSelectionKey(cid: string) {
-    return `${SEL_KEY}_assistant_${cid}`;
   }
 
   function formatBytes(value: number) {
@@ -148,10 +144,7 @@
       if (ws !== sock || selected !== cid) return;
       let m;
       try {
-        m = parseChatTerminalEvent(JSON.parse(ev.data));
-        if (m.type === "done" && m.assistant !== selectedAssistant) {
-          throw new TypeError("Assistant identity mismatch");
-        }
+        m = parseChatTerminalEvent(JSON.parse(ev.data), teamName);
       } catch {
         busy = false;
         status = "";
@@ -163,7 +156,7 @@
         return;
       }
       if (m.type === "done") {
-        messages.push({ role: "assistant", text: m.reply });
+        messages.push({ role: "assistant", team: m.team, text: m.reply });
         busy = false;
         status = "";
       } else if (m.type === "stopped") {
@@ -222,7 +215,6 @@
     const cid = selected;
     inference = null;
     crew = [];
-    selectedAssistant = "";
     capsuleFiles = [];
     attachedFileIds = [];
     storageUsed = 0;
@@ -245,8 +237,6 @@
     } catch {
       crew = [];
     }
-    selectedAssistant = selectRunnableAssistant(crew, localStorage.getItem(assistantSelectionKey(cid)) ?? "");
-    if (selectedAssistant) localStorage.setItem(assistantSelectionKey(cid), selectedAssistant);
     try {
       if (!f.ok) throw new Error(f.data?.detail ?? f.data?.error ?? "storage unavailable");
       applyStorage(f.data);
@@ -263,18 +253,6 @@
     connectWs(cid);
   }
 
-  function chooseAssistant(event: Event) {
-    if (runtimeBusy) return;
-    const assistant = (event.currentTarget as HTMLInputElement).value;
-    if (!crew.some((item) => item.id === assistant && item.status === "running")) return;
-    selectedAssistant = assistant;
-    localStorage.setItem(assistantSelectionKey(selected), assistant);
-    messages = [];
-    draft = "";
-    status = "";
-    attachedFileIds = [];
-  }
-
   function resetCapsuleSession() {
     inferenceError = "";
     inferenceSaved = "";
@@ -286,7 +264,6 @@
     status = "";
     messages = [];
     draft = "";
-    selectedAssistant = "";
     capsuleFiles = [];
     attachedFileIds = [];
     storageUsed = 0;
@@ -382,9 +359,9 @@
   async function send() {
     const text = draft.trim();
     if (!text || runtimeBusy || !selected || !canChat) return;
-    let turn: { assistant: string; message: string; files?: string[] };
+    let turn: { message: string; files?: string[] };
     try {
-      turn = createAssistantChatTurn(selectedAssistant, text, attachedFileIds);
+      turn = createTeamChatTurn(text, attachedFileIds);
     } catch {
       return;
     }
@@ -408,7 +385,12 @@
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok) {
-        messages.push({ role: "assistant", text: d.reply || "…" });
+        try {
+          const completion = parseTeamChatResponse(d, selected, teamName);
+          messages.push({ role: "assistant", team: completion.team, text: completion.reply });
+        } catch {
+          messages.push({ role: "system", tone: "error", text: tr("chat_protocol_error", lang) });
+        }
         await refreshInference();
       } else {
         messages.push({ role: "system", tone: "error", text: chatErrorText(r.status, d.detail ?? d.error) });
@@ -518,7 +500,7 @@
   <PageIntro
     headingId="chat-title"
     kicker={tr("chat_kicker", lang)}
-    title={capsules.find((capsule) => capsule.id === selected)?.name || tr("nav_chat", lang)}
+    title={teamName || tr("nav_chat", lang)}
     description={tr("chat_lead", lang)}
     media={chatMedia}
     meta={chatMeta}
@@ -536,7 +518,7 @@
         <section class="panel control-card" aria-labelledby="capsule-context-title">
           <header class="control-heading">
             <span class="control-icon" aria-hidden="true"><HudIcon name="capsule" size={21} /></span>
-            <div><p class="kicker">Capsule</p><h2 id="capsule-context-title">{tr("chat_capsule_title", lang)}</h2></div>
+            <div><p class="kicker">Team</p><h2 id="capsule-context-title">{tr("chat_capsule_title", lang)}</h2></div>
           </header>
           <p class="control-help">{tr("chat_capsule_help", lang)}</p>
           <label class="field-stack">
@@ -608,28 +590,21 @@
         <section class="panel control-card" aria-labelledby="assistants-context-title">
           <header class="control-heading">
             <span class="control-icon assistant-icon" aria-hidden="true"><HudIcon name="assistants" size={21} /></span>
-            <div><p class="kicker">Capsule</p><h2 id="assistants-context-title">{tr("crew_title", lang)}</h2></div>
+            <div><p class="kicker">Team</p><h2 id="assistants-context-title">{tr("crew_title", lang)}</h2></div>
             <span class="assistant-count">{crew.length}</span>
           </header>
           <p class="control-help">{tr("chat_assistants_help", lang)}</p>
           {#if crew.length}
             <ul class="crew-list">
               {#each crew as assistant (assistant.id)}
-                <li class:selected={assistant.id === selectedAssistant} class:unavailable={assistant.status !== "running"}>
-                  <label>
-                    <input
-                      type="radio"
-                      name="chat-assistant"
-                      value={assistant.id}
-                      checked={assistant.id === selectedAssistant}
-                      disabled={runtimeBusy || assistant.status !== "running"}
-                      onchange={chooseAssistant} />
+                <li class:unavailable={assistant.status !== "running"}>
+                  <div class="capability-info">
                     <span class="assistant-selector-icon" aria-hidden="true"><HudIcon name="assistants" size={16} /></span>
                     <span class="assistant-identity">
                       <strong>{assistantName(assistant.id)}</strong>
                       <small>{assistant.status}</small>
                     </span>
-                  </label>
+                  </div>
                   <div class="power-list" aria-label={tr("chat_powers", lang)}>
                     {#each assistant.powers as power (power)}<code>{power}</code>{/each}
                   </div>
@@ -650,7 +625,7 @@
         <section class="panel control-card storage-control" aria-labelledby="storage-context-title">
           <header class="control-heading">
             <span class="control-icon storage-icon" aria-hidden="true"><HudIcon name="attach" size={20} /></span>
-            <div><p class="kicker">Capsule</p><h2 id="storage-context-title">{tr("chat_storage_title", lang)}</h2></div>
+            <div><p class="kicker">Team</p><h2 id="storage-context-title">{tr("chat_storage_title", lang)}</h2></div>
             <span class="assistant-count storage-count">{capsuleFiles.length}</span>
           </header>
           <p class="control-help">{tr("chat_storage_help", lang)}</p>
@@ -707,11 +682,11 @@
         <header class="conversation-header">
           <span class="conversation-avatar" aria-hidden="true"><HudIcon name="assistants" size={24} /></span>
           <div>
-            <p class="kicker">{tr("chat_assistant_target", lang)}</p>
-            <h2 id="conversation-title">{activeAssistant ? assistantName(activeAssistant.id) : tr("chat_choose_assistant", lang)}</h2>
+            <p class="kicker">{tr("chat_team_target", lang)}</p>
+            <h2 id="conversation-title">{teamName}</h2>
           </div>
           <span class="conversation-status" class:online={wsReady && canChat}>
-            <i aria-hidden="true"></i>{canChat ? tr("chat_ready", lang) : !activeAssistant ? tr("chat_choose_assistant", lang) : tr("chat_setup_required", lang)}
+            <i aria-hidden="true"></i>{canChat ? tr("chat_ready", lang) : tr("chat_setup_required", lang)}
           </span>
         </header>
         <div
@@ -735,7 +710,10 @@
                 {/if}
               </div>
             {:else if m.role === "assistant"}
-              <div class="md message assistant-message">{@html renderMd(m.text || "")}</div>
+              <div class="message assistant-message">
+                <small class="message-author">{m.team || teamName}</small>
+                <div class="md">{@html renderMd(m.text || "")}</div>
+              </div>
             {:else}
               <p
                 class="px-3 py-2 text-center text-xs"
@@ -748,7 +726,7 @@
             {/if}
           {/each}
           {#if busy && status}<p class="turn-status"><span class="loading-pulse" aria-hidden="true"></span>{status}</p>{/if}
-          {#if messages.length === 0 && !busy}<div class="conversation-empty"><HudIcon name="chat" size={30} /><p>{activeAssistant ? tr("chat_empty", lang) : tr("chat_choose_assistant_help", lang)}</p></div>{/if}
+          {#if messages.length === 0 && !busy}<div class="conversation-empty"><HudIcon name="chat" size={30} /><p>{tr("chat_empty", lang)}</p></div>{/if}
         </div>
         <div class="composer">
           {#if attachedFiles.length}
@@ -771,7 +749,7 @@
           </button>
           <textarea
             class="field field-area composer-input"
-            placeholder={activeAssistant ? tr("chat_placeholder", lang) : tr("chat_choose_assistant", lang)}
+            placeholder={tr("chat_placeholder", lang)}
             aria-label={tr("chat_placeholder", lang)}
             rows="2"
             disabled={runtimeBusy || !canChat}
@@ -1006,20 +984,13 @@
     padding: 0.6rem;
     background: #030303;
   }
-  .crew-list li.selected {
-    border-color: color-mix(in oklab, var(--color-yellow) 48%, var(--color-border));
-    background: color-mix(in oklab, var(--color-yellow) 5%, #030303);
-    box-shadow: inset 2px 0 0 var(--color-yellow);
-  }
   .crew-list li.unavailable { opacity: 0.58; }
-  .crew-list label {
+  .capability-info {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.45rem;
-    cursor: pointer;
   }
-  .crew-list input { width: 0.8rem; height: 0.8rem; margin: 0; accent-color: var(--color-yellow); }
   .assistant-selector-icon { color: var(--color-yellow); }
   .assistant-identity {
     display: grid;
@@ -1037,7 +1008,7 @@
     white-space: nowrap;
   }
   .assistant-identity small { color: var(--color-muted-2); font-size: 0.54rem; text-transform: uppercase; }
-  .power-list { display: flex; flex-wrap: wrap; gap: 0.3rem; padding-left: 3rem; }
+  .power-list { display: flex; flex-wrap: wrap; gap: 0.3rem; padding-left: 1.45rem; }
   .power-list code {
     padding: 0.14rem 0.3rem;
     color: var(--color-cyan);
@@ -1138,10 +1109,20 @@
   .message-files code { max-width: 12rem; overflow: hidden; padding: 0.18rem 0.35rem; color: var(--color-cyan); background: #000; font-size: 0.56rem; text-overflow: ellipsis; white-space: nowrap; }
 
   .assistant-message {
+    display: grid;
+    gap: 0.45rem;
     align-self: flex-start;
     background: var(--color-elevated);
     box-shadow: inset 2px 0 0 var(--color-magenta), inset 0 0 0 1px var(--color-border-strong);
     clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  }
+
+  .message-author {
+    color: var(--color-magenta);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
   }
 
   .conversation-empty {
