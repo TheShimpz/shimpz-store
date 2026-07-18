@@ -1294,9 +1294,7 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
     assert response.status_code == 201
     assert legacy.status_code == 400
     creates = [
-        call
-        for call in calls
-        if call[0] == "POST" and call[1].startswith("/v1/teams/") and call[1].endswith("/create")
+        call for call in calls if call[0] == "POST" and call[1].startswith("/v1/teams/") and call[1].endswith("/create")
     ]
     assert creates == [
         (
