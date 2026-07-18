@@ -1305,7 +1305,7 @@ async def _ws_receive_bounded_json(ws: WebSocket) -> dict:
     raw = message.get("text")
     if raw is None:
         raise WebSocketPayloadError(415, "WebSocket frame must be text JSON", 1003)
-    elif len(raw.encode()) > MAX_WS_FRAME_BYTES:
+    if len(raw.encode()) > MAX_WS_FRAME_BYTES:
         raise WebSocketPayloadError(413, "WebSocket frame too large", 1009)
     try:
         payload = jsonlib.loads(raw, object_pairs_hook=_unique_json_object)
@@ -1358,11 +1358,7 @@ def _validated_done_event(value: dict) -> dict | None:
 
 
 def _public_chat_error_event(status: int) -> dict:
-    safe_status = (
-        status
-        if isinstance(status, int) and not isinstance(status, bool) and 400 <= status <= 599
-        else 502
-    )
+    safe_status = status if isinstance(status, int) and not isinstance(status, bool) and 400 <= status <= 599 else 502
     if safe_status == 429:
         detail = "chat service is busy; try again shortly"
     elif safe_status == 504:

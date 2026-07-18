@@ -13,6 +13,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
+from fastapi import Request, WebSocket
+from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
+
 from app import main
 from app.main import (
     ACCOUNT_COOKIE,
@@ -33,9 +37,6 @@ from app.main import (
     _ws_receive_bounded_json,
     app,
 )
-from fastapi import Request, WebSocket
-from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
 
 
 def _done(reply: str = "hello", *, team: str = "Marketing") -> dict:
@@ -97,13 +98,15 @@ def test_websocket_requires_and_negotiates_the_v1_chat_subprotocol(monkeypatch):
         return "account-token", "account-one"
 
     monkeypatch.setattr(main, "_ws_verify", verified)
-    with TestClient(app) as client:
-        with client.websocket_connect(
+    with (
+        TestClient(app) as client,
+        client.websocket_connect(
             "/api/capsules/test_capsule/chat/ws",
             headers={"origin": allowed},
             subprotocols=[CHAT_WS_SUBPROTOCOL],
-        ) as websocket:
-            assert websocket.accepted_subprotocol == CHAT_WS_SUBPROTOCOL
+        ) as websocket,
+    ):
+        assert websocket.accepted_subprotocol == CHAT_WS_SUBPROTOCOL
 
 
 @pytest.mark.parametrize(
@@ -189,21 +192,23 @@ def test_websocket_rejects_binary_frames_even_when_they_contain_valid_json(monke
 
     monkeypatch.setattr(main, "_ws_verify", verified)
     allowed = next(iter(WS_ALLOWED_ORIGINS))
-    with TestClient(app) as client:
-        with client.websocket_connect(
+    with (
+        TestClient(app) as client,
+        client.websocket_connect(
             "/api/capsules/test_capsule/chat/ws",
             headers={"origin": allowed},
             subprotocols=[CHAT_WS_SUBPROTOCOL],
-        ) as websocket:
-            websocket.send_bytes(b'{"type":"stop"}')
-            assert websocket.receive_json() == {
-                "type": "error",
-                "status": 415,
-                "detail": "WebSocket frame must be text JSON",
-            }
-            with pytest.raises(WebSocketDisconnect) as raised:
-                websocket.receive_json()
-            assert raised.value.code == 1003
+        ) as websocket,
+    ):
+        websocket.send_bytes(b'{"type":"stop"}')
+        assert websocket.receive_json() == {
+            "type": "error",
+            "status": 415,
+            "detail": "WebSocket frame must be text JSON",
+        }
+        with pytest.raises(WebSocketDisconnect) as raised:
+            websocket.receive_json()
+        assert raised.value.code == 1003
 
 
 @pytest.mark.parametrize("frame", ("not-json", "[]", '{"type":"stop","type":"chat"}'))
@@ -606,9 +611,7 @@ def test_retired_public_marketplace_routes_are_absent():
 def test_upstream_http_errors_and_unterminated_terminal_lines_are_redacted():
     leak_marker = "upstream-private-marker-7e9b"
     http_error = _upstream_error_event(409, json.dumps({"error": leak_marker}).encode())
-    stream_error = _parsed_stream_event(
-        json.dumps({"type": "error", "status": 502, "detail": leak_marker}).encode()
-    )
+    stream_error = _parsed_stream_event(json.dumps({"type": "error", "status": 502, "detail": leak_marker}).encode())
     assert http_error == {
         "type": "error",
         "status": 409,
@@ -881,9 +884,7 @@ def test_driver_terminal_failures_reach_websocket_as_errors(terminal: dict):
         assert started.is_set()
         assert len(requests) == 1
         expected_detail = (
-            "chat service timed out"
-            if terminal["status"] == 504
-            else "chat service is temporarily unavailable"
+            "chat service timed out" if terminal["status"] == 504 else "chat service is temporarily unavailable"
         )
         assert events == [
             {
@@ -926,11 +927,7 @@ def test_real_upstream_non_2xx_reaches_websocket_redacted(status: int, payload: 
             {
                 "type": "error",
                 "status": status,
-                "detail": (
-                    "chat service is busy; try again shortly"
-                    if status == 429
-                    else "chat request was rejected"
-                ),
+                "detail": ("chat service is busy; try again shortly" if status == 429 else "chat request was rejected"),
             }
         ]
 
