@@ -183,6 +183,29 @@ def test_websocket_frame_limit_is_enforced_before_json_parsing():
     asyncio.run(scenario())
 
 
+def test_websocket_rejects_binary_frames_even_when_they_contain_valid_json(monkeypatch):
+    async def verified(_ws: WebSocket) -> tuple[str, str]:
+        return "account-token", "account-one"
+
+    monkeypatch.setattr(main, "_ws_verify", verified)
+    allowed = next(iter(WS_ALLOWED_ORIGINS))
+    with TestClient(app) as client:
+        with client.websocket_connect(
+            "/api/capsules/test_capsule/chat/ws",
+            headers={"origin": allowed},
+            subprotocols=[CHAT_WS_SUBPROTOCOL],
+        ) as websocket:
+            websocket.send_bytes(b'{"type":"stop"}')
+            assert websocket.receive_json() == {
+                "type": "error",
+                "status": 415,
+                "detail": "WebSocket frame must be text JSON",
+            }
+            with pytest.raises(WebSocketDisconnect) as raised:
+                websocket.receive_json()
+            assert raised.value.code == 1003
+
+
 @pytest.mark.parametrize("frame", ("not-json", "[]", '{"type":"stop","type":"chat"}'))
 def test_websocket_rejects_ambiguous_or_non_object_json_frames(frame: str):
     async def scenario() -> None:

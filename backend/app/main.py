@@ -1304,13 +1304,7 @@ async def _ws_receive_bounded_json(ws: WebSocket) -> dict:
         raise WebSocketDisconnect(message.get("code", 1000))
     raw = message.get("text")
     if raw is None:
-        data = message.get("bytes") or b""
-        if len(data) > MAX_WS_FRAME_BYTES:
-            raise WebSocketPayloadError(413, "WebSocket frame too large", 1009)
-        try:
-            raw = data.decode()
-        except UnicodeDecodeError as exc:
-            raise WebSocketPayloadError(400, "WebSocket frame must be UTF-8 JSON", 1007) from exc
+        raise WebSocketPayloadError(415, "WebSocket frame must be text JSON", 1003)
     elif len(raw.encode()) > MAX_WS_FRAME_BYTES:
         raise WebSocketPayloadError(413, "WebSocket frame too large", 1009)
     try:
