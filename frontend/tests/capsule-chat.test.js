@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  createAssistantChatTurn,
+  createTeamChatTurn,
   parseCapsuleStorage,
   parseCapsuleUpload,
   parseChatTerminalEvent,
   parseInstalledAssistants,
-  selectRunnableAssistant,
+  parseTeamChatResponse,
 } from "../src/lib/capsuleChat.js";
 
 const file = {
@@ -20,38 +20,31 @@ const file = {
 };
 const usage = { used_bytes: 5, limit_bytes: 100 * 1024 * 1024, remaining_bytes: 100 * 1024 * 1024 - 5 };
 
-test("creates only an Assistant-scoped chat turn", () => {
-  assert.deepEqual(createAssistantChatTurn("hello-pulse", "  hello  ", [file.id]), {
-    assistant: "hello-pulse",
+test("creates only a Team-scoped chat turn without a browser-selected Assistant", () => {
+  assert.deepEqual(createTeamChatTurn("  hello  ", [file.id]), {
     message: "hello",
     files: [file.id],
   });
-  for (const [assistant, message] of [
-    ["", "hello"],
-    ["../escape", "hello"],
-    ["hello-pulse", ""],
-    ["hello-pulse", { provider: "openai" }],
-  ]) {
-    assert.throws(() => createAssistantChatTurn(assistant, message));
+  for (const message of ["", { provider: "openai" }]) {
+    assert.throws(() => createTeamChatTurn(message));
   }
   for (const files of [
     ["../escape"],
     [file.id, file.id],
     Array.from({ length: 9 }, (_, index) => index.toString(16).padStart(32, "0")),
   ]) {
-    assert.throws(() => createAssistantChatTurn("hello-pulse", "hello", files));
+    assert.throws(() => createTeamChatTurn("hello", files));
   }
 });
 
-test("accepts only exact bounded terminal chat events", () => {
+test("accepts only exact bounded terminal events from the authoritative Team", () => {
   const terminalEvents = [
-    { type: "done", reply: "complete", assistant: "hello-pulse", power: "reports.read" },
-    { type: "done", reply: "complete", assistant: "hello-pulse", power: null },
+    { type: "done", reply: "complete", team: "Marketing" },
     { type: "error", status: 504, detail: "provider timed out" },
     { type: "stopped" },
   ];
   for (const event of terminalEvents) {
-    assert.deepEqual(parseChatTerminalEvent(event), event);
+    assert.deepEqual(parseChatTerminalEvent(event, "Marketing"), event);
   }
 
   for (const event of [
@@ -59,20 +52,38 @@ test("accepts only exact bounded terminal chat events", () => {
     { type: "tool", label: "shell" },
     { type: "ask", text: "approve?" },
     { type: "answered", answered: true },
-    { type: "done", reply: "complete", assistant: "hello-pulse", power: null, extra: true },
-    { type: "done", reply: "complete", assistant: "../escape", power: null },
-    { type: "done", reply: "complete", assistant: "hello-pulse", power: "../escape" },
-    { type: "done", reply: "x".repeat(60_001), assistant: "hello-pulse", power: null },
+    { type: "done", reply: "complete", team: "Marketing", trace: [] },
+    { type: "done", reply: "complete", team: "Sales" },
+    { type: "done", reply: "complete", team: " Marketing " },
+    { type: "done", reply: "x".repeat(60_001), team: "Marketing" },
     { type: "error", status: true, detail: "failed" },
     { type: "error", status: 200, detail: "not an error" },
     { type: "error", status: 502, detail: "x".repeat(801) },
     { type: "stopped", requested: true },
   ]) {
-    assert.throws(() => parseChatTerminalEvent(event));
+    assert.throws(() => parseChatTerminalEvent(event, "Marketing"));
   }
 });
 
-test("selects only a running installed Assistant and projects its declared Powers", () => {
+test("projects only the expected Team HTTP completion", () => {
+  assert.deepEqual(
+    parseTeamChatResponse(
+      { capsule: "cap_one", team: "Marketing", reply: "Ready." },
+      "cap_one",
+      "Marketing",
+    ),
+    { capsule: "cap_one", team: "Marketing", reply: "Ready." },
+  );
+  for (const response of [
+    { capsule: "cap_two", team: "Marketing", reply: "Ready." },
+    { capsule: "cap_one", team: "Sales", reply: "Ready." },
+    { capsule: "cap_one", team: "Marketing", reply: "Ready.", trace: [] },
+  ]) {
+    assert.throws(() => parseTeamChatResponse(response, "cap_one", "Marketing"));
+  }
+});
+
+test("projects every installed Assistant as an informational Team capability", () => {
   const assistants = parseInstalledAssistants({
     apps: [
       { app: "hello-pulse", status: "running", powers: ["hello"], container: "private" },
@@ -84,9 +95,8 @@ test("selects only a running installed Assistant and projects its declared Power
   assert.deepEqual(assistants, [
     { id: "hello-pulse", status: "running", powers: ["hello"] },
     { id: "salesnator", status: "exited", powers: ["campaigns.read"] },
+    { id: "legacy-app", status: "running", powers: [] },
   ]);
-  assert.equal(selectRunnableAssistant(assistants, "hello-pulse"), "hello-pulse");
-  assert.equal(selectRunnableAssistant(assistants, "salesnator"), "hello-pulse");
 });
 
 test("keeps Capsule files opaque and drops every path-like upstream field", () => {

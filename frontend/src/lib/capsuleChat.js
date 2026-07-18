@@ -2,6 +2,7 @@ const ASSISTANT_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const POWER_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 const FILE_ID = /^[a-f0-9]{32}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+const CAPSULE_ID = /^[a-z0-9_]{1,40}$/;
 const MAX_ASSISTANTS = 64;
 const MAX_POWERS = 64;
 const MAX_FILES = 256;
@@ -29,6 +30,33 @@ function hasExactKeys(value, keys) {
 function canonicalAssistant(value) {
   if (typeof value !== "string" || value.length > 80 || !ASSISTANT_ID.test(value)) {
     throw new TypeError("invalid Assistant id");
+  }
+  return value;
+}
+
+/** @param {any} value @returns {string} */
+function canonicalTeamName(value) {
+  if (
+    typeof value !== "string" ||
+    !value ||
+    value.length > 80 ||
+    value.trim() !== value ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    throw new TypeError("invalid Team name");
+  }
+  return value;
+}
+
+/** @param {any} value @returns {string} */
+function chatReply(value) {
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    value.length > MAX_REPLY_CHARS ||
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+  ) {
+    throw new TypeError("invalid chat reply");
   }
   return value;
 }
@@ -117,19 +145,11 @@ export function parseInstalledAssistants(value) {
   ) {
     throw new TypeError("duplicate installed Assistant");
   }
-  return assistants.filter((assistant) => assistant.powers.length > 0);
+  return assistants;
 }
 
-/** @param {InstalledAssistant[]} assistants @param {any} requested @returns {string} */
-export function selectRunnableAssistant(assistants, requested) {
-  if (!Array.isArray(assistants)) throw new TypeError("invalid installed Assistant inventory");
-  const running = assistants.filter((assistant) => assistant?.status === "running");
-  return running.some((assistant) => assistant.id === requested) ? requested : running[0]?.id ?? "";
-}
-
-/** @param {any} assistant @param {any} message @param {any} [files] @returns {{ assistant: string, message: string, files?: string[] }} */
-export function createAssistantChatTurn(assistant, message, files = []) {
-  const selected = canonicalAssistant(assistant);
+/** @param {any} message @param {any} [files] @returns {{ message: string, files?: string[] }} */
+export function createTeamChatTurn(message, files = []) {
   if (typeof message !== "string") throw new TypeError("message must be a string");
   const text = message.trim();
   if (!text || text.length > MAX_MESSAGE_CHARS) throw new TypeError("invalid chat message");
@@ -142,35 +162,25 @@ export function createAssistantChatTurn(assistant, message, files = []) {
   });
   if (opaqueIds.length !== new Set(opaqueIds).size) throw new TypeError("duplicate chat file id");
   return opaqueIds.length
-    ? { assistant: selected, message: text, files: opaqueIds }
-    : { assistant: selected, message: text };
+    ? { message: text, files: opaqueIds }
+    : { message: text };
 }
 
 /**
  * @param {any} value
- * @returns {{ type: "done", reply: string, assistant: string, power: string | null } | { type: "error", status: number, detail: string } | { type: "stopped" }}
+ * @param {any} expectedTeam
+ * @returns {{ type: "done", reply: string, team: string } | { type: "error", status: number, detail: string } | { type: "stopped" }}
  */
-export function parseChatTerminalEvent(value) {
+export function parseChatTerminalEvent(value, expectedTeam) {
   const source = record(value);
   if (!source) throw new TypeError("invalid chat terminal event");
   if (source.type === "done") {
-    if (!hasExactKeys(source, ["type", "reply", "assistant", "power"])) {
+    if (!hasExactKeys(source, ["type", "reply", "team"])) {
       throw new TypeError("invalid chat completion event");
     }
-    const assistant = canonicalAssistant(source.assistant);
-    if (
-      typeof source.reply !== "string" ||
-      !source.reply.trim() ||
-      source.reply.length > MAX_REPLY_CHARS ||
-      /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(source.reply) ||
-      (source.power !== null &&
-        (typeof source.power !== "string" ||
-          source.power.length > 80 ||
-          !POWER_ID.test(source.power)))
-    ) {
-      throw new TypeError("invalid chat completion event");
-    }
-    return { type: "done", reply: source.reply, assistant, power: source.power };
+    const team = canonicalTeamName(source.team);
+    if (team !== canonicalTeamName(expectedTeam)) throw new TypeError("Team identity mismatch");
+    return { type: "done", reply: chatReply(source.reply), team };
   }
   if (source.type === "error") {
     if (
@@ -192,6 +202,24 @@ export function parseChatTerminalEvent(value) {
     return { type: "stopped" };
   }
   throw new TypeError("invalid chat terminal event");
+}
+
+/** @param {any} value @param {any} expectedCapsule @param {any} expectedTeam */
+export function parseTeamChatResponse(value, expectedCapsule, expectedTeam) {
+  const source = record(value);
+  if (!source || !hasExactKeys(source, ["capsule", "team", "reply"])) {
+    throw new TypeError("invalid Team chat response");
+  }
+  if (
+    typeof expectedCapsule !== "string" ||
+    !CAPSULE_ID.test(expectedCapsule) ||
+    source.capsule !== expectedCapsule
+  ) {
+    throw new TypeError("Capsule identity mismatch");
+  }
+  const team = canonicalTeamName(source.team);
+  if (team !== canonicalTeamName(expectedTeam)) throw new TypeError("Team identity mismatch");
+  return { capsule: source.capsule, team, reply: chatReply(source.reply) };
 }
 
 /** @param {any} value @returns {{ files: StoredFile[] } & StorageUsage} */
