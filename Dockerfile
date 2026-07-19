@@ -55,7 +55,8 @@ COPY backend/requirements.lock ./requirements.lock
 RUN uv venv /opt/venv \
  && uv pip install --python /opt/venv/bin/python --no-cache-dir --require-hashes --requirements requirements.lock \
  && rm -rf /root/.cache/uv /root/.cache/pip
-COPY backend/app/__init__.py backend/app/logconf.py backend/app/main.py backend/app/middleware.py ./app/
+COPY backend/app/__init__.py backend/app/assistant_releases.py backend/app/logconf.py backend/app/main.py \
+     backend/app/middleware.py ./app/
 COPY --from=web /w/build ./build
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
