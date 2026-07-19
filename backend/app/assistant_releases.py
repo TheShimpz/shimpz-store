@@ -29,6 +29,13 @@ _EXECUTABLE_REFERENCE_RE = re.compile(
     r"\b(?:curl|wget)\b[^\r\n|]{0,512}\|\s*(?:ba)?sh\b)",
     re.IGNORECASE,
 )
+_GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+
+# This binding is intentionally private: it lets repository checks prove that notification copy was
+# reviewed with the exact Assistant source while keeping executable identity out of the public feed.
+_CANONICAL_RELEASE_SOURCE_COMMITS = {
+    "shimpz-assistant": "8e7325e710b16eb8d94b70048e3854dee737ef07",
+}
 
 # Append releases in increasing sequence order for each Assistant. This source is intentionally code
 # reviewed alongside the Store instead of being downloaded from another service at runtime.
@@ -38,10 +45,10 @@ _CANONICAL_RELEASES = (
         "sequence": 1,
         "headline": "Shimpz Assistant is ready",
         "changelog": (
-            "## Shimpz Assistant\n\n"
-            "- Adds safe current-weather and forecast Powers.\n"
-            "- Adds localized, in-Admin help for supported languages.\n"
-            "- Keeps outbound access restricted to the declared weather hosts."
+            "# Changelog\n\n"
+            "## 0.1.0\n\n"
+            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
         ),
         "published_at": "2026-07-19T00:00:00Z",
     },
@@ -111,6 +118,17 @@ def _validate_release_records(source: object) -> tuple[dict[str, object], ...]:
     return tuple(_validated_release(raw, position, previous_sequence) for position, raw in enumerate(source))
 
 
+def _validate_release_source_commits(source: object, releases: object) -> None:
+    """Reject an incomplete or malformed private source binding before serving the feed."""
+    if not isinstance(source, dict) or not isinstance(releases, (tuple, list)):
+        raise ValueError("Assistant release source binding is invalid")
+    assistant_ids = {release.get("assistant_id") for release in releases if isinstance(release, dict)}
+    if set(source) != assistant_ids or any(
+        not isinstance(commit, str) or _GIT_COMMIT_RE.fullmatch(commit) is None for commit in source.values()
+    ):
+        raise ValueError("Assistant release source binding is incomplete or invalid")
+
+
 def _build_feed(source: object) -> tuple[bytes, str]:
     releases = _validate_release_records(source)
     body = json.dumps(
@@ -140,4 +158,5 @@ def if_none_match_matches(value: str | None, etag: str) -> bool:
     return False
 
 
+_validate_release_source_commits(_CANONICAL_RELEASE_SOURCE_COMMITS, _CANONICAL_RELEASES)
 ASSISTANT_RELEASE_FEED_BODY, ASSISTANT_RELEASE_FEED_ETAG = _build_feed(_CANONICAL_RELEASES)
