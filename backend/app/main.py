@@ -421,9 +421,9 @@ def _chat_turn_payload(payload: dict) -> dict[str, object]:
             f"assistant_ids must contain at most {MAX_CHAT_ASSISTANTS} Assistant ids",
         )
     canonical_assistant_ids = [_canonical_assistant_id(assistant_id) for assistant_id in assistant_ids]
-    if any(assistant_id is None for assistant_id in canonical_assistant_ids) or len(
-        canonical_assistant_ids
-    ) != len(set(canonical_assistant_ids)):
+    if any(assistant_id is None for assistant_id in canonical_assistant_ids) or len(canonical_assistant_ids) != len(
+        set(canonical_assistant_ids)
+    ):
         raise ClientPayloadError(400, "assistant_ids must contain unique canonical Assistant ids")
     return {
         "message": message,
