@@ -34,7 +34,7 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # This binding is intentionally private: it lets repository checks prove that notification copy was
 # reviewed with the exact Assistant source while keeping executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
-    "shimpz-assistant": "b5e8e247b1bb18686c09673e2a84564a273630fa",
+    "shimpz-assistant": "c9fb5f048d640a20d0b9e79008c84771fbb17a25",
 }
 
 # Append releases in increasing sequence order for each Assistant. This source is intentionally code
@@ -65,6 +65,22 @@ _CANONICAL_RELEASES = (
             "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
         ),
         "published_at": "2026-07-19T20:22:42Z",
+    },
+    {
+        "assistant_id": "shimpz-assistant",
+        "sequence": 3,
+        "headline": "Shimpz Assistant 0.1.2 is available",
+        "changelog": (
+            "# Changelog\n\n"
+            "## 0.1.2\n\n"
+            "- Shows that the Assistant can provide forecasts for up to 16 days in the English in-Admin help.\n\n"
+            "## 0.1.1\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "## 0.1.0\n\n"
+            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+        ),
+        "published_at": "2026-07-19T23:37:30Z",
     },
 )
 
