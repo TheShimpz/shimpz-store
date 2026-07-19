@@ -18,10 +18,7 @@ export function teamChatReconnectDelay(attempt) {
 
 /** @param {any} teamId @returns {string} */
 export function teamChatWebSocketPath(teamId) {
-  if (typeof teamId !== "string" || !TEAM_ID_RE.test(teamId)) {
-    throw new TypeError("invalid Team id");
-  }
-  return `/api/teams/${teamId}/chat/ws`;
+  return `/api/teams/${canonicalTeamId(teamId)}/chat/ws`;
 }
 
 /** @typedef {{ used_bytes: number, limit_bytes: number, remaining_bytes: number }} StorageUsage */
@@ -36,6 +33,14 @@ function record(value) {
 function hasExactKeys(value, keys) {
   const actual = Object.keys(value);
   return actual.length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+}
+
+/** @param {any} value @returns {string} */
+function canonicalTeamId(value) {
+  if (typeof value !== "string" || !TEAM_ID_RE.test(value)) {
+    throw new TypeError("invalid Team id");
+  }
+  return value;
 }
 
 /** @param {any} value @returns {string} */
@@ -164,19 +169,31 @@ export function createTeamChatTurn(message, files = [], assistants = []) {
 
 /**
  * @param {any} value
- * @param {any} expectedTeam
- * @returns {{ type: "done", reply: string, team_name: string } | { type: "error", status: number, detail: string } | { type: "stopped" }}
+ * @param {any} expectedTeamId
+ * @param {any} expectedTeamName
+ * @returns {{ type: "done", team_id: string, team_name: string, reply: string } | { type: "error", status: number, detail: string } | { type: "stopped" }}
  */
-export function parseChatTerminalEvent(value, expectedTeam) {
+export function parseChatTerminalEvent(value, expectedTeamId, expectedTeamName) {
   const source = record(value);
   if (!source) throw new TypeError("invalid chat terminal event");
   if (source.type === "done") {
-    if (!hasExactKeys(source, ["type", "reply", "team_name"])) {
+    if (!hasExactKeys(source, ["type", "team_id", "team_name", "reply"])) {
       throw new TypeError("invalid chat completion event");
     }
+    const teamId = canonicalTeamId(source.team_id);
     const teamName = canonicalTeamName(source.team_name);
-    if (teamName !== canonicalTeamName(expectedTeam)) throw new TypeError("Team identity mismatch");
-    return { type: "done", reply: chatReply(source.reply), team_name: teamName };
+    if (
+      teamId !== canonicalTeamId(expectedTeamId) ||
+      teamName !== canonicalTeamName(expectedTeamName)
+    ) {
+      throw new TypeError("Team identity mismatch");
+    }
+    return {
+      type: "done",
+      team_id: teamId,
+      team_name: teamName,
+      reply: chatReply(source.reply),
+    };
   }
   if (source.type === "error") {
     if (

@@ -71,12 +71,12 @@ test("accepts only an exact bounded default Assistant scope", () => {
 
 test("accepts only exact bounded terminal events from the authoritative Team", () => {
   const terminalEvents = [
-    { type: "done", reply: "complete", team_name: "Marketing" },
+    { type: "done", team_id: "marketing", team_name: "Marketing", reply: "complete" },
     { type: "error", status: 504, detail: "provider timed out" },
     { type: "stopped" },
   ];
   for (const event of terminalEvents) {
-    assert.deepEqual(parseChatTerminalEvent(event, "Marketing"), event);
+    assert.deepEqual(parseChatTerminalEvent(event, "marketing", "Marketing"), event);
   }
 
   for (const event of [
@@ -84,16 +84,18 @@ test("accepts only exact bounded terminal events from the authoritative Team", (
     { type: "tool", label: "shell" },
     { type: "ask", text: "approve?" },
     { type: "answered", answered: true },
-    { type: "done", reply: "complete", team_name: "Marketing", trace: [] },
-    { type: "done", reply: "complete", team_name: "Sales" },
-    { type: "done", reply: "complete", team_name: " Marketing " },
-    { type: "done", reply: "x".repeat(60_001), team_name: "Marketing" },
+    { type: "done", team_id: "marketing", team_name: "Marketing", reply: "complete", trace: [] },
+    { type: "done", team_id: "sales", team_name: "Marketing", reply: "complete" },
+    { type: "done", team_id: "marketing", team_name: "Sales", reply: "complete" },
+    { type: "done", team_id: "marketing", team_name: " Marketing ", reply: "complete" },
+    { type: "done", team_id: "marketing", team_name: "Marketing", reply: "x".repeat(60_001) },
+    { type: "done", team_name: "Marketing", reply: "complete" },
     { type: "error", status: true, detail: "failed" },
     { type: "error", status: 200, detail: "not an error" },
     { type: "error", status: 502, detail: "x".repeat(801) },
     { type: "stopped", requested: true },
   ]) {
-    assert.throws(() => parseChatTerminalEvent(event, "Marketing"));
+    assert.throws(() => parseChatTerminalEvent(event, "marketing", "Marketing"));
   }
 });
 

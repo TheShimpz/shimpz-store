@@ -171,7 +171,7 @@
       if (ws !== sock || selected !== team_id) return;
       let m;
       try {
-        m = parseChatTerminalEvent(JSON.parse(ev.data), teamName);
+        m = parseChatTerminalEvent(JSON.parse(ev.data), team_id, teamName);
       } catch {
         busy = false;
         stopping = false;
