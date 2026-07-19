@@ -7,9 +7,10 @@ from app.main import app
 from fastapi.testclient import TestClient
 
 
-def test_release_feed_module_is_packaged_in_the_runtime_image():
+def test_release_feed_module_and_health_probe_are_packaged_in_the_runtime_image():
     dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text(encoding="utf-8")
     assert "backend/app/assistant_releases.py" in dockerfile
+    assert "HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20" in dockerfile
 
 
 def _record(**changes):

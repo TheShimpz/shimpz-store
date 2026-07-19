@@ -63,4 +63,6 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     SHIMPZ_STORE_BUILD=/app/build
 EXPOSE 3200
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20 \
+  CMD ["python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 3200), 2).close()"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200"]
