@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Locale } from "$lib/catalog";
-  import GoogleIcon from "$lib/components/GoogleIcon.svelte";
   import HomeHeader from "$lib/components/HomeHeader.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { u } from "$lib/url";
@@ -10,15 +9,15 @@
 
   const content = $derived(lang === "pt" ? {
     seoTitle: "Shimpz — Você me diz o que precisa. Meu Time faz o trabalho.",
-    seoDescription: "Entre com sua conta Google, escolha Assistants especializados e deixe o Shimpz organizar o trabalho para você.",
+    seoDescription: "Crie sua conta, escolha Assistants especializados e deixe o Shimpz organizar o trabalho para você.",
     eyebrow: "Seu Time digital, pronto para trabalhar",
     title: "Olá, eu sou o Shimpz.",
     promise: "Você me diz o que precisa. Meu Time faz o trabalho.",
     description: "Sou formado por aplicativos especializados, que chamamos de Assistants. Meu cérebro entende seu pedido, escolhe os Assistants certos e coloca todos para trabalhar juntos.",
     support: "Você não precisa abrir várias ferramentas ou organizar cada etapa. Basta me dizer o resultado que deseja.",
-    primaryCta: "Começar com Google",
+    primaryCta: "Começar agora",
     secondaryCta: "Veja como eu trabalho",
-    microcopy: "Entre com sua conta Google e comece em poucos passos.",
+    microcopy: "Crie sua conta Shimpz e comece em poucos passos.",
     liveExample: "Uma tarefa, um Time",
     task: "Analise os resultados e prepare um resumo para mim.",
     brain: "Entendi o resultado",
@@ -35,7 +34,7 @@
     howKicker: "Como funciona",
     howTitle: "Comece com um pedido.",
     steps: [
-      ["1. Entre", "Use sua conta Google para começar."],
+      ["1. Entre", "Crie ou acesse sua conta Shimpz para começar."],
       ["2. Escolha", "Selecione um Assistant ou um Time para o trabalho que deseja delegar."],
       ["3. Peça", "Explique o resultado que deseja e acompanhe meu Time trabalhando."],
     ],
@@ -73,19 +72,19 @@
     approve: "Aprovar",
     reject: "Não autorizar",
     finalTitle: "Qual trabalho você quer tirar da sua lista?",
-    finalBody: "Entre com sua conta Google, escolha seus Assistants e me diga o resultado que deseja.",
+    finalBody: "Entre na sua conta Shimpz, escolha seus Assistants e me diga o resultado que deseja.",
     finalMicrocopy: "Leva apenas alguns passos para começar.",
   } : {
     seoTitle: "Shimpz — You tell me what you need. My Team gets the work done.",
-    seoDescription: "Sign in with Google, choose specialized Assistants, and let Shimpz organize the work for you.",
+    seoDescription: "Create your account, choose specialized Assistants, and let Shimpz organize the work for you.",
     eyebrow: "Your digital Team, ready to work",
     title: "Hi, I’m Shimpz.",
     promise: "You tell me what you need. My Team gets the work done.",
     description: "I’m made of specialized apps called Assistants. My brain understands your request, chooses the right Assistants, and puts them to work together.",
     support: "You do not need to open several tools or manage every step. Just tell me the result you want.",
-    primaryCta: "Continue with Google",
+    primaryCta: "Get started",
     secondaryCta: "See how I work",
-    microcopy: "Sign in with Google and get started in a few steps.",
+    microcopy: "Create your Shimpz account and get started in a few steps.",
     liveExample: "One task, one Team",
     task: "Review the results and prepare a summary for me.",
     brain: "Request understood",
@@ -102,7 +101,7 @@
     howKicker: "How it works",
     howTitle: "Start with a request.",
     steps: [
-      ["1. Sign in", "Use your Google account to get started."],
+      ["1. Sign in", "Create or access your Shimpz account to get started."],
       ["2. Choose", "Select an Assistant or Team for the work you want to delegate."],
       ["3. Ask", "Explain the result you want and follow my Team as it works."],
     ],
@@ -140,7 +139,7 @@
     approve: "Approve",
     reject: "Do not allow",
     finalTitle: "What work do you want to take off your list?",
-    finalBody: "Sign in with Google, choose your Assistants, and tell me the result you want.",
+    finalBody: "Sign in to your Shimpz account, choose your Assistants, and tell me the result you want.",
     finalMicrocopy: "It only takes a few steps to get started.",
   });
 </script>
@@ -156,7 +155,7 @@
     <p class="description">{content.description}</p>
     <p class="support">{content.support}</p>
     <div class="hero-actions">
-      <a class="google-cta" href={u.login(lang)}><GoogleIcon />{content.primaryCta}</a>
+      <a class="primary-cta" href={u.login(lang)}>{content.primaryCta}</a>
       <a class="secondary-cta" href="#demo">{content.secondaryCta}<span aria-hidden="true">↓</span></a>
     </div>
     <p class="microcopy">{content.microcopy}</p>
@@ -294,7 +293,7 @@
   <p class="kicker">Shimpz</p>
   <h2 id="final-title">{content.finalTitle}</h2>
   <p>{content.finalBody}</p>
-  <a class="google-cta" href={u.login(lang)}><GoogleIcon />{content.primaryCta}</a>
+  <a class="primary-cta" href={u.login(lang)}>{content.primaryCta}</a>
   <small>{content.finalMicrocopy}</small>
 </section>
 
@@ -325,11 +324,11 @@
   .description { max-width: 43rem; margin: 1.4rem 0 0; color: #d4d4d8; font-size: clamp(1rem, 1.3vw, 1.12rem); line-height: 1.7; }
   .support { max-width: 41rem; margin: 0.8rem 0 0; color: var(--color-muted); line-height: 1.7; }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2rem; }
-  .google-cta, .secondary-cta, .card-primary, .card-secondary {
+  .primary-cta, .secondary-cta, .card-primary, .card-secondary {
     display: inline-flex; min-height: 3.25rem; align-items: center; justify-content: center; gap: 0.7rem; padding: 0.8rem 1.25rem; border-radius: 0.65rem; font-weight: 750; transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   }
-  .google-cta { background: #fff; color: #171717; box-shadow: 0 12px 32px rgba(255,255,255,0.13); }
-  .google-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(255,255,255,0.2); }
+  .primary-cta { background: #fff; color: #171717; box-shadow: 0 12px 32px rgba(255,255,255,0.13); }
+  .primary-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(255,255,255,0.2); }
   .secondary-cta { border: 1px solid var(--color-border-strong); color: var(--color-fg); background: var(--color-card); }
   .secondary-cta:hover { border-color: var(--color-cyan); }
   .microcopy { margin: 0.8rem 0 0; color: var(--color-muted-2); font-size: 0.8rem; }
@@ -438,12 +437,12 @@
   }
   @media (max-width: 480px) {
     .hero-actions, .card-actions { align-items: stretch; flex-direction: column; }
-    .google-cta, .secondary-cta, .card-primary, .card-secondary { width: 100%; }
+    .primary-cta, .secondary-cta, .card-primary, .card-secondary { width: 100%; }
     .message { max-width: 96%; }
     .approval-actions { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     :global(html) { scroll-behavior: auto; }
-    .google-cta, .secondary-cta, .card-primary, .card-secondary { transition: none; }
+    .primary-cta, .secondary-cta, .card-primary, .card-secondary { transition: none; }
   }
 </style>
