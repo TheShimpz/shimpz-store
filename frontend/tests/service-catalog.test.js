@@ -4,30 +4,45 @@ import test from "node:test";
 
 import { ASSISTANT_BY_ID, SERVICE_BY_ID } from "../src/lib/catalog.ts";
 
-test("Shimpz Assistant exposes its canonical X security contract", () => {
+test("Shimpz Assistant exposes its canonical Account and Secret contract", () => {
   const assistant = ASSISTANT_BY_ID.get("shimpz-assistant");
 
   assert.ok(assistant);
-  assert.equal(assistant.version, "0.5.0");
+  assert.equal(assistant.version, "0.6.0");
   assert.deepEqual(
     assistant.powers.map((power) => power.id),
-    ["public-user-lookup", "identity-me", "create-post", "delete-post"],
+    [
+      "public-user-lookup",
+      "identity-me",
+      "create-post",
+      "delete-post",
+      "list-direct-uploads",
+      "create-test-direct-upload",
+      "cancel-direct-upload",
+      "verify-mux-webhook",
+    ],
   );
-  assert.match(assistant.description.en, /without collecting developer credentials or tokens/);
-  assert.match(assistant.description.en, /every write requires explicit approval/);
+  assert.match(assistant.summary.en, /X Accounts/);
+  assert.match(assistant.summary.en, /Mux BYOK Secrets/);
   assert.match(assistant.description.en, /api\.x\.com/);
+  assert.match(assistant.description.en, /api\.mux\.com/);
+  assert.match(assistant.description.en, /without network access/);
   assert.deepEqual(assistant.permissions, [
     {
-      en: "Egress: api.x.com only",
-      pt: "Egress: somente api.x.com",
+      en: "Allowed hosts: api.x.com and api.mux.com only",
+      pt: "Hosts permitidos: somente api.x.com e api.mux.com",
     },
     {
-      en: "Connection: controller-owned OAuth 2.0 with S256 PKCE; tokens are never shown to the Brain or Admin",
-      pt: "Conexão: OAuth 2.0 com S256 PKCE sob custódia do controller; tokens nunca são exibidos ao Brain nem ao Admin",
+      en: "Account: controller-owned X OAuth 2.0 with S256 PKCE; its token reaches only the declared X Power invocation",
+      pt: "Account: OAuth 2.0 do X com S256 PKCE sob custódia do controller; seu token chega somente à execução do Power do X declarado",
     },
     {
-      en: "Writes: explicit approval for every Create Post or Delete Post invocation",
-      pt: "Escritas: aprovação explícita para cada execução de Criar Post ou Excluir Post",
+      en: "Secrets: Mux Token ID, Token Secret and Webhook Signing Secret are requested just in time and injected only into the declaring Power",
+      pt: "Secrets: Token ID, Token Secret e Webhook Signing Secret do Mux são solicitados sob demanda e injetados somente no Power que os declara",
+    },
+    {
+      en: "Approval: required for every Post create/delete and Mux upload create/cancel invocation",
+      pt: "Aprovação: obrigatória para cada criação/exclusão de Post e criação/cancelamento de upload do Mux",
     },
   ]);
 });

@@ -165,15 +165,15 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
   {
     id: "shimpz-assistant",
     name: "Shimpz Assistant",
-    version: "0.5.0",
+    version: "0.6.0",
     creator: "roxygens",
     summary: {
-      en: "Connect X through four typed Powers with private OAuth consent and explicit approval for every write.",
-      pt: "Conecte o X por quatro Powers tipados, com consentimento OAuth privado e aprovação explícita para cada escrita.",
+      en: "Explore secure X Accounts and just-in-time Mux BYOK Secrets through eight typed Powers.",
+      pt: "Explore Accounts seguras do X e Secrets BYOK do Mux sob demanda por oito Powers tipados.",
     },
     description: {
-      en: "Read public X profiles, inspect the connected account, and create or delete its Posts. The Admin opens X consent without collecting developer credentials or tokens, every write requires explicit approval, and network access is restricted to api.x.com.",
-      pt: "Leia perfis públicos do X, consulte a conta conectada e crie ou exclua seus Posts. O Admin abre o consentimento do X sem coletar credenciais de developer nem tokens, toda escrita exige aprovação explícita e o acesso de rede é restrito a api.x.com.",
+      en: "Use a controller-owned X Account to read profiles and the connected identity, then create or delete Posts with explicit approval. Mux Powers request only the Token ID, Token Secret, or Webhook Signing Secret when required. Egress is limited to api.x.com and api.mux.com; webhook verification runs locally without network access.",
+      pt: "Use uma Account do X sob custódia do controller para consultar perfis e a identidade conectada, depois criar ou excluir Posts com aprovação explícita. Os Powers do Mux solicitam somente o Token ID, Token Secret ou Webhook Signing Secret quando necessário. O egress é limitado a api.x.com e api.mux.com; a verificação de webhook roda localmente sem acesso à rede.",
     },
     price: "free",
     archs: ["amd64", "arm64"],
@@ -210,19 +210,55 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
           pt: "Exclui um Post próprio somente após aprovação explícita para aquela execução.",
         },
       },
+      {
+        id: "list-direct-uploads",
+        name: { en: "List direct uploads", pt: "Listar uploads diretos" },
+        summary: {
+          en: "Lists one bounded page of recent Mux direct uploads.",
+          pt: "Lista uma página limitada de uploads diretos recentes do Mux.",
+        },
+      },
+      {
+        id: "create-test-direct-upload",
+        name: { en: "Create test upload", pt: "Criar upload de teste" },
+        summary: {
+          en: "Creates a short-lived Mux test upload intent after explicit approval, without uploading media.",
+          pt: "Cria uma intenção temporária de upload de teste no Mux após aprovação explícita, sem enviar mídia.",
+        },
+      },
+      {
+        id: "cancel-direct-upload",
+        name: { en: "Cancel direct upload", pt: "Cancelar upload direto" },
+        summary: {
+          en: "Cancels one waiting Mux direct upload after explicit approval.",
+          pt: "Cancela um upload direto do Mux em espera após aprovação explícita.",
+        },
+      },
+      {
+        id: "verify-mux-webhook",
+        name: { en: "Verify Mux webhook", pt: "Verificar webhook do Mux" },
+        summary: {
+          en: "Verifies one recent Mux webhook signature locally without network access.",
+          pt: "Verifica localmente a assinatura de um webhook recente do Mux sem acesso à rede.",
+        },
+      },
     ],
     permissions: [
       {
-        en: "Egress: api.x.com only",
-        pt: "Egress: somente api.x.com",
+        en: "Allowed hosts: api.x.com and api.mux.com only",
+        pt: "Hosts permitidos: somente api.x.com e api.mux.com",
       },
       {
-        en: "Connection: controller-owned OAuth 2.0 with S256 PKCE; tokens are never shown to the Brain or Admin",
-        pt: "Conexão: OAuth 2.0 com S256 PKCE sob custódia do controller; tokens nunca são exibidos ao Brain nem ao Admin",
+        en: "Account: controller-owned X OAuth 2.0 with S256 PKCE; its token reaches only the declared X Power invocation",
+        pt: "Account: OAuth 2.0 do X com S256 PKCE sob custódia do controller; seu token chega somente à execução do Power do X declarado",
       },
       {
-        en: "Writes: explicit approval for every Create Post or Delete Post invocation",
-        pt: "Escritas: aprovação explícita para cada execução de Criar Post ou Excluir Post",
+        en: "Secrets: Mux Token ID, Token Secret and Webhook Signing Secret are requested just in time and injected only into the declaring Power",
+        pt: "Secrets: Token ID, Token Secret e Webhook Signing Secret do Mux são solicitados sob demanda e injetados somente no Power que os declara",
+      },
+      {
+        en: "Approval: required for every Post create/delete and Mux upload create/cancel invocation",
+        pt: "Aprovação: obrigatória para cada criação/exclusão de Post e criação/cancelamento de upload do Mux",
       },
     ],
   },
