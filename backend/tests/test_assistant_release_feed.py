@@ -51,7 +51,7 @@ def test_release_feed_is_closed_bounded_notification_metadata():
 
 def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_2_0_metadata():
     assert releases._CANONICAL_RELEASE_SOURCE_COMMITS == {
-        "shimpz-assistant": "f8b925ca0e7ff434b142db06297e21293e1aa520"
+        "shimpz-assistant": "c945f8530b5c1da3af925932751dae4934fd9396"
     }
     latest = releases._CANONICAL_RELEASES[-1]
     assert latest["assistant_id"] == "shimpz-assistant"
