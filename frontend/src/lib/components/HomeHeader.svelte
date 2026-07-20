@@ -12,7 +12,7 @@
 
 <header class="home-header">
   <div class="wrap header-inner">
-    <a class="brand" href={u.home(lang)} aria-label="Shimpz home">Shimpz</a>
+    <a class="brand" href={u.home(lang)} aria-label="Shimpz home"><span aria-hidden="true">S</span><strong>Shimpz</strong></a>
 
     <nav aria-label={copy.nav}>
       <a href="#assistants">{copy.assistants}</a>
@@ -47,7 +47,7 @@
     position: sticky;
     z-index: 50;
     top: 0;
-    border-bottom: 1px solid color-mix(in oklab, var(--color-border) 75%, transparent);
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--color-border) 75%, transparent);
     background: color-mix(in oklab, var(--color-bg) 88%, transparent);
     backdrop-filter: blur(18px);
   }
@@ -61,34 +61,57 @@
   }
 
   .brand {
+    display: inline-flex;
     justify-self: start;
+    align-items: center;
+    gap: 0.65rem;
     color: var(--color-fg);
     font-family: var(--font-mono);
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: -0.04em;
   }
+
+  .brand span {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta));
+    color: var(--color-accent-ink);
+    font-size: 0.82rem;
+    font-weight: 800;
+    clip-path: polygon(22% 0, 78% 0, 100% 22%, 100% 78%, 78% 100%, 22% 100%, 0 78%, 0 22%);
+  }
+
+  .brand strong { font-size: 0.92rem; letter-spacing: -0.04em; }
 
   nav { display: flex; align-items: center; gap: clamp(0.3rem, 1vw, 1.2rem); }
 
   nav a {
     padding: 0.6rem 0.45rem;
     color: var(--color-muted);
-    font-size: 0.88rem;
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 
   nav a:hover { color: var(--color-fg); }
-  nav .sign-in { color: var(--color-cyan); }
+  nav .sign-in {
+    padding-inline: 0.8rem;
+    background: #000;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 48%, var(--color-border-strong));
+    color: var(--color-cyan);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
 
   .locale {
     display: flex;
     align-items: center;
     padding: 0.2rem;
-    border: 1px solid var(--color-border-strong);
-    border-radius: 999px;
-    background: var(--color-card);
+    background: #000;
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
   }
 
   .locale a {
@@ -96,14 +119,13 @@
     width: 2rem;
     height: 2rem;
     place-items: center;
-    border-radius: 999px;
     color: var(--color-muted);
     font-family: var(--font-mono);
     font-size: 0.62rem;
     font-weight: 700;
   }
 
-  .locale a.active { background: var(--color-fg); color: var(--color-bg); }
+  .locale a.active { background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta)); color: var(--color-accent-ink); clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
 
   @media (max-width: 760px) {
     .header-inner { grid-template-columns: 1fr auto; }
