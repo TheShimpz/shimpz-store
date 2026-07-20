@@ -1,9 +1,10 @@
 """Canonical, metadata-only Assistant release feed.
 
-The public Store feed is deliberately not an installation authority. It carries only bounded
-notification copy; executable images and installation commands remain outside this contract. The
-canonical body and ETag are built once while the process imports this module, so invalid release data
-fails startup and every request is allocation-light.
+The public Store feed is deliberately not an installation authority. It carries
+only bounded notification copy; executable images and installation commands remain
+outside this contract. The canonical body and ETag are built once while the process
+imports this module, so invalid release data fails startup and every request is
+allocation-light.
 """
 
 from __future__ import annotations
@@ -35,14 +36,16 @@ _EXECUTABLE_REFERENCE_RE = re.compile(
 )
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
-# This binding is intentionally private: it lets repository checks prove that notification copy was
-# reviewed with the exact Assistant source while keeping executable identity out of the public feed.
+# This binding is intentionally private: it lets repository checks prove that
+# notification copy was reviewed with the exact Assistant source while keeping
+# executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
     "shimpz-assistant": "550b405ec0d90d6466ad03a855719e094b071c5a",
 }
 
-# Append releases in increasing sequence order for each Assistant. This source is intentionally code
-# reviewed alongside the Store instead of being downloaded from another service at runtime.
+# Append releases in increasing sequence order for each Assistant. This source is
+# intentionally code reviewed alongside the Store instead of being downloaded from
+# another service at runtime.
 _CANONICAL_RELEASES = (
     {
         "assistant_id": "shimpz-assistant",
@@ -51,8 +54,10 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.1.0\n\n"
-            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
-            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+            "- Added three typed Open-Meteo Powers for location search, current "
+            "weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for "
+            "the Team Brain.\n"
         ),
         "published_at": "2026-07-19T00:00:00Z",
     },
@@ -63,10 +68,13 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.1.1\n\n"
-            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant "
+            "patch version.\n\n"
             "## 0.1.0\n\n"
-            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
-            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+            "- Added three typed Open-Meteo Powers for location search, current "
+            "weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for "
+            "the Team Brain.\n"
         ),
         "published_at": "2026-07-19T20:22:42Z",
     },
@@ -77,12 +85,16 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.1.2\n\n"
-            "- Shows that the Assistant can provide forecasts for up to 16 days in the English in-Admin help.\n\n"
+            "- Shows that the Assistant can provide forecasts for up to 16 days "
+            "in the English in-Admin help.\n\n"
             "## 0.1.1\n\n"
-            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant "
+            "patch version.\n\n"
             "## 0.1.0\n\n"
-            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
-            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+            "- Added three typed Open-Meteo Powers for location search, current "
+            "weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for "
+            "the Team Brain.\n"
         ),
         "published_at": "2026-07-19T23:37:30Z",
     },
@@ -93,22 +105,32 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.2.0\n\n"
-            "- Replaced the weather demonstration with real, typed X profile and Post Powers.\n"
-            "- Added isolated declarations for one Bearer Token and four OAuth 1.0a credentials.\n"
-            "- Restricted all outbound requests to `api.x.com` and made every Post write require explicit approval.\n"
-            "- Added strict runtime, RPC, redaction, redirect, timeout, and response-boundary validation for the "
+            "- Replaced the weather demonstration with real, typed X profile and "
+            "Post Powers.\n"
+            "- Added isolated declarations for one Bearer Token and four OAuth "
+            "1.0a credentials.\n"
+            "- Restricted all outbound requests to `api.x.com` and made every "
+            "Post write require explicit approval.\n"
+            "- Added strict runtime, RPC, redaction, redirect, timeout, and "
+            "response-boundary validation for the "
             "X integration.\n"
-            "- Made the release source pass the repository-wide no-inline-suppression security gate without "
+            "- Made the release source pass the repository-wide "
+            "no-inline-suppression security gate without "
             "exceptions.\n"
-            "- Bound the private RPC adapter to the fixed Assistant package root inside its hardened image.\n"
+            "- Bound the private RPC adapter to the fixed Assistant package root "
+            "inside its hardened image.\n"
             "- Aligned the Python source with the repository formatting gate.\n\n"
             "## 0.1.2\n\n"
-            "- Shows that the Assistant can provide forecasts for up to 16 days in the English in-Admin help.\n\n"
+            "- Shows that the Assistant can provide forecasts for up to 16 days "
+            "in the English in-Admin help.\n\n"
             "## 0.1.1\n\n"
-            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant "
+            "patch version.\n\n"
             "## 0.1.0\n\n"
-            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
-            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+            "- Added three typed Open-Meteo Powers for location search, current "
+            "weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for "
+            "the Team Brain.\n"
         ),
         "published_at": "2026-07-20T05:10:32Z",
     },
@@ -119,34 +141,55 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.5.0\n\n"
-            "- Enabled the reviewed controller-owned X OAuth 2.0 Authorization Code flow with S256 PKCE.\n"
-            "- Added the Admin consent handoff that pauses the first Power needing X and resumes it after authorization.\n"
-            "- Released the four typed X Powers behind the exact `api.x.com` egress boundary without collecting developer credentials or tokens.\n"
-            "- Kept OAuth consent separate from the explicit approval required for every publish or delete action.\n\n"
+            "- Enabled the reviewed controller-owned X OAuth 2.0 Authorization "
+            "Code flow with S256 PKCE.\n"
+            "- Added the Admin consent handoff that pauses the first Power "
+            "needing X and resumes it after authorization.\n"
+            "- Released the four typed X Powers behind the exact `api.x.com` "
+            "egress boundary without collecting developer credentials or "
+            "tokens.\n"
+            "- Kept OAuth consent separate from the explicit approval required "
+            "for every publish or delete action.\n\n"
             "## 0.4.0\n\n"
-            "- Declared one controller-owned X OAuth connection shared only by the four referencing Powers.\n"
-            "- Added the fixed-host OAuth bearer runtime without accepting refresh tokens or developer credentials.\n"
-            "- Kept Store publication blocked until the controller PKCE broker is available.\n\n"
+            "- Declared one controller-owned X OAuth connection shared only by "
+            "the four referencing Powers.\n"
+            "- Added the fixed-host OAuth bearer runtime without accepting "
+            "refresh tokens or developer credentials.\n"
+            "- Kept Store publication blocked until the controller PKCE broker "
+            "is available.\n\n"
             "## 0.3.0\n\n"
-            "- Removed developer credentials and access tokens from Assistant secrets.\n"
-            "- Locked X Powers until the Admin and controller can broker user-authorized OAuth 2.0 with S256 PKCE.\n\n"
+            "- Removed developer credentials and access tokens from Assistant "
+            "secrets.\n"
+            "- Locked X Powers until the Admin and controller can broker "
+            "user-authorized OAuth 2.0 with S256 PKCE.\n\n"
             "## 0.2.1\n\n"
-            "- Delegated X's weighted Post-length and normalization rules to X while retaining a strict local byte bound.\n\n"
+            "- Delegated X's weighted Post-length and normalization rules to X "
+            "while retaining a strict local byte bound.\n\n"
             "## 0.2.0\n\n"
-            "- Replaced the weather demonstration with real, typed X profile and Post Powers.\n"
-            "- Added isolated declarations for one Bearer Token and four OAuth 1.0a credentials.\n"
-            "- Restricted all outbound requests to `api.x.com` and made every Post write require explicit approval.\n"
-            "- Added strict runtime, RPC, redaction, redirect, timeout, and response-boundary validation for the X integration.\n"
-            "- Made the release source pass the repository-wide no-inline-suppression security gate without exceptions.\n"
-            "- Bound the private RPC adapter to the fixed Assistant package root inside its hardened image.\n"
+            "- Replaced the weather demonstration with real, typed X profile and "
+            "Post Powers.\n"
+            "- Added isolated declarations for one Bearer Token and four OAuth "
+            "1.0a credentials.\n"
+            "- Restricted all outbound requests to `api.x.com` and made every "
+            "Post write require explicit approval.\n"
+            "- Added strict runtime, RPC, redaction, redirect, timeout, and "
+            "response-boundary validation for the X integration.\n"
+            "- Made the release source pass the repository-wide "
+            "no-inline-suppression security gate without exceptions.\n"
+            "- Bound the private RPC adapter to the fixed Assistant package root "
+            "inside its hardened image.\n"
             "- Aligned the Python source with the repository formatting gate.\n\n"
             "## 0.1.2\n\n"
-            "- Shows that the Assistant can provide forecasts for up to 16 days in the English in-Admin help.\n\n"
+            "- Shows that the Assistant can provide forecasts for up to 16 days "
+            "in the English in-Admin help.\n\n"
             "## 0.1.1\n\n"
-            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant "
+            "patch version.\n\n"
             "## 0.1.0\n\n"
-            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
-            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
+            "- Added three typed Open-Meteo Powers for location search, current "
+            "weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for "
+            "the Team Brain.\n"
         ),
         "published_at": "2026-07-20T09:24:45Z",
     },
@@ -241,7 +284,9 @@ def _validate_release_records(source: object) -> tuple[dict[str, object], ...]:
 
 
 def _validate_release_source_commits(source: object, releases: object) -> None:
-    """Reject an incomplete or malformed private source binding before serving the feed."""
+    """Reject an incomplete or malformed private source binding before serving the
+    feed.
+    """
     if not isinstance(source, dict) or not isinstance(releases, (tuple, list)):
         raise ValueError("Assistant release source binding is invalid")
     assistant_ids = {
@@ -269,7 +314,9 @@ def _build_feed(source: object) -> tuple[bytes, str]:
 
 
 def if_none_match_matches(value: str | None, etag: str) -> bool:
-    """Apply weak comparison to one bounded If-None-Match header for a safe GET response."""
+    """Apply weak comparison to one bounded If-None-Match header for a safe GET
+    response.
+    """
     if value is None or len(value) > 4096:
         return False
     for candidate in value.split(","):
