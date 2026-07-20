@@ -34,7 +34,7 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # This binding is intentionally private: it lets repository checks prove that notification copy was
 # reviewed with the exact Assistant source while keeping executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
-    "shimpz-assistant": "f8b925ca0e7ff434b142db06297e21293e1aa520",
+    "shimpz-assistant": "c945f8530b5c1da3af925932751dae4934fd9396",
 }
 
 # Append releases in increasing sequence order for each Assistant. This source is intentionally code
@@ -89,10 +89,17 @@ _CANONICAL_RELEASES = (
         "changelog": (
             "# Changelog\n\n"
             "## 0.2.0\n\n"
-            "- Added read and write Powers for X accounts.\n"
-            "- Added just-in-time collection for the exact secrets required by each Power.\n"
-            "- Restricted outbound access to the declared `api.x.com` host.\n"
-            "- Required explicit approval before any write Power can change X account data.\n"
+            "- Replaced the weather demonstration with real, typed X profile and Post Powers.\n"
+            "- Added isolated declarations for one Bearer Token and four OAuth 1.0a credentials.\n"
+            "- Restricted all outbound requests to `api.x.com` and made every Post write require explicit approval.\n"
+            "- Added strict runtime, RPC, redaction, redirect, timeout, and response-boundary validation for the X integration.\n\n"
+            "## 0.1.2\n\n"
+            "- Shows that the Assistant can provide forecasts for up to 16 days in the English in-Admin help.\n\n"
+            "## 0.1.1\n\n"
+            "- Identifies outbound Open-Meteo requests with the exact Assistant patch version.\n\n"
+            "## 0.1.0\n\n"
+            "- Added three typed Open-Meteo Powers for location search, current weather, and daily forecasts.\n"
+            "- Added localized in-Admin help and a bounded Genesis playbook for the Team Brain.\n"
         ),
         "published_at": "2026-07-20T05:10:32Z",
     },
