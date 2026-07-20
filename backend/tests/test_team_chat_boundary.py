@@ -96,7 +96,11 @@ def _control_plane():
     _ControlPlaneHandler.calls = calls
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), _ControlPlaneHandler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     base = f"http://127.0.0.1:{server.server_port}"
     previous_accounts = main.ACCOUNTS_URL

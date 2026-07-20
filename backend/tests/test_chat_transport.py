@@ -735,7 +735,11 @@ def _real_upstream(body: bytes):
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
     try:
@@ -785,7 +789,11 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
     try:
@@ -848,7 +856,11 @@ def _real_stream_driver(response_body: bytes, *, status: int = 200):
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     previous = main.TEAMDRIVER_URL
     main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
@@ -1098,7 +1110,11 @@ def _real_relay_abort_driver(on_stop: Callable[[], None] | None = None):
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     previous = main.TEAMDRIVER_URL
     main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
@@ -1273,7 +1289,11 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
         if finalize_token_available:
             token_path.write_text(finalize_token)
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker = threading.Thread(
+            target=server.serve_forever,
+            kwargs={"poll_interval": 0.01},
+            daemon=True,
+        )
         worker.start()
         base = f"http://127.0.0.1:{server.server_port}"
         previous = (

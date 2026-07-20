@@ -92,7 +92,11 @@ def _assistant_control_plane(*, app_status: int = 200, apps: list[dict] | None =
         },
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker = threading.Thread(
+        target=server.serve_forever,
+        kwargs={"poll_interval": 0.01},
+        daemon=True,
+    )
     worker.start()
     previous = main.ACCOUNTS_URL, main.TEAMDRIVER_URL
     main.ACCOUNTS_URL = main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
