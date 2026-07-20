@@ -162,18 +162,21 @@
     <p class="microcopy">{content.microcopy}</p>
   </div>
 
-  <div class="work-card" aria-label={content.liveExample}>
-    <div class="work-card-head">
-      <span>{content.liveExample}</span>
-      <i aria-hidden="true"></i>
+  <div class="hero-visual">
+    <img class="hero-mark" src="/brand/shimpz-thinking.svg" alt="" aria-hidden="true" width="1254" height="1254" />
+    <div class="work-card" aria-label={content.liveExample}>
+      <div class="work-card-head">
+        <span>{content.liveExample}</span>
+        <i aria-hidden="true"></i>
+      </div>
+      <p class="request"><span aria-hidden="true">“</span>{content.task}</p>
+      <ol>
+        <li class="done"><i aria-hidden="true">✓</i><span>{content.brain}</span><small>Shimpz</small></li>
+        <li class="working"><i aria-hidden="true"></i><span>{content.assistantOne}</span><small>Assistant 01</small></li>
+        <li class="working"><i aria-hidden="true"></i><span>{content.assistantTwo}</span><small>Assistant 02</small></li>
+        <li class="result"><i aria-hidden="true">✓</i><span>{content.complete}</span><small>PDF</small></li>
+      </ol>
     </div>
-    <p class="request"><span aria-hidden="true">“</span>{content.task}</p>
-    <ol>
-      <li class="done"><i aria-hidden="true">✓</i><span>{content.brain}</span><small>Shimpz</small></li>
-      <li class="working"><i aria-hidden="true"></i><span>{content.assistantOne}</span><small>Assistant 01</small></li>
-      <li class="working"><i aria-hidden="true"></i><span>{content.assistantTwo}</span><small>Assistant 02</small></li>
-      <li class="result"><i aria-hidden="true">✓</i><span>{content.complete}</span><small>PDF</small></li>
-    </ol>
   </div>
 </section>
 
@@ -342,7 +345,16 @@
   .hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2rem; }
   .primary-cta, .secondary-cta { min-height: 3.25rem; }
   .microcopy { margin: 0.8rem 0 0; color: var(--color-muted-2); font-size: 0.8rem; }
+  .hero-visual { display: flex; min-height: clamp(31rem, 43vw, 37rem); align-items: center; flex-direction: column; justify-content: center; isolation: isolate; }
+  .hero-mark {
+    z-index: 0;
+    width: min(100%, 35rem);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 24px rgba(0, 240, 255, 0.12)) drop-shadow(0 0 28px rgba(255, 45, 255, 0.08));
+  }
   .work-card { position: relative; overflow: hidden; background: linear-gradient(145deg, #111, #050505); box-shadow: inset 0 0 0 1px var(--color-border-strong), 0 34px 90px rgba(0,0,0,.6); clip-path: polygon(var(--cut-lg) 0, 100% 0, 100% calc(100% - var(--cut-lg)), calc(100% - var(--cut-lg)) 100%, 0 100%, 0 var(--cut-lg)); }
+  .hero-visual .work-card { z-index: 1; width: min(90%, 29rem); margin-top: clamp(-8rem, -8vw, -5rem); }
   .work-card::before { position: absolute; inset: 0 0 auto; height: 1px; background: linear-gradient(90deg, transparent, var(--color-cyan), transparent); content: ""; }
   .work-card-head { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--color-border); color: var(--color-muted); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: .1em; }
   .work-card-head i { width: .48rem; height: .48rem; border-radius: 50%; background: var(--color-green); box-shadow: 0 0 10px var(--color-green); }
@@ -435,6 +447,7 @@
   @media (max-width: 900px) {
     .hero, .demo-grid, .how, .routines, .security-grid { grid-template-columns: 1fr; }
     .hero { min-height: auto; }
+    .hero-visual { width: min(100%, 38rem); min-height: clamp(30rem, 95vw, 36rem); }
     .work-card { max-width: 35rem; }
     .section-heading.wide { grid-template-columns: 1fr; }
     .section-heading.wide .kicker { grid-column: 1; }

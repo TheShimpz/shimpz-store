@@ -12,7 +12,7 @@
 
 <header class="home-header">
   <div class="wrap header-inner">
-    <a class="brand" href={u.home(lang)} aria-label="Shimpz home"><span aria-hidden="true">S</span><strong>Shimpz</strong></a>
+    <a class="brand" href={u.home(lang)} aria-label="Shimpz home"><img src="/brand/shimpz-thinking.svg" alt="" aria-hidden="true" width="1254" height="1254" /><strong>Shimpz</strong></a>
 
     <nav aria-label={copy.nav}>
       <a href="#assistants">{copy.assistants}</a>
@@ -69,17 +69,7 @@
     font-family: var(--font-mono);
   }
 
-  .brand span {
-    display: grid;
-    width: 2rem;
-    height: 2rem;
-    place-items: center;
-    background: linear-gradient(135deg, var(--color-cyan), var(--color-magenta));
-    color: var(--color-accent-ink);
-    font-size: 0.82rem;
-    font-weight: 800;
-    clip-path: polygon(22% 0, 78% 0, 100% 22%, 100% 78%, 78% 100%, 22% 100%, 0 78%, 0 22%);
-  }
+  .brand img { width: 2.65rem; height: 2.65rem; flex: none; object-fit: contain; }
 
   .brand strong { font-size: 0.92rem; letter-spacing: -0.04em; }
 

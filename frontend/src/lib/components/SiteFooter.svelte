@@ -11,7 +11,7 @@
   <div class="wrap footer-inner">
     <div class="footer-brand">
       {#if minimal}
-        <a class="wordmark" href={u.home(lang)} aria-label="Shimpz home">Shimpz</a>
+        <ShimpzBrand href={u.home(lang)} asset="/brand/shimpz-thinking.svg" />
       {:else}
         <ShimpzBrand href={u.home(lang)} />
       {/if}
@@ -41,7 +41,6 @@
 
   .footer-brand { display: flex; align-items: center; gap: 1.5rem; }
   .footer-brand p { max-width: 34rem; margin: 0; color: var(--color-muted-2); font-size: 0.78rem; }
-  .wordmark { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; letter-spacing: -0.04em; }
 
   nav { display: flex; gap: 1rem; }
   nav a {

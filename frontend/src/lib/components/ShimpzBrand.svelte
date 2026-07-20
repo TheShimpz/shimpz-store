@@ -4,16 +4,18 @@
     product = "",
     href = "/",
     ariaLabel = "Shimpz home",
+    asset = "/brand/shimpz-cyberchimp.png",
   }: {
     variant?: "compact" | "hero";
     product?: string;
     href?: string;
     ariaLabel?: string;
+    asset?: string;
   } = $props();
 </script>
 
 <a class:hero={variant === "hero"} class="brand-lockup" {href} aria-label={ariaLabel}>
-  <img src="/brand/shimpz-cyberchimp.png" alt="" aria-hidden="true" width="1254" height="1254" />
+  <img src={asset} alt="" aria-hidden="true" width="1254" height="1254" />
   <span class="brand-type">
     <span class="wordmark">Shimpz</span>
     {#if product}<span class="product">{product}</span>{/if}
