@@ -86,7 +86,7 @@ def test_release_feed_is_closed_bounded_notification_metadata():
 def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_6_0_metadata():
     assert releases._CANONICAL_RELEASE_SOURCE_COMMITS == {
         "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
-        "shimpz-cloudflare": "b329e4935344243dba12dc004a5bc9618a9da10b",
+        "shimpz-cloudflare": "6f17f2168f613b1827272a9a2ab4d785bb0a9e1d",
     }
     latest = [release for release in releases._CANONICAL_RELEASES if release["assistant_id"] == "shimpz-assistant"][-1]
     assert latest["assistant_id"] == "shimpz-assistant"
@@ -102,7 +102,8 @@ def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_6_0_metadata():
 def test_release_feed_publishes_the_read_only_cloudflare_assistant():
     latest = [release for release in releases._CANONICAL_RELEASES if release["assistant_id"] == "shimpz-cloudflare"][-1]
     assert latest["sequence"] == 1
-    assert latest["headline"] == "Shimpz Cloudflare 0.1.1 is ready"
+    assert latest["headline"] == "Shimpz Cloudflare 0.1.2 is ready"
+    assert "frozen release metadata" in latest["changelog"]
     assert "read-only Cloudflare zone listing" in latest["changelog"]
     assert "DNS record listing" in latest["changelog"]
 

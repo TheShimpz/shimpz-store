@@ -37,10 +37,14 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
     "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
-    "shimpz-cloudflare": "b329e4935344243dba12dc004a5bc9618a9da10b",
+    "shimpz-cloudflare": "6f17f2168f613b1827272a9a2ab4d785bb0a9e1d",
 }
 
-_SHIMPZ_CLOUDFLARE_0_1_1_CHANGELOG = """# Changelog
+_SHIMPZ_CLOUDFLARE_0_1_2_CHANGELOG = """# Changelog
+
+## 0.1.2 - 2026-07-21
+
+- Synchronize frozen release metadata and enforce the canonical Ruff contract.
 
 ## 0.1.1 - 2026-07-21
 
@@ -270,9 +274,9 @@ _CANONICAL_RELEASES = (
     {
         "assistant_id": "shimpz-cloudflare",
         "sequence": 1,
-        "headline": "Shimpz Cloudflare 0.1.1 is ready",
-        "changelog": _SHIMPZ_CLOUDFLARE_0_1_1_CHANGELOG,
-        "published_at": "2026-07-21T05:30:00Z",
+        "headline": "Shimpz Cloudflare 0.1.2 is ready",
+        "changelog": _SHIMPZ_CLOUDFLARE_0_1_2_CHANGELOG,
+        "published_at": "2026-07-21T05:31:00Z",
     },
 )
 
