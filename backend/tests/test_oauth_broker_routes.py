@@ -64,7 +64,11 @@ def test_browser_start_and_callback_redirect_without_oauth_tokens() -> None:
         )
         callback = client.get(
             "/api/oauth/cloudflare/callback",
-            params={"state": "b" * 43, "code": "authorization-code-private-123456"},
+            params={
+                "state": "b" * 43,
+                "code": "authorization-code-private-123456",
+                "scope": " ".join(SCOPES),
+            },
             follow_redirects=False,
         )
 
@@ -78,6 +82,41 @@ def test_browser_start_and_callback_redirect_without_oauth_tokens() -> None:
     assert callback.headers["referrer-policy"] == "no-referrer"
     assert [call[0] for call in broker.calls] == ["start", "callback"]
     assert broker.calls[0][1]["callback_mode"] == "loopback"
+
+
+def test_browser_callback_requires_the_exact_cloudflare_scope_envelope() -> None:
+    invalid_queries = (
+        {"state": "b" * 43, "code": "authorization-code-private-123456"},
+        {
+            "state": "b" * 43,
+            "code": "authorization-code-private-123456",
+            "scope": "dns.read zone.read",
+        },
+        {
+            "state": "b" * 43,
+            "code": "authorization-code-private-123456",
+            "scope": " ".join(SCOPES),
+            "token": "must-not-cross",
+        },
+    )
+    with _broker() as broker, TestClient(main.app) as client:
+        responses = [
+            client.get(
+                "/api/oauth/cloudflare/callback",
+                params=query,
+                follow_redirects=False,
+            )
+            for query in invalid_queries
+        ]
+        duplicate = client.get(
+            "/api/oauth/cloudflare/callback?state="
+            + "b" * 43
+            + "&code=first&code=second&scope=dns.read+offline_access+zone.read",
+            follow_redirects=False,
+        )
+
+    assert all(response.status_code == 400 for response in [*responses, duplicate])
+    assert broker.calls == []
 
 
 def test_browser_start_forwards_only_the_named_canary_callback() -> None:

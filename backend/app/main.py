@@ -43,6 +43,7 @@ from app.assistant_releases import (
 )
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
+from app.oauth_broker import SCOPES as OAUTH_SCOPES
 from app.oauth_broker import OAuthBroker, OAuthBrokerError
 
 setup("shimpz-store")
@@ -839,9 +840,11 @@ async def oauth_cloudflare_start(request: Request) -> Response:
 @app.get("/api/oauth/cloudflare/callback")
 async def oauth_cloudflare_callback(request: Request) -> Response:
     pairs = list(request.query_params.multi_items())
-    if len(pairs) != 2 or {key for key, _value in pairs} != {"state", "code"}:
+    if len(pairs) != 3 or {key for key, _value in pairs} != {"state", "code", "scope"}:
         return _oauth_failure("callback")
     fields = dict(pairs)
+    if tuple(fields["scope"].split(" ")) != OAUTH_SCOPES:
+        return _oauth_failure("callback")
     try:
         location = await _run_bounded(
             _OAUTH_EXECUTOR,
