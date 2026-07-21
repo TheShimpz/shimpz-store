@@ -18,6 +18,8 @@
       <p>{tr("footer", lang)}</p>
     </div>
     <nav aria-label={lang === "pt" ? "Links do rodapé" : "Footer links"}>
+      <a href="/privacy">{lang === "pt" ? "Privacidade" : "Privacy"}</a>
+      <a href="/terms">{lang === "pt" ? "Termos" : "Terms"}</a>
       <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">Docs ↗</a>
       <a href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
     </nav>

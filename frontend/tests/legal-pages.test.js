@@ -5,6 +5,7 @@ import test from "node:test";
 
 const privacy = readFileSync(new URL("../src/routes/privacy/+page.svelte", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../src/routes/terms/+page.svelte", import.meta.url), "utf8");
+const footer = readFileSync(new URL("../src/lib/components/SiteFooter.svelte", import.meta.url), "utf8");
 const sitemap = readFileSync(new URL("../src/routes/sitemap.xml/+server.ts", import.meta.url), "utf8");
 
 test("privacy policy covers protected platform and OAuth data", () => {
@@ -26,4 +27,11 @@ test("terms cover connected providers and bounded Assistant use", () => {
   assert.match(terms, /Acceptable use/);
   assert.match(terms, /limits do not apply where prohibited by law/);
   assert.match(terms, /legal@shimpz\.com/);
+});
+
+test("every Store page exposes both legal documents", () => {
+  assert.match(footer, /href="\/privacy"/);
+  assert.match(footer, /href="\/terms"/);
+  assert.match(footer, /Privacidade/);
+  assert.match(footer, /Termos/);
 });
