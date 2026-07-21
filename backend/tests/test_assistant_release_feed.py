@@ -49,6 +49,8 @@ def test_build_context_excludes_local_dependencies_caches_and_secrets():
         ".git",
         ".env",
         ".env.*",
+        "**/.env",
+        "**/.env.*",
         ".pnpm-store",
         ".venv",
         "backend/.venv",
