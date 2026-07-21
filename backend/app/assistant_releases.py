@@ -37,10 +37,14 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
     "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
-    "shimpz-cloudflare": "6f17f2168f613b1827272a9a2ab4d785bb0a9e1d",
+    "shimpz-cloudflare": "9c2191e1f143ee74b7da7659bf9b7ba7381b42ae",
 }
 
-_SHIMPZ_CLOUDFLARE_0_1_2_CHANGELOG = """# Changelog
+_SHIMPZ_CLOUDFLARE_0_1_3_CHANGELOG = """# Changelog
+
+## 0.1.3 - 2026-07-21
+
+- Make the Python 3.14 Ruff format and security contract self-contained for isolated builds.
 
 ## 0.1.2 - 2026-07-21
 
@@ -274,9 +278,9 @@ _CANONICAL_RELEASES = (
     {
         "assistant_id": "shimpz-cloudflare",
         "sequence": 1,
-        "headline": "Shimpz Cloudflare 0.1.2 is ready",
-        "changelog": _SHIMPZ_CLOUDFLARE_0_1_2_CHANGELOG,
-        "published_at": "2026-07-21T05:31:00Z",
+        "headline": "Shimpz Cloudflare 0.1.3 is ready",
+        "changelog": _SHIMPZ_CLOUDFLARE_0_1_3_CHANGELOG,
+        "published_at": "2026-07-21T05:43:00Z",
     },
 )
 
