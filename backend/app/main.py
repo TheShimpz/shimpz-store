@@ -27,7 +27,13 @@ from urllib.parse import urlparse
 
 import structlog
 from fastapi import FastAPI, Request, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 
 from app.assistant_releases import (
     ASSISTANT_RELEASE_CACHE_CONTROL,
@@ -37,6 +43,7 @@ from app.assistant_releases import (
 )
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
+from app.oauth_broker import OAuthBroker, OAuthBrokerError
 
 setup("shimpz-store")
 log = structlog.get_logger()
@@ -65,6 +72,7 @@ MAX_TEAM_INSTALL_BODY_BYTES = max(
     int(os.environ.get("SHIMPZ_STORE_MAX_TEAM_INSTALL_BODY_BYTES", str(4 * 1024))),
 )
 MAX_AUTH_BODY_BYTES = max(1024, int(os.environ.get("SHIMPZ_STORE_MAX_AUTH_BODY_BYTES", str(16 * 1024))))
+MAX_OAUTH_BODY_BYTES = 32 * 1024
 MAX_WS_FRAME_BYTES = max(1024, int(os.environ.get("SHIMPZ_STORE_MAX_WS_FRAME_BYTES", str(128 * 1024))))
 STREAM_QUEUE_MAX_EVENTS = max(1, int(os.environ.get("SHIMPZ_STORE_STREAM_QUEUE_MAX_EVENTS", "32")))
 STREAM_QUEUE_PUT_TIMEOUT = max(1.0, float(os.environ.get("SHIMPZ_STORE_STREAM_QUEUE_PUT_TIMEOUT", "10")))
@@ -76,6 +84,8 @@ AUTH_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_AUTH_WORKER_THREAD
 AUTH_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_AUTH_QUEUE_MAX", "8")))
 STOP_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_STOP_WORKER_THREADS", "4")))
 STOP_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_STOP_QUEUE_MAX", "4")))
+OAUTH_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_OAUTH_WORKER_THREADS", "8")))
+OAUTH_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_OAUTH_QUEUE_MAX", "8")))
 WS_GLOBAL_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_GLOBAL_CONNECTION_LIMIT", "64")))
 WS_ACCOUNT_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_ACCOUNT_CONNECTION_LIMIT", "4")))
 WS_TEAM_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_TEAM_CONNECTION_LIMIT", "2")))
@@ -296,6 +306,12 @@ _STOP_EXECUTOR = _BoundedThreadPoolExecutor(
     max_outstanding=STOP_WORKER_THREADS + STOP_QUEUE_MAX,
     thread_name_prefix="shimpz-stop",
 )
+_OAUTH_EXECUTOR = _BoundedThreadPoolExecutor(
+    max_workers=OAUTH_WORKER_THREADS,
+    max_outstanding=OAUTH_WORKER_THREADS + OAUTH_QUEUE_MAX,
+    thread_name_prefix="store-oauth",
+)
+_OAUTH_BROKER = OAuthBroker()
 _WS_CONNECTION_ADMISSION = _WsConnectionAdmission(
     WS_GLOBAL_CONNECTION_LIMIT,
     WS_ACCOUNT_CONNECTION_LIMIT,
@@ -338,7 +354,14 @@ TEAM_FILE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 TEAM_FILE_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 MODEL_CATALOG = {
     "openai": frozenset({"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"}),
-    "anthropic": frozenset({"claude-fable-5", "claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001"}),
+    "anthropic": frozenset(
+        {
+            "claude-fable-5",
+            "claude-opus-4-8",
+            "claude-sonnet-5",
+            "claude-haiku-4-5-20251001",
+        }
+    ),
 }
 RELEASED_CLOUD_ASSISTANTS = frozenset({"shimpz-assistant"})
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
@@ -629,9 +652,9 @@ async def _read_bounded_json(request: Request, max_bytes: int) -> dict:
             raise ClientPayloadError(413, f"request body too large (max {max_bytes} bytes)")
         body.extend(chunk)
     try:
-        payload = jsonlib.loads(body or b"{}")
-    except jsonlib.JSONDecodeError as exc:
-        raise ClientPayloadError(400, f"invalid JSON body: {exc}") from exc
+        payload = jsonlib.loads(body or b"{}", object_pairs_hook=_unique_json_object)
+    except (jsonlib.JSONDecodeError, ValueError) as exc:
+        raise ClientPayloadError(400, "invalid JSON body") from exc
     if not isinstance(payload, dict):
         raise ClientPayloadError(400, "JSON body must be an object")
     return payload
@@ -747,7 +770,141 @@ def assistant_release_feed(request: Request) -> Response:
     }
     if if_none_match_matches(request.headers.get("if-none-match"), ASSISTANT_RELEASE_FEED_ETAG):
         return Response(status_code=304, headers=headers)
-    return Response(content=ASSISTANT_RELEASE_FEED_BODY, media_type="application/json", headers=headers)
+    return Response(
+        content=ASSISTANT_RELEASE_FEED_BODY,
+        media_type="application/json",
+        headers=headers,
+    )
+
+
+def _oauth_redirect(location: str) -> RedirectResponse:
+    return RedirectResponse(
+        location,
+        status_code=303,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
+        },
+    )
+
+
+async def _oauth_body(request: Request, fields: frozenset[str]) -> dict:
+    if request.headers.get("origin") is not None or request.headers.get("content-type") != "application/json":
+        raise ClientPayloadError(403, "OAuth broker request is forbidden")
+    raw_length = request.headers.get("content-length")
+    if raw_length is None:
+        raise ClientPayloadError(411, "OAuth broker request length is required")
+    payload = await _read_bounded_json(request, MAX_OAUTH_BODY_BYTES)
+    if set(payload) != fields:
+        raise ClientPayloadError(400, "OAuth broker request is invalid")
+    return payload
+
+
+def _oauth_failure(operation: str, status: int = 400) -> JSONResponse:
+    log.warning("oauth_broker_rejected", operation=operation)
+    return JSONResponse(
+        {"detail": "OAuth broker operation failed"},
+        status_code=status,
+        headers=PRIVATE_NO_STORE_HEADERS,
+    )
+
+
+@app.get("/api/oauth/cloudflare/start")
+async def oauth_cloudflare_start(request: Request) -> Response:
+    pairs = list(request.query_params.multi_items())
+    if len(pairs) != 3 or {key for key, _value in pairs} != {
+        "state",
+        "code_challenge",
+        "scope",
+    }:
+        return _oauth_failure("start")
+    fields = dict(pairs)
+    try:
+        location = await _run_bounded(
+            _OAUTH_EXECUTOR,
+            functools.partial(
+                _OAUTH_BROKER.start,
+                local_state=fields["state"],
+                local_code_challenge=fields["code_challenge"],
+                scopes=fields["scope"].split(" "),
+            ),
+        )
+    except OAuthBrokerError:
+        return _oauth_failure("start", 502)
+    return _oauth_redirect(location)
+
+
+@app.get("/api/oauth/cloudflare/callback")
+async def oauth_cloudflare_callback(request: Request) -> Response:
+    pairs = list(request.query_params.multi_items())
+    if len(pairs) != 2 or {key for key, _value in pairs} != {"state", "code"}:
+        return _oauth_failure("callback")
+    fields = dict(pairs)
+    try:
+        location = await _run_bounded(
+            _OAUTH_EXECUTOR,
+            functools.partial(_OAUTH_BROKER.callback, state=fields["state"], code=fields["code"]),
+        )
+    except OAuthBrokerError:
+        return _oauth_failure("callback", 502)
+    return _oauth_redirect(location)
+
+
+async def _oauth_post(request: Request, operation: str, fields: frozenset[str]) -> JSONResponse:
+    try:
+        payload = await _oauth_body(request, fields)
+        if operation == "claim":
+            result = await _run_bounded(
+                _OAUTH_EXECUTOR,
+                functools.partial(
+                    _OAUTH_BROKER.claim,
+                    claim=payload["claim"],
+                    state=payload["state"],
+                    code_verifier=payload["code_verifier"],
+                ),
+            )
+        elif operation == "refresh":
+            result = await _run_bounded(
+                _OAUTH_EXECUTOR,
+                functools.partial(
+                    _OAUTH_BROKER.refresh,
+                    refresh_token=payload["refresh_token"],
+                    lease=payload["broker_lease"],
+                    scopes=payload["scopes"],
+                ),
+            )
+        elif operation == "revoke":
+            await _run_bounded(
+                _OAUTH_EXECUTOR,
+                functools.partial(
+                    _OAUTH_BROKER.revoke,
+                    token=payload["token"],
+                    lease=payload["broker_lease"],
+                ),
+            )
+            result = {"revoked": True}
+        else:
+            raise OAuthBrokerError("OAuth broker operation is unavailable")
+    except ClientPayloadError as exc:
+        return _oauth_failure(operation, exc.status)
+    except OAuthBrokerError:
+        return _oauth_failure(operation, 502)
+    return _private_json(result)
+
+
+@app.post("/api/oauth/cloudflare/claim")
+async def oauth_cloudflare_claim(request: Request) -> JSONResponse:
+    return await _oauth_post(request, "claim", frozenset({"claim", "state", "code_verifier"}))
+
+
+@app.post("/api/oauth/cloudflare/refresh")
+async def oauth_cloudflare_refresh(request: Request) -> JSONResponse:
+    return await _oauth_post(request, "refresh", frozenset({"refresh_token", "broker_lease", "scopes"}))
+
+
+@app.post("/api/oauth/cloudflare/revoke")
+async def oauth_cloudflare_revoke(request: Request) -> JSONResponse:
+    return await _oauth_post(request, "revoke", frozenset({"token", "broker_lease"}))
 
 
 # ── account auth (proxied to the `accounts` identity service) ──────────────────
@@ -1320,7 +1477,13 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
         payload,
         extra={"X-Shimpz-Account": token},
     )
-    log.info("team_file_upload", account=account_id, team_id=team_id, bytes=len(data), status=status)
+    log.info(
+        "team_file_upload",
+        account=account_id,
+        team_id=team_id,
+        bytes=len(data),
+        status=status,
+    )
     if status != 200:
         return _private_json(body, status)
     uploaded = _public_file_upload(body)

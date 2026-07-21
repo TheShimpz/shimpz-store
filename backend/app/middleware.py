@@ -55,10 +55,19 @@ _EMBED_SECURITY_HEADERS = (
 )
 _MANAGED_SECURITY_HEADERS = {name for name, _value in (*_SECURITY_HEADERS, *_EMBED_SECURITY_HEADERS)}
 _EMBED_PATH = re.compile(r"^/(?:en|pt)/assistants/embed/?$")
+_NO_REFERRER_PATHS = frozenset(
+    {
+        "/api/oauth/cloudflare/start",
+        "/api/oauth/cloudflare/callback",
+    }
+)
 
 
 def _security_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
-    return _EMBED_SECURITY_HEADERS if _EMBED_PATH.fullmatch(path) else _SECURITY_HEADERS
+    headers = _EMBED_SECURITY_HEADERS if _EMBED_PATH.fullmatch(path) else _SECURITY_HEADERS
+    if path not in _NO_REFERRER_PATHS:
+        return headers
+    return tuple((name, b"no-referrer") if name == b"referrer-policy" else (name, value) for name, value in headers)
 
 
 def _clean(raw: bytes) -> str:
