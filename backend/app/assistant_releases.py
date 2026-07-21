@@ -37,7 +37,20 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
     "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
+    "shimpz-cloudflare": "b329e4935344243dba12dc004a5bc9618a9da10b",
 }
+
+_SHIMPZ_CLOUDFLARE_0_1_1_CHANGELOG = """# Changelog
+
+## 0.1.1 - 2026-07-21
+
+- Align the immutable Genesis and Help package root with the controller's standard Assistant contract.
+
+## 0.1.0 - 2026-07-21
+
+- Add OAuth-backed, read-only Cloudflare zone listing.
+- Add bounded DNS record listing for an exact zone.
+"""
 
 _SHIMPZ_ASSISTANT_0_6_0_CHANGELOG = """# Changelog
 
@@ -253,6 +266,13 @@ _CANONICAL_RELEASES = (
         "headline": "Shimpz Assistant 0.6.0 adds Accounts and Mux BYOK",
         "changelog": _SHIMPZ_ASSISTANT_0_6_0_CHANGELOG,
         "published_at": "2026-07-20T15:00:00Z",
+    },
+    {
+        "assistant_id": "shimpz-cloudflare",
+        "sequence": 1,
+        "headline": "Shimpz Cloudflare 0.1.1 is ready",
+        "changelog": _SHIMPZ_CLOUDFLARE_0_1_1_CHANGELOG,
+        "published_at": "2026-07-21T05:30:00Z",
     },
 )
 

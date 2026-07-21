@@ -80,6 +80,7 @@ test("derives one contextual action only from authoritative selected-Team state"
   assert.equal(cloudAssistantAction(true, [], "shimpz-assistant"), "install");
   assert.equal(cloudAssistantAction(true, ["shimpz-assistant"], "shimpz-assistant"), "uninstall");
   assert.equal(cloudAssistantAction(false, ["shimpz-assistant"], "shimpz-assistant"), "blocked");
+  assert.equal(cloudAssistantAction(true, [], "shimpz-cloudflare"), "blocked");
   assert.equal(cloudAssistantAction(true, [], "unknown"), "blocked");
 });
 
@@ -92,6 +93,10 @@ test("rejects stale inventory and mutation completions after a Team switch", () 
 
 test("uses a closed Store/login return enum and never accepts an arbitrary redirect", () => {
   assert.equal(closedAssistantStoreHref("en", "shimpz-assistant"), "/en/assistants?assistant=shimpz-assistant");
+  assert.equal(
+    closedAssistantStoreHref("en", "shimpz-cloudflare"),
+    "/en/assistants?assistant=shimpz-cloudflare",
+  );
   assert.equal(
     closedAssistantLoginHref("pt", "shimpz-assistant"),
     "/pt/login?return=assistants&assistant=shimpz-assistant",
@@ -113,6 +118,7 @@ test("uses a closed Store/login return enum and never accepts an arbitrary redir
     assert.equal(resolveClosedAssistantReturn("en", search), null);
   }
   assert.equal(requestedAssistantFromSearch("?assistant=shimpz-assistant"), "shimpz-assistant");
+  assert.equal(requestedAssistantFromSearch("?assistant=shimpz-cloudflare"), "shimpz-cloudflare");
   assert.equal(requestedAssistantFromSearch("?assistant=shimpz-assistant&install=true"), "");
   assert.equal(requestedAssistantFromSearch("?assistant=unknown"), "");
   assert.throws(() => closedAssistantStoreHref("en", "unknown"));

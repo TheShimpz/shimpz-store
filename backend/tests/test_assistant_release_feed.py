@@ -85,9 +85,10 @@ def test_release_feed_is_closed_bounded_notification_metadata():
 
 def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_6_0_metadata():
     assert releases._CANONICAL_RELEASE_SOURCE_COMMITS == {
-        "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c"
+        "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
+        "shimpz-cloudflare": "b329e4935344243dba12dc004a5bc9618a9da10b",
     }
-    latest = releases._CANONICAL_RELEASES[-1]
+    latest = [release for release in releases._CANONICAL_RELEASES if release["assistant_id"] == "shimpz-assistant"][-1]
     assert latest["assistant_id"] == "shimpz-assistant"
     assert latest["sequence"] == 6
     assert latest["headline"] == "Shimpz Assistant 0.6.0 adds Accounts and Mux BYOK"
@@ -96,6 +97,14 @@ def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_6_0_metadata():
     assert "api.mux.com" in latest["changelog"]
     assert "constant-time comparison" in latest["changelog"]
     assert "TheShimpz organization" in latest["changelog"]
+
+
+def test_release_feed_publishes_the_read_only_cloudflare_assistant():
+    latest = [release for release in releases._CANONICAL_RELEASES if release["assistant_id"] == "shimpz-cloudflare"][-1]
+    assert latest["sequence"] == 1
+    assert latest["headline"] == "Shimpz Cloudflare 0.1.1 is ready"
+    assert "read-only Cloudflare zone listing" in latest["changelog"]
+    assert "DNS record listing" in latest["changelog"]
 
 
 def test_release_feed_honors_conditional_get_without_a_body():

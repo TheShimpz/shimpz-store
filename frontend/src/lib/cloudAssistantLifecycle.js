@@ -1,6 +1,7 @@
 const TEAM_ID_RE = /^[a-z0-9_]{1,40}$/;
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const LOCALES = new Set(["en", "pt"]);
+const STORE_ASSISTANTS = new Set(["shimpz-assistant", "shimpz-cloudflare"]);
 const RELEASED_ASSISTANTS = new Set(["shimpz-assistant"]);
 
 /** @typedef {{ team_id: string, team_name: string }} CloudTeam */
@@ -123,7 +124,7 @@ export function cloudRequestIsCurrent(requestGeneration, currentGeneration, requ
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantStoreHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !RELEASED_ASSISTANTS.has(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !STORE_ASSISTANTS.has(assistant)) {
     throw new Error("invalid Assistant Store destination");
   }
   return `/${locale}/assistants?assistant=${encodeURIComponent(assistant)}`;
@@ -131,7 +132,7 @@ export function closedAssistantStoreHref(locale, assistant) {
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantLoginHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !RELEASED_ASSISTANTS.has(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !STORE_ASSISTANTS.has(assistant)) {
     throw new Error("invalid Assistant login destination");
   }
   return `/${locale}/login?return=assistants&assistant=${encodeURIComponent(assistant)}`;
@@ -139,7 +140,7 @@ export function closedAssistantLoginHref(locale, assistant) {
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantTeamHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !RELEASED_ASSISTANTS.has(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !STORE_ASSISTANTS.has(assistant)) {
     throw new Error("invalid Assistant Team destination");
   }
   return `/${locale}/team?return=assistants&assistant=${encodeURIComponent(assistant)}`;
@@ -158,7 +159,7 @@ export function resolveClosedAssistantReturn(locale, search) {
     return null;
   }
   const assistant = params.get("assistant");
-  return assistant !== null && RELEASED_ASSISTANTS.has(assistant)
+  return assistant !== null && STORE_ASSISTANTS.has(assistant)
     ? closedAssistantStoreHref(locale, assistant)
     : null;
 }
@@ -170,5 +171,5 @@ export function requestedAssistantFromSearch(search) {
   const keys = [...params.keys()];
   if (keys.length !== 1 || keys[0] !== "assistant") return "";
   const assistant = params.get("assistant");
-  return assistant !== null && RELEASED_ASSISTANTS.has(assistant) ? assistant : "";
+  return assistant !== null && STORE_ASSISTANTS.has(assistant) ? assistant : "";
 }

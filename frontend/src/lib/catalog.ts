@@ -262,6 +262,54 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
       },
     ],
   },
+  {
+    id: "shimpz-cloudflare",
+    name: "Shimpz Cloudflare",
+    version: "0.1.1",
+    creator: "roxygens",
+    summary: {
+      en: "List Cloudflare zones and inspect DNS records with a least-privilege OAuth Account.",
+      pt: "Liste zonas do Cloudflare e inspecione registros DNS com uma Account OAuth de privilégio mínimo.",
+    },
+    description: {
+      en: "Connect one Cloudflare Account through OAuth and use two read-only Powers to list a bounded page of zones or DNS records. The token is delivered only to the selected Power invocation, and egress is limited to api.cloudflare.com.",
+      pt: "Conecte uma Account do Cloudflare por OAuth e use dois Powers somente de leitura para listar uma página limitada de zonas ou registros DNS. O token é entregue apenas à execução do Power selecionado, e o egress é limitado a api.cloudflare.com.",
+    },
+    price: "free",
+    archs: ["amd64", "arm64"],
+    powers: [
+      {
+        id: "list-zones",
+        name: { en: "List zones", pt: "Listar zonas" },
+        summary: {
+          en: "Lists one bounded page of Cloudflare zones and domains.",
+          pt: "Lista uma página limitada de zonas e domínios do Cloudflare.",
+        },
+      },
+      {
+        id: "list-dns-records",
+        name: { en: "List DNS records", pt: "Listar registros DNS" },
+        summary: {
+          en: "Lists one bounded page of DNS records for an exact zone.",
+          pt: "Lista uma página limitada de registros DNS para uma zona exata.",
+        },
+      },
+    ],
+    permissions: [
+      {
+        en: "Allowed host: api.cloudflare.com only",
+        pt: "Host permitido: somente api.cloudflare.com",
+      },
+      {
+        en: "Account: controller-owned Cloudflare OAuth with zone.read, dns.read and offline_access",
+        pt: "Account: OAuth do Cloudflare sob custódia do controller com zone.read, dns.read e offline_access",
+      },
+      {
+        en: "Approval: both Powers are read-only and require no execution approval",
+        pt: "Aprovação: ambos os Powers são somente de leitura e não exigem aprovação de execução",
+      },
+    ],
+  },
 ];
 
 export const ASSISTANT_BY_ID = new Map(ASSISTANT_CATALOG.map((assistant) => [assistant.id, assistant]));

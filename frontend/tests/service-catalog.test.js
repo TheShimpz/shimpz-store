@@ -47,6 +47,17 @@ test("Shimpz Assistant exposes its canonical Account and Secret contract", () =>
   ]);
 });
 
+test("Cloudflare Assistant exposes only its least-privilege read contract", () => {
+  const assistant = ASSISTANT_BY_ID.get("shimpz-cloudflare");
+
+  assert.ok(assistant);
+  assert.equal(assistant.version, "0.1.1");
+  assert.deepEqual(assistant.powers.map((power) => power.id), ["list-zones", "list-dns-records"]);
+  assert.match(assistant.description.en, /api\.cloudflare\.com/);
+  assert.match(assistant.permissions[1].en, /zone\.read, dns\.read and offline_access/);
+  assert.match(assistant.permissions[2].en, /read-only/);
+});
+
 test("OpenAI media Service publishes only its implemented operations", () => {
   const service = SERVICE_BY_ID.get("openai");
 
