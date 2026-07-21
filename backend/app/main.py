@@ -817,6 +817,9 @@ async def oauth_cloudflare_start(request: Request) -> Response:
     if len(pairs) not in {3, 4} or keys not in {frozenset(required), frozenset({*required, "callback"})}:
         return _oauth_failure("start")
     fields = dict(pairs)
+    callback_mode = fields.get("callback", "loopback")
+    if callback_mode not in {"loopback", "canary"}:
+        return _oauth_failure("start")
     try:
         location = await _run_bounded(
             _OAUTH_EXECUTOR,
@@ -824,7 +827,7 @@ async def oauth_cloudflare_start(request: Request) -> Response:
                 _OAUTH_BROKER.start,
                 local_state=fields["state"],
                 local_code_challenge=fields["code_challenge"],
-                callback_mode=fields.get("callback", "loopback"),
+                callback_mode=callback_mode,
                 scopes=fields["scope"].split(" "),
             ),
         )

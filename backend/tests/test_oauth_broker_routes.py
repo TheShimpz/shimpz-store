@@ -107,6 +107,23 @@ def test_browser_start_forwards_only_the_named_canary_callback() -> None:
     ]
 
 
+def test_browser_start_rejects_an_arbitrary_callback_before_the_broker() -> None:
+    with _broker() as broker, TestClient(main.app) as client:
+        response = client.get(
+            "/api/oauth/cloudflare/start",
+            params={
+                "state": "s" * 43,
+                "code_challenge": "c" * 43,
+                "scope": " ".join(SCOPES),
+                "callback": "https://evil.example",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 400
+    assert broker.calls == []
+
+
 def test_server_only_claim_refresh_and_revoke_are_exact_and_no_store() -> None:
     with _broker() as broker, TestClient(main.app) as client:
         claim = client.post(
