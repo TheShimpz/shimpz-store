@@ -678,9 +678,7 @@
     margin-top: 1.25rem;
   }
   .assistant-card {
-    position: relative;
     display: flex;
-    min-height: 17.5rem;
     overflow: hidden;
     flex-direction: column;
     background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
@@ -742,24 +740,13 @@
     line-clamp: 2;
   }
   .assistant-action {
-    position: absolute;
-    z-index: 1;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    display: none;
     border-top: 1px solid var(--color-border);
     padding: 0.75rem 1rem 1rem;
-    background: linear-gradient(180deg, color-mix(in oklab, var(--color-card) 92%, transparent), var(--color-card));
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(0.4rem);
-    transition: opacity 0.16s ease, transform 0.16s var(--ease-shimpz);
   }
   .assistant-card:hover .assistant-action,
   .assistant-card:focus-within .assistant-action {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
+    display: block;
   }
   .install-action { width: 100%; min-height: 2.5rem; border: 0; padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.62rem; }
   .install-status { margin: 0.55rem 0 0; color: var(--color-green); font-size: 0.68rem; line-height: 1.45; }
@@ -852,20 +839,13 @@
   }
   @media (max-width: 540px) {
     .assistant-grid { grid-template-columns: 1fr; }
-    .assistant-card { min-height: 16.5rem; }
     .context-error { align-items: stretch; flex-direction: column; }
   }
   @media (hover: none) {
-    .assistant-action {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
-    .assistant-details { padding-bottom: 4.75rem; }
+    .assistant-action { display: block; }
   }
   @media (prefers-reduced-motion: reduce) {
     .assistant-card { transition: none; }
     .assistant-card:hover, .assistant-card:focus-within { transform: none; }
-    .assistant-action { transition: none; }
   }
 </style>
