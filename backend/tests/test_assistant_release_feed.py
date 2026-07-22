@@ -98,7 +98,7 @@ def test_release_feed_is_closed_bounded_notification_metadata():
 def test_release_feed_publishes_the_reviewed_shimpz_assistant_0_6_0_metadata():
     assert releases._CANONICAL_RELEASE_SOURCE_COMMITS == {
         "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
-        "shimpz-cloudflare": "daf1b075cf8a0184ef175669d6e1407b0d5afc54",
+        "shimpz-cloudflare": "095fca96d7e465bd6925c79b3a02055a0c43e6e5",
     }
     latest = [
         release
@@ -121,10 +121,12 @@ def test_release_feed_publishes_the_read_only_cloudflare_assistant():
         for release in releases._CANONICAL_RELEASES
         if release["assistant_id"] == "shimpz-cloudflare"
     ][-1]
-    assert latest["sequence"] == 2
+    assert latest["sequence"] == 3
     assert (
-        latest["headline"] == "Shimpz Cloudflare 0.1.4 fixes strict provider transport"
+        latest["headline"]
+        == "Shimpz Cloudflare 0.1.5 supports bounded chunked responses"
     )
+    assert "bounded chunked Cloudflare responses" in latest["changelog"]
     assert "uncompressed Cloudflare API responses" in latest["changelog"]
     assert "self-contained for isolated builds" in latest["changelog"]
     assert "frozen release metadata" in latest["changelog"]

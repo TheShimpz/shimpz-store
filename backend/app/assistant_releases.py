@@ -41,8 +41,36 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
     "shimpz-assistant": "c46f83c45418a832052fededafcab616ce37579c",
-    "shimpz-cloudflare": "daf1b075cf8a0184ef175669d6e1407b0d5afc54",
+    "shimpz-cloudflare": "095fca96d7e465bd6925c79b3a02055a0c43e6e5",
 }
+
+_SHIMPZ_CLOUDFLARE_0_1_5_CHANGELOG = """# Changelog
+
+## 0.1.5 - 2026-07-21
+
+- Reassemble bounded chunked Cloudflare responses before strict JSON validation.
+
+## 0.1.4 - 2026-07-21
+
+- Request uncompressed Cloudflare API responses so the strict response contract can validate zone and DNS results.
+
+## 0.1.3 - 2026-07-21
+
+- Make the Python 3.14 Ruff format and security contract self-contained for isolated builds.
+
+## 0.1.2 - 2026-07-21
+
+- Synchronize frozen release metadata and enforce the canonical Ruff contract.
+
+## 0.1.1 - 2026-07-21
+
+- Align the immutable Genesis and Help package root with the controller's standard Assistant contract.
+
+## 0.1.0 - 2026-07-21
+
+- Add OAuth-backed, read-only Cloudflare zone listing.
+- Add bounded DNS record listing for an exact zone.
+"""
 
 _SHIMPZ_CLOUDFLARE_0_1_4_CHANGELOG = """# Changelog
 
@@ -316,6 +344,13 @@ _CANONICAL_RELEASES = (
         "headline": "Shimpz Cloudflare 0.1.4 fixes strict provider transport",
         "changelog": _SHIMPZ_CLOUDFLARE_0_1_4_CHANGELOG,
         "published_at": "2026-07-22T01:09:04Z",
+    },
+    {
+        "assistant_id": "shimpz-cloudflare",
+        "sequence": 3,
+        "headline": "Shimpz Cloudflare 0.1.5 supports bounded chunked responses",
+        "changelog": _SHIMPZ_CLOUDFLARE_0_1_5_CHANGELOG,
+        "published_at": "2026-07-22T01:35:00Z",
     },
 )
 
