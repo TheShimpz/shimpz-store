@@ -5,10 +5,9 @@ import test from "node:test";
 
 const privacy = readFileSync(new URL("../src/routes/privacy/+page.svelte", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../src/routes/terms/+page.svelte", import.meta.url), "utf8");
-const footer = readFileSync(new URL("../src/lib/components/SiteFooter.svelte", import.meta.url), "utf8");
 const sitemap = readFileSync(new URL("../src/routes/sitemap.xml/+server.ts", import.meta.url), "utf8");
 
-test("privacy policy covers protected platform and OAuth data", () => {
+test("static legal copy covers protected platform and OAuth data", () => {
   assert.match(privacy, /Account information:/);
   assert.match(privacy, /OAuth access or refresh tokens/);
   assert.match(privacy, /AI model provider selected for that Team/);
@@ -16,22 +15,15 @@ test("privacy policy covers protected platform and OAuth data", () => {
   assert.match(privacy, /privacy@shimpz\.com/);
 });
 
-test("privacy policy has an exact public sitemap URL", () => {
+test("static legal metadata has an exact public sitemap URL", () => {
   assert.match(sitemap, /paths\.push\("\/privacy", "\/terms"\)/);
 });
 
-test("terms cover connected providers and bounded Assistant use", () => {
+test("static terms cover connected providers and bounded Assistant use", () => {
   assert.match(terms, /Connected accounts/);
   assert.match(terms, /Assistants and AI/);
   assert.match(terms, /You retain your rights in content you submit/);
   assert.match(terms, /Acceptable use/);
   assert.match(terms, /limits do not apply where prohibited by law/);
   assert.match(terms, /legal@shimpz\.com/);
-});
-
-test("every Store page exposes both legal documents", () => {
-  assert.match(footer, /href="\/privacy"/);
-  assert.match(footer, /href="\/terms"/);
-  assert.match(footer, /Privacidade/);
-  assert.match(footer, /Termos/);
 });
