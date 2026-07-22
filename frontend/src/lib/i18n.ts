@@ -18,18 +18,6 @@ const D: Dict = {
   home_signal_self_hosted: { en: "Self-hosted", pt: "Self-hosted" },
   home_signal_permissions: { en: "Explicit permissions", pt: "Permissões explícitas" },
   home_signal_isolation: { en: "Team isolation", pt: "Isolamento por Time" },
-  topology_label: { en: "Shimpz architecture map", pt: "Mapa da arquitetura Shimpz" },
-  topology_space: { en: "Your Space", pt: "Seu Space" },
-  topology_status: { en: "online", pt: "online" },
-  topology_drivers: { en: "Space Services", pt: "Services do Space" },
-  topology_shared: { en: "shared capabilities", pt: "recursos compartilhados" },
-  topology_team: { en: "Team", pt: "Time" },
-  topology_apps: { en: "Assistants collaborate here", pt: "Assistants colaboram aqui" },
-  topology_boundary: { en: "isolated boundary", pt: "limite isolado" },
-  topology_caption: {
-    en: "Services above are shared by policy. Workloads below stay isolated by Team.",
-    pt: "Serviços acima são compartilhados por política. Workloads abaixo permanecem isolados por Time.",
-  },
   home_arch_kicker: { en: "Architecture // one mental model", pt: "Arquitetura // um modelo mental" },
   home_arch_title: { en: "Simple to understand. Strict where it matters.", pt: "Simples de entender. Rigoroso onde importa." },
   home_arch_lead: {
