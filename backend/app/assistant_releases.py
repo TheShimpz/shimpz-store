@@ -36,7 +36,7 @@ _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 # notification copy was reviewed with the exact Assistant source while keeping
 # executable identity out of the public feed.
 _CANONICAL_RELEASE_SOURCE_COMMITS = {
-    "shimpz-cloudflare": "29d83a3802fa87c1d140be5f11e03514b2a74280",
+    "shimpz-cloudflare": "29d83a324f7c876d11561e3e5af517d0e0ea8276",
 }
 
 _SHIMPZ_CLOUDFLARE_0_1_5_CHANGELOG = """# Changelog
