@@ -210,12 +210,17 @@ def test_team_file_mutations_reject_untrusted_origins_and_ids_before_the_driver(
 
 
 def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade():
-    assert main._public_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}) == {
+    assert main.team_driver_contract.project_storage_usage(
+        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
+    ) == {
         "used_bytes": 8,
         "limit_bytes": 4,
         "remaining_bytes": 0,
     }
-    assert main._public_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
+    assert (
+        main.team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1})
+        is None
+    )
 
 
 def test_storage_projection_requires_the_shared_file_metadata_contract():

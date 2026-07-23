@@ -10,7 +10,6 @@ Space's internal networks (accounts_net + teamdriver_net) and uses stdlib http.c
 from __future__ import annotations
 
 import asyncio
-import base64
 import concurrent.futures
 import contextlib
 import http.client
@@ -21,7 +20,7 @@ from http import HTTPStatus
 from urllib.parse import urlparse
 
 import structlog
-from fastapi import FastAPI, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from app import config, team_driver_contract
@@ -92,21 +91,12 @@ from app.payloads import (
     unique_json_object as _unique_json_object,
 )
 from app.projections import (
-    public_file_deletion as _public_file_deletion,
-)
-from app.projections import (
-    public_file_inventory as _public_file_inventory,
-)
-from app.projections import (
-    public_file_upload as _public_file_upload,
-)
-from app.projections import (
     released_assistant_inventory as _released_assistant_inventory,
 )
 from app.projections import (
     released_running_assistant_inventory as _released_running_assistant_inventory,
 )
-from app.routers import account, brains, oauth, public, static, teams
+from app.routers import account, brains, files, oauth, public, static, teams
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
 
@@ -192,9 +182,6 @@ def _chat_turn_payload(payload: dict) -> dict[str, object]:
         "files": opaque_ids,
         "assistant_ids": canonical_assistant_ids,
     }
-
-
-_public_storage_usage = team_driver_contract.project_storage_usage
 
 
 app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
@@ -424,9 +411,6 @@ async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: s
 
 
 # ── the Captain's chat (ADR-0004): forwarded to the team-driver's named exec ops ──────────────
-MAX_UPLOAD_BYTES = team_driver_contract.MAX_FILE_UPLOAD_BYTES  # Below Cloudflare's 100 MB proxied-body limit.
-
-
 @app.get("/api/teams/{team_id}/inference")
 async def team_inference(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await _authed_account_bounded(request)
@@ -468,123 +452,6 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
         extra={"X-Shimpz-Account": token},
     )
     return JSONResponse(data, status_code=status)
-
-
-@app.get("/api/teams/{team_id}/files")
-async def team_files(request: Request, team_id: str) -> JSONResponse:
-    """List opaque file metadata; file bytes and host paths remain controller-private."""
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return _private_json({"detail": "not authenticated"}, 401)
-    team_id = _canonical_team_id(team_id)
-    if team_id is None:
-        return _private_json({"detail": "bad team id"}, 400)
-    status, body = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "GET",
-        f"/v1/teams/{team_id}/files",
-        extra={"X-Shimpz-Account": token},
-    )
-    if status != 200:
-        return _private_json(body, status)
-    inventory = _public_file_inventory(body, team_id)
-    if inventory is None:
-        log.warning("team_file_inventory_invalid", team_id=team_id)
-        return _private_json({"detail": "invalid Team storage inventory"}, 502)
-    return _private_json(inventory)
-
-
-@app.post("/api/teams/{team_id}/files")
-async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> JSONResponse:
-    """Upload one opaque Team object without granting a Brain or Assistant filesystem access."""
-    token, account_id, _ = await _authed_account_bounded(request)
-    try:
-        if not token:
-            raise ClientPayloadError(401, "not authenticated")
-        if not _assistant_mutation_origin_allowed(request.headers.get("origin")):
-            raise ClientPayloadError(403, "forbidden origin")
-        team_id = _canonical_team_id(team_id)
-        if team_id is None:
-            raise ClientPayloadError(400, "bad team id")
-    except ClientPayloadError as exc:
-        return _private_json({"detail": exc.detail}, exc.status)
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        return _private_json(
-            {"detail": f"file too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)"},
-            413,
-        )
-    filename = team_driver_contract.canonical_filename(file.filename or "upload.bin")
-    media_type = team_driver_contract.canonical_media_type(file.content_type)
-    if filename is None or media_type is None:
-        return _private_json({"detail": "invalid file metadata"}, 400)
-    payload = {
-        "filename": filename,
-        "media_type": media_type,
-        "content_b64": base64.b64encode(data).decode(),
-    }
-    status, body = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "POST",
-        f"/v1/teams/{team_id}/files",
-        payload,
-        extra={"X-Shimpz-Account": token},
-    )
-    log.info(
-        "team_file_upload",
-        account=account_id,
-        team_id=team_id,
-        bytes=len(data),
-        status=status,
-    )
-    if status != 200:
-        return _private_json(body, status)
-    uploaded = _public_file_upload(body, team_id)
-    if uploaded is None:
-        log.warning("team_file_upload_invalid", team_id=team_id)
-        return _private_json({"detail": "invalid Team storage response"}, 502)
-    return _private_json(uploaded)
-
-
-@app.delete("/api/teams/{team_id}/files/{file_id}")
-async def team_file_delete(request: Request, team_id: str, file_id: str) -> JSONResponse:
-    token, account_id, _ = await _authed_account_bounded(request)
-    try:
-        if not token:
-            raise ClientPayloadError(401, "not authenticated")
-        if not _assistant_mutation_origin_allowed(request.headers.get("origin")):
-            raise ClientPayloadError(403, "forbidden origin")
-        team_id = _canonical_team_id(team_id)
-        opaque_id = _canonical_team_file_id(file_id)
-        if team_id is None:
-            raise ClientPayloadError(400, "bad team id")
-        if opaque_id is None:
-            raise ClientPayloadError(404, "file not found")
-    except ClientPayloadError as exc:
-        return _private_json({"detail": exc.detail}, exc.status)
-    status, body = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "DELETE",
-        f"/v1/teams/{team_id}/files/{opaque_id}",
-        extra={"X-Shimpz-Account": token},
-    )
-    log.info(
-        "team_file_delete",
-        account=account_id,
-        team_id=team_id,
-        file_id=opaque_id,
-        status=status,
-    )
-    if status != 200:
-        return _private_json(body, status)
-    deleted = _public_file_deletion(body, team_id, opaque_id)
-    if deleted is None:
-        log.warning("team_file_delete_invalid", team_id=team_id, file_id=opaque_id)
-        return _private_json({"detail": "invalid Team storage response"}, 502)
-    return _private_json(deleted)
 
 
 # ── the Captain's LIVE bridge: one closed terminal event per WebSocket turn ─────
@@ -1588,6 +1455,7 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
 
 app.include_router(account.router)
 app.include_router(brains.router)
+app.include_router(files.router)
 app.include_router(oauth.router)
 app.include_router(public.router)
 app.include_router(teams.router)
