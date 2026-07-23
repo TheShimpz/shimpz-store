@@ -24,8 +24,6 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from app import config, team_driver_contract
-from app.access import mutation_origin_allowed as _assistant_mutation_origin_allowed
-from app.access import private_json as _private_json
 from app.authn import (
     EXECUTOR as _AUTH_EXECUTOR,
 )
@@ -56,7 +54,6 @@ from app.config import (
     MAX_CHAT_MESSAGE_CHARS,
     MAX_CHAT_REPLY_CHARS,
     MAX_INFERENCE_BODY_BYTES,
-    MAX_TEAM_INSTALL_BODY_BYTES,
     MAX_UPSTREAM_STREAM_BYTES,
     MAX_UPSTREAM_STREAM_LINE_BYTES,
     MAX_WS_FRAME_BYTES,
@@ -89,7 +86,7 @@ from app.payloads import (
 from app.payloads import (
     unique_json_object as _unique_json_object,
 )
-from app.routers import account, assistants, brains, files, oauth, public, static, teams
+from app.routers import account, apps, assistants, brains, files, oauth, public, static, teams
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
 
@@ -196,83 +193,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
         content={"detail": "Store upstream capacity reached"},
         headers={"Retry-After": "1"},
     )
-
-
-@app.post("/api/teams/{team_id}/install")
-async def team_install(request: Request, team_id: str) -> JSONResponse:
-    """Install one trusted internal-registry App into an owned Team.
-
-    The Store forwards the account token and App ID; team-driver enforces ownership, resolves the
-    immutable artifact, and applies the Team isolation policy. This operational endpoint has no
-    dependency on the unrendered APPS inventory or any public product route.
-    """
-    token, account_id, _ = await _authed_account_bounded(request)
-    if not token:
-        return _private_json({"detail": "not authenticated"}, 401)
-    try:
-        if not _assistant_mutation_origin_allowed(request.headers.get("origin")):
-            raise ClientPayloadError(403, "forbidden origin")
-        if request.headers.get("content-type", "").strip().lower() != "application/json":
-            raise ClientPayloadError(415, "Content-Type must be application/json")
-        team_id = _canonical_team_id(team_id)
-        if team_id is None:
-            raise ClientPayloadError(400, "bad team id")
-        payload = await _read_bounded_json(request, MAX_TEAM_INSTALL_BODY_BYTES)
-        if set(payload) != {"app"}:
-            raise ClientPayloadError(400, "body must contain only app")
-        app_id = _canonical_assistant_id(payload["app"])
-        if app_id is None:
-            raise ClientPayloadError(400, "bad app id")
-    except ClientPayloadError as exc:
-        return _private_json({"detail": exc.detail}, exc.status)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "POST",
-        f"/v1/teams/{team_id}/apps",
-        {"app": app_id},
-        {"X-Shimpz-Account": token},
-    )
-    log.info(
-        "app_install",
-        account=account_id,
-        team_id=team_id,
-        app=app_id,
-        status=status,
-        installed=data.get("installed"),
-    )
-    return _private_json(data, status)
-
-
-@app.get("/api/teams/{team_id}/apps")
-async def team_apps(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "GET",
-        f"/v1/teams/{team_id}/apps",
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.delete("/api/teams/{team_id}/apps/{app_id}")
-async def team_uninstall(request: Request, team_id: str, app_id: str) -> JSONResponse:
-    token, account_id, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "DELETE",
-        f"/v1/teams/{team_id}/apps/{app_id}",
-        extra={"X-Shimpz-Account": token},
-    )
-    log.info("app_uninstall", account=account_id, team_id=team_id, app=app_id, status=status)
-    return JSONResponse(data, status_code=status)
 
 
 # ── the Captain's chat (ADR-0004): forwarded to the team-driver's named exec ops ──────────────
@@ -1319,6 +1239,7 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
 
 
 app.include_router(account.router)
+app.include_router(apps.router)
 app.include_router(assistants.router)
 app.include_router(brains.router)
 app.include_router(files.router)

@@ -1634,7 +1634,7 @@ def test_team_create_and_install_reject_bodies_before_control_plane_forwarding()
     install_body = json.dumps(
         {
             "app": "notification-center",
-            "padding": "x" * main.MAX_TEAM_INSTALL_BODY_BYTES,
+            "padding": "x" * config.MAX_TEAM_INSTALL_BODY_BYTES,
         }
     ).encode()
     with _brain_control_plane() as calls, TestClient(app) as client:
