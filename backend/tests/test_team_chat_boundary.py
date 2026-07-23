@@ -6,8 +6,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
 
-from app import authn, config, main
-from app import projections
+from app import authn, config, main, projections, team_driver_contract
 from fastapi.testclient import TestClient
 
 FILE_ID = "a" * 32
@@ -210,17 +209,12 @@ def test_team_file_mutations_reject_untrusted_origins_and_ids_before_the_driver(
 
 
 def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade():
-    assert main.team_driver_contract.project_storage_usage(
-        {"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}
-    ) == {
+    assert team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}) == {
         "used_bytes": 8,
         "limit_bytes": 4,
         "remaining_bytes": 0,
     }
-    assert (
-        main.team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1})
-        is None
-    )
+    assert team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
 
 
 def test_storage_projection_requires_the_shared_file_metadata_contract():
@@ -237,6 +231,5 @@ def test_storage_projection_requires_the_shared_file_metadata_contract():
         projections.public_file_metadata({key: value for key, value in metadata.items() if key != "created_at"}) is None
     )
     assert (
-        projections.public_file_metadata({**metadata, "size": main.team_driver_contract.MAX_FILE_UPLOAD_BYTES + 1})
-        is None
+        projections.public_file_metadata({**metadata, "size": team_driver_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None
     )

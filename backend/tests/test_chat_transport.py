@@ -21,8 +21,6 @@ from app import authn, config, main
 from app.main import (
     ACCOUNT_COOKIE,
     CHAT_WS_SUBPROTOCOL,
-    MAX_UPSTREAM_STREAM_LINE_BYTES,
-    MAX_WS_FRAME_BYTES,
     WS_ALLOWED_ORIGINS,
     ClientPayloadError,
     WebSocketPayloadError,
@@ -256,7 +254,7 @@ def _websocket(text: str) -> tuple[WebSocket, list[dict]]:
 
 def test_websocket_frame_limit_is_enforced_before_json_parsing():
     async def scenario() -> None:
-        websocket, _ = _websocket("x" * (MAX_WS_FRAME_BYTES + 1))
+        websocket, _ = _websocket("x" * (config.MAX_WS_FRAME_BYTES + 1))
         await websocket.accept()
         with pytest.raises(WebSocketPayloadError) as raised:
             await _ws_receive_bounded_json(websocket)
@@ -869,10 +867,10 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
         _done("hello", team_id="another_team"),
         _done("hello", team_name=" Marketing "),
         _done("hello", team_name="Marketing\x00"),
-        _done("x" * (main.MAX_CHAT_REPLY_CHARS + 1)),
+        _done("x" * (config.MAX_CHAT_REPLY_CHARS + 1)),
         {"type": "error", "status": True, "detail": "failed"},
         {"type": "error", "status": 200, "detail": "not an error"},
-        {"type": "error", "status": 502, "detail": "x" * (main.MAX_CHAT_ERROR_DETAIL_CHARS + 1)},
+        {"type": "error", "status": 502, "detail": "x" * (config.MAX_CHAT_ERROR_DETAIL_CHARS + 1)},
         {"type": "stopped", "requested": True},
     ],
 )
@@ -1198,7 +1196,7 @@ def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
 
     assert _relay(b"") == [protocol_error]
 
-    oversized = b"x" * (MAX_UPSTREAM_STREAM_LINE_BYTES + 1)
+    oversized = b"x" * (config.MAX_UPSTREAM_STREAM_LINE_BYTES + 1)
     assert _relay(oversized) == [protocol_error]
 
 
