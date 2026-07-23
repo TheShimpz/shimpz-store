@@ -36,7 +36,6 @@ from fastapi.responses import (
 )
 
 from app import team_driver_contract
-from app.team_driver_contract import project_storage_response
 from app.assistant_releases import (
     ASSISTANT_RELEASE_CACHE_CONTROL,
     ASSISTANT_RELEASE_FEED_BODY,
@@ -47,6 +46,7 @@ from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.oauth_broker import SCOPES as OAUTH_SCOPES
 from app.oauth_broker import OAuthBroker, OAuthBrokerError
+from app.team_driver_contract import project_storage_response
 
 setup("shimpz-store")
 log = structlog.get_logger()
@@ -353,8 +353,7 @@ WS_ALLOWED_ORIGINS = frozenset(
 ASSISTANT_MUTATION_ALLOWED_ORIGINS = WS_ALLOWED_ORIGINS
 _MODEL_CATALOG = jsonlib.loads(Path(__file__).with_name("model_catalog.json").read_text(encoding="utf-8"))
 MODEL_CATALOG = {
-    provider["id"]: frozenset(model["id"] for model in provider["models"])
-    for provider in _MODEL_CATALOG["providers"]
+    provider["id"]: frozenset(model["id"] for model in provider["models"]) for provider in _MODEL_CATALOG["providers"]
 }
 RELEASED_CLOUD_ASSISTANTS = frozenset({"shimpz-cloudflare"})
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
