@@ -1558,7 +1558,7 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
     assert creates == [
         (
             "POST",
-            f"/v1/teams/{main._team_id_for('account-1', 'Astra')}/create",
+            f"/v1/teams/{main.teams.team_id_for('account-1', 'Astra')}/create",
             {"team_name": "Astra", "provider": "openai", "model": "gpt-5.5"},
         )
     ]
@@ -1611,24 +1611,24 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
 
 
 def test_team_ids_bind_the_complete_account_and_normalized_name():
-    first = main._team_id_for("account-prefix-one", "A very long shared team name alpha")
-    same = main._team_id_for("account-prefix-one", "A very long shared team name alpha")
-    other_account = main._team_id_for("account-prefix-two", "A very long shared team name alpha")
-    other_tail = main._team_id_for("account-prefix-one", "A very long shared team name omega")
+    first = main.teams.team_id_for("account-prefix-one", "A very long shared team name alpha")
+    same = main.teams.team_id_for("account-prefix-one", "A very long shared team name alpha")
+    other_account = main.teams.team_id_for("account-prefix-two", "A very long shared team name alpha")
+    other_tail = main.teams.team_id_for("account-prefix-one", "A very long shared team name omega")
 
     assert first == same
     assert first != other_account
     assert first != other_tail
     assert len(first) <= 40
     assert re.fullmatch(r"[a-z0-9_]+", first)
-    assert main._team_id_for("account-prefix-one", "!!!") == ""
+    assert main.teams.team_id_for("account-prefix-one", "!!!") == ""
 
 
 def test_team_create_and_install_reject_bodies_before_control_plane_forwarding():
     create_body = json.dumps(
         {
             "team_name": "Astra",
-            "padding": "x" * main.MAX_TEAM_CREATE_BODY_BYTES,
+            "padding": "x" * config.MAX_TEAM_CREATE_BODY_BYTES,
         }
     ).encode()
     install_body = json.dumps(

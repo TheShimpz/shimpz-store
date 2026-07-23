@@ -13,7 +13,6 @@ import asyncio
 import base64
 import concurrent.futures
 import contextlib
-import hashlib
 import http.client
 import json as jsonlib
 import re
@@ -57,7 +56,6 @@ from app.config import (
     MAX_CHAT_MESSAGE_CHARS,
     MAX_CHAT_REPLY_CHARS,
     MAX_INFERENCE_BODY_BYTES,
-    MAX_TEAM_CREATE_BODY_BYTES,
     MAX_TEAM_INSTALL_BODY_BYTES,
     MAX_UPSTREAM_STREAM_BYTES,
     MAX_UPSTREAM_STREAM_LINE_BYTES,
@@ -108,7 +106,7 @@ from app.projections import (
 from app.projections import (
     released_running_assistant_inventory as _released_running_assistant_inventory,
 )
-from app.routers import account, brains, oauth, public, static
+from app.routers import account, brains, oauth, public, static, teams
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
 
@@ -205,22 +203,6 @@ def _chat_turn_payload(payload: dict) -> dict[str, object]:
     }
 
 
-def _team_create_payload(payload: dict, account_id: str) -> tuple[str, dict[str, str]]:
-    if set(payload) != {"team_name", "provider", "model"}:
-        raise ClientPayloadError(400, "Team requires team_name, provider, and model")
-    team_name = str(payload.get("team_name", "")).strip()
-    provider = _brain_provider(payload.get("provider"))
-    model = _brain_model(provider, payload.get("model")) if provider is not None else None
-    team_id = _team_id_for(account_id, team_name)
-    if not team_name or not team_id.strip("_"):
-        raise ClientPayloadError(400, "bad team name")
-    if provider is None:
-        raise ClientPayloadError(400, "unsupported model provider")
-    if model is None:
-        raise ClientPayloadError(400, "unsupported model for provider")
-    return team_id, {"team_name": team_name, "provider": provider, "model": model}
-
-
 _public_storage_usage = team_driver_contract.project_storage_usage
 
 
@@ -243,72 +225,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
         content={"detail": "Store upstream capacity reached"},
         headers={"Retry-After": "1"},
     )
-
-
-def _team_id_for(account_id: str, team_name: str) -> str:
-    """Derive a collision-resistant, Docker/PG-safe ID from the complete account/Team-name pair.
-
-    The old eight-character account prefix had only 32 bits of collision space. Public signup makes
-    an accidental or deliberately searched collision a cross-account denial-of-service risk. Keep a
-    short readable suffix, but bind the complete normalized name and account ID into a 96-bit digest.
-    """
-    normalized = re.sub(r"[^a-z0-9_]+", "_", team_name.lower()).strip("_")
-    if not normalized:
-        return ""
-    digest = hashlib.sha256(f"{account_id}\0{normalized}".encode()).hexdigest()[:24]
-    return f"{digest}_{normalized[:15]}".rstrip("_")
-
-
-# ── Teams (forward the user's token; team-driver is the enforcer) ────────
-@app.get("/api/teams")
-async def teams_list(request: Request) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "GET",
-        "/v1/teams",
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.post("/api/teams")
-async def teams_create(request: Request) -> JSONResponse:
-    token, account_id, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    try:
-        payload = await _read_bounded_json(request, MAX_TEAM_CREATE_BODY_BYTES)
-        team_id, create_payload = _team_create_payload(payload, account_id)
-    except ClientPayloadError as exc:
-        return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "POST",
-        f"/v1/teams/{team_id}/create",
-        create_payload,
-        {"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.delete("/api/teams/{team_id}")
-async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "DELETE",
-        f"/v1/teams/{team_id}",
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
 
 
 @app.post("/api/teams/{team_id}/install")
@@ -1683,4 +1599,5 @@ app.include_router(account.router)
 app.include_router(brains.router)
 app.include_router(oauth.router)
 app.include_router(public.router)
+app.include_router(teams.router)
 app.include_router(static.router)
