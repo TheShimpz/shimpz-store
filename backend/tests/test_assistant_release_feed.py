@@ -45,7 +45,7 @@ def test_release_feed_is_closed_bounded_notification_metadata():
 
 def test_release_feed_binds_only_the_cloudflare_source():
     assert releases._CANONICAL_RELEASE_SOURCE_COMMITS == {
-        "shimpz-cloudflare": "095fca97b78132d6f6f3271ecbc4547e16edee73",
+        "shimpz-cloudflare": "7d575e66eb3eafa84b1b162ec6f74c25c182f640",
     }
     assert {release["assistant_id"] for release in releases._CANONICAL_RELEASES} == {"shimpz-cloudflare"}
 
