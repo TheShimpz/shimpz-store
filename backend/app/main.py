@@ -31,12 +31,6 @@ from fastapi.responses import (
 )
 
 from app import team_driver_contract
-from app.assistant_releases import (
-    ASSISTANT_RELEASE_CACHE_CONTROL,
-    ASSISTANT_RELEASE_FEED_BODY,
-    ASSISTANT_RELEASE_FEED_ETAG,
-    if_none_match_matches,
-)
 from app.concurrency import (
     BoundedThreadPoolExecutor as _BoundedThreadPoolExecutor,
 )
@@ -101,7 +95,7 @@ from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.oauth_broker import SCOPES as OAUTH_SCOPES
 from app.oauth_broker import OAuthBroker, OAuthBrokerError
-from app.routers import static
+from app.routers import public, static
 from app.team_driver_contract import project_storage_response
 from app.upstream import call as _call
 
@@ -419,27 +413,6 @@ def _team_id_for(account_id: str, team_name: str) -> str:
         return ""
     digest = hashlib.sha256(f"{account_id}\0{normalized}".encode()).hexdigest()[:24]
     return f"{digest}_{normalized[:15]}".rstrip("_")
-
-
-@app.get("/api/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.get("/api/releases/assistants")
-def assistant_release_feed(request: Request) -> Response:
-    """Serve cacheable notification metadata without granting installation authority."""
-    headers = {
-        "Cache-Control": ASSISTANT_RELEASE_CACHE_CONTROL,
-        "ETag": ASSISTANT_RELEASE_FEED_ETAG,
-    }
-    if if_none_match_matches(request.headers.get("if-none-match"), ASSISTANT_RELEASE_FEED_ETAG):
-        return Response(status_code=304, headers=headers)
-    return Response(
-        content=ASSISTANT_RELEASE_FEED_BODY,
-        media_type="application/json",
-        headers=headers,
-    )
 
 
 def _oauth_redirect(location: str) -> RedirectResponse:
@@ -2207,4 +2180,5 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
         connection.release()
 
 
+app.include_router(public.router)
 app.include_router(static.router)
