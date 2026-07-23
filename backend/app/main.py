@@ -95,6 +95,15 @@ from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.oauth_broker import SCOPES as OAUTH_SCOPES
 from app.oauth_broker import OAuthBroker, OAuthBrokerError
+from app.payloads import (
+    ClientPayloadError,
+)
+from app.payloads import (
+    read_bounded_json as _read_bounded_json,
+)
+from app.payloads import (
+    unique_json_object as _unique_json_object,
+)
 from app.routers import public, static
 from app.team_driver_contract import project_storage_response
 from app.upstream import call as _call
@@ -305,13 +314,6 @@ app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=N
 app.add_middleware(TraceIdMiddleware)
 
 
-class ClientPayloadError(Exception):
-    def __init__(self, status: int, detail: str) -> None:
-        super().__init__(detail)
-        self.status = status
-        self.detail = detail
-
-
 async def _run_bounded(executor: _BoundedThreadPoolExecutor, fn, /, *args):
     """Run one blocking hop only when its finite worker/queue budget admits it."""
     loop = asyncio.get_running_loop()
@@ -324,32 +326,6 @@ async def _bounded_call(
     **kwargs,
 ) -> tuple[int, dict]:
     return await _run_bounded(executor, functools.partial(_call, *args, **kwargs))
-
-
-async def _read_bounded_json(request: Request, max_bytes: int) -> dict:
-    """Read one JSON object without ever buffering more than `max_bytes`."""
-    raw_length = request.headers.get("content-length")
-    if raw_length:
-        try:
-            length = int(raw_length)
-        except ValueError as exc:
-            raise ClientPayloadError(400, "invalid Content-Length") from exc
-        if length < 0:
-            raise ClientPayloadError(400, "invalid Content-Length")
-        if length > max_bytes:
-            raise ClientPayloadError(413, f"request body too large (max {max_bytes} bytes)")
-    body = bytearray()
-    async for chunk in request.stream():
-        if len(body) + len(chunk) > max_bytes:
-            raise ClientPayloadError(413, f"request body too large (max {max_bytes} bytes)")
-        body.extend(chunk)
-    try:
-        payload = jsonlib.loads(body or b"{}", object_pairs_hook=_unique_json_object)
-    except (jsonlib.JSONDecodeError, ValueError) as exc:
-        raise ClientPayloadError(400, "invalid JSON body") from exc
-    if not isinstance(payload, dict):
-        raise ClientPayloadError(400, "JSON body must be an object")
-    return payload
 
 
 @app.exception_handler(Exception)
@@ -1227,15 +1203,6 @@ def _stream_queue_put(queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, ite
             pending.cancel()
         return False
     return True
-
-
-def _unique_json_object(pairs: list[tuple[str, object]]) -> dict:
-    value = {}
-    for key, item in pairs:
-        if key in value:
-            raise ValueError("duplicate JSON field")
-        value[key] = item
-    return value
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
