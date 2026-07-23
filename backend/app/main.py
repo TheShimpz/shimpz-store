@@ -108,6 +108,7 @@ from app.middleware import TraceIdMiddleware
 from app.oauth_broker import SCOPES as OAUTH_SCOPES
 from app.oauth_broker import OAuthBroker, OAuthBrokerError
 from app.team_driver_contract import project_storage_response
+from app.upstream import call as _call
 
 setup("shimpz-store")
 log = structlog.get_logger()
@@ -377,39 +378,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
         content={"detail": "Store upstream capacity reached"},
         headers={"Retry-After": "1"},
     )
-
-
-# ── proxy helpers (user tokens, plus one narrow Brain-finalizer capability) ────
-def _call(
-    base: str,
-    method: str,
-    path: str,
-    payload: dict | None = None,
-    extra: dict | None = None,
-) -> tuple[int, dict]:
-    """Proxy one hop.
-
-    The `extra` headers carry the user's account token (X-Shimpz-Account, verified by the receiving
-    driver), the client IP (X-Forwarded-For, keyed by the accounts rate-limiter), or the file-backed
-    Brain-finalizer bearer on its one internal call.
-    """
-    parsed = urlparse(base)
-    headers: dict[str, str] = dict(extra or {})
-    body = None
-    if payload is not None:
-        body = jsonlib.dumps(payload)
-        headers["Content-Type"] = "application/json"
-    conn = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=180)
-    try:
-        conn.request(method, path, body, headers)
-        resp = conn.getresponse()
-        raw = resp.read()
-        return resp.status, (jsonlib.loads(raw) if raw else {})
-    except (OSError, jsonlib.JSONDecodeError) as exc:
-        log.warning("proxy_unreachable", base=base, path=path, error=str(exc))
-        return 502, {"detail": "the Space is unreachable"}
-    finally:
-        conn.close()
 
 
 def _set_cookie(resp: JSONResponse, token: str) -> None:
