@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app import main
 from app.oauth_broker import SCOPES
+from app.routers import oauth
 
 
 class _Broker:
@@ -48,7 +49,7 @@ class _Broker:
 @contextmanager
 def _broker():
     broker = _Broker()
-    with mock.patch.object(main, "_OAUTH_BROKER", broker):
+    with mock.patch.object(oauth, "_BROKER", broker):
         yield broker
 
 
