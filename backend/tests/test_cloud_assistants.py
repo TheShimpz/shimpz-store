@@ -6,7 +6,7 @@ from typing import ClassVar
 
 from fastapi.testclient import TestClient
 
-from app import authn, main
+from app import authn, config, main
 
 
 class _AssistantControlHandler(BaseHTTPRequestHandler):
@@ -99,12 +99,12 @@ def _assistant_control_plane(*, app_status: int = 200, apps: list[dict] | None =
         daemon=True,
     )
     worker.start()
-    previous = authn.ACCOUNTS_URL, main.TEAMDRIVER_URL
-    authn.ACCOUNTS_URL = main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = authn.ACCOUNTS_URL, config.TEAMDRIVER_URL
+    authn.ACCOUNTS_URL = config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield calls
     finally:
-        authn.ACCOUNTS_URL, main.TEAMDRIVER_URL = previous
+        authn.ACCOUNTS_URL, config.TEAMDRIVER_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)

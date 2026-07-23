@@ -410,7 +410,7 @@ def test_websocket_relays_a_bound_input_submission_to_the_hosted_controller(
     asyncio.run(scenario())
     assert calls == [
         (
-            main.TEAMDRIVER_URL,
+            config.TEAMDRIVER_URL,
             "POST",
             f"/v1/teams/{TEST_TEAM_ID}/chat/input",
             {"challenge_id": challenge_id, "answer": "example.com"},
@@ -1025,12 +1025,12 @@ def _real_stream_driver(response_body: bytes, *, status: int = 200):
         daemon=True,
     )
     worker.start()
-    previous = main.TEAMDRIVER_URL
-    main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = config.TEAMDRIVER_URL
+    config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield requests
     finally:
-        main.TEAMDRIVER_URL = previous
+        config.TEAMDRIVER_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
@@ -1279,12 +1279,12 @@ def _real_relay_abort_driver(on_stop: Callable[[], None] | None = None):
         daemon=True,
     )
     worker.start()
-    previous = main.TEAMDRIVER_URL
-    main.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = config.TEAMDRIVER_URL
+    config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield calls
     finally:
-        main.TEAMDRIVER_URL = previous
+        config.TEAMDRIVER_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
@@ -1461,17 +1461,17 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
         base = f"http://127.0.0.1:{server.server_port}"
         previous = (
             config.ACCOUNTS_URL,
-            main.TEAMDRIVER_URL,
+            config.TEAMDRIVER_URL,
             config.BRAIN_FINALIZE_TOKEN_FILE,
         )
-        authn.ACCOUNTS_URL = config.ACCOUNTS_URL = main.TEAMDRIVER_URL = base
+        authn.ACCOUNTS_URL = config.ACCOUNTS_URL = config.TEAMDRIVER_URL = base
         config.BRAIN_FINALIZE_TOKEN_FILE = token_path
         try:
             yield calls
         finally:
             (
                 config.ACCOUNTS_URL,
-                main.TEAMDRIVER_URL,
+                config.TEAMDRIVER_URL,
                 config.BRAIN_FINALIZE_TOKEN_FILE,
             ) = previous
             authn.ACCOUNTS_URL = config.ACCOUNTS_URL

@@ -25,7 +25,7 @@ import structlog
 from fastapi import FastAPI, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from app import team_driver_contract
+from app import config, team_driver_contract
 from app.authn import (
     EXECUTOR as _AUTH_EXECUTOR,
 )
@@ -49,7 +49,6 @@ from app.concurrency import (
 )
 from app.config import (
     ACCOUNT_COOKIE,
-    ACCOUNTS_URL,
     ASSISTANT_MUTATION_ALLOWED_ORIGINS,
     CHAT_WS_SUBPROTOCOL,
     MAX_CHAT_ASSISTANTS,
@@ -71,7 +70,6 @@ from app.config import (
     STREAM_QUEUE_PUT_TIMEOUT,
     STREAM_TURN_QUEUE_MAX,
     STREAM_WORKER_THREADS,
-    TEAMDRIVER_URL,
     TERMINAL_CONTRACT_ERROR,
     WS_ACCOUNT_CONNECTION_LIMIT,
     WS_ALLOWED_ORIGINS,
@@ -269,7 +267,7 @@ async def teams_list(request: Request) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         "/v1/teams",
         extra={"X-Shimpz-Account": token},
@@ -289,7 +287,7 @@ async def teams_create(request: Request) -> JSONResponse:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "POST",
         f"/v1/teams/{team_id}/create",
         create_payload,
@@ -305,7 +303,7 @@ async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "DELETE",
         f"/v1/teams/{team_id}",
         extra={"X-Shimpz-Account": token},
@@ -342,7 +340,7 @@ async def team_install(request: Request, team_id: str) -> JSONResponse:
         return _private_json({"detail": exc.detail}, exc.status)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "POST",
         f"/v1/teams/{team_id}/apps",
         {"app": app_id},
@@ -366,7 +364,7 @@ async def team_apps(request: Request, team_id: str) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         f"/v1/teams/{team_id}/apps",
         extra={"X-Shimpz-Account": token},
@@ -381,7 +379,7 @@ async def team_uninstall(request: Request, team_id: str, app_id: str) -> JSONRes
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "DELETE",
         f"/v1/teams/{team_id}/apps/{app_id}",
         extra={"X-Shimpz-Account": token},
@@ -401,7 +399,7 @@ async def cloud_assistants_list(request: Request, team_id: str) -> JSONResponse:
         return _private_json({"detail": "bad team id"}, 400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         f"/v1/teams/{team_id}/apps",
         extra={"X-Shimpz-Account": token},
@@ -426,7 +424,7 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
         return _private_json({"detail": "bad team id"}, 400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         f"/v1/teams/{team_id}/apps",
         extra={"X-Shimpz-Account": token},
@@ -463,7 +461,7 @@ async def cloud_assistant_install(request: Request, team_id: str) -> JSONRespons
         return _private_json({"detail": exc.detail}, exc.status)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "POST",
         f"/v1/teams/{team_id}/apps",
         {"app": assistant},
@@ -501,7 +499,7 @@ async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: s
         return _private_json({"detail": exc.detail}, exc.status)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "DELETE",
         f"/v1/teams/{team_id}/apps/{assistant_id}",
         extra={"X-Shimpz-Account": token},
@@ -529,7 +527,7 @@ async def team_inference(request: Request, team_id: str) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         f"/v1/teams/{team_id}/inference",
         extra={"X-Shimpz-Account": token},
@@ -556,7 +554,7 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
         return JSONResponse({"detail": "unsupported model for provider"}, status_code=400)
     status, data = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "PUT",
         f"/v1/teams/{team_id}/inference",
         {"provider": provider, "model": model},
@@ -576,7 +574,7 @@ async def team_files(request: Request, team_id: str) -> JSONResponse:
         return _private_json({"detail": "bad team id"}, 400)
     status, body = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "GET",
         f"/v1/teams/{team_id}/files",
         extra={"X-Shimpz-Account": token},
@@ -621,7 +619,7 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
     }
     status, body = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "POST",
         f"/v1/teams/{team_id}/files",
         payload,
@@ -661,7 +659,7 @@ async def team_file_delete(request: Request, team_id: str, file_id: str) -> JSON
         return _private_json({"detail": exc.detail}, exc.status)
     status, body = await _bounded_call(
         _CONTROL_EXECUTOR,
-        TEAMDRIVER_URL,
+        config.TEAMDRIVER_URL,
         "DELETE",
         f"/v1/teams/{team_id}/files/{opaque_id}",
         extra={"X-Shimpz-Account": token},
@@ -715,7 +713,13 @@ async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
     token = ws.cookies.get(ACCOUNT_COOKIE, "")
     if not token:
         return "", ""
-    status, data = await _bounded_call(_AUTH_EXECUTOR, ACCOUNTS_URL, "POST", "/v1/verify", {"token": token})
+    status, data = await _bounded_call(
+        _AUTH_EXECUTOR,
+        config.ACCOUNTS_URL,
+        "POST",
+        "/v1/verify",
+        {"token": token},
+    )
     account_id = data.get("account_id") if status == 200 else None
     return (token, str(account_id)) if account_id else ("", "")
 
@@ -1107,7 +1111,7 @@ async def _send_relay_event(
 
 def _stream_lines(relay: _StreamRelay) -> None:
     """BLOCKING (run in a thread): relay the driver's NDJSON into a bounded asyncio queue."""
-    parsed = urlparse(TEAMDRIVER_URL)
+    parsed = urlparse(config.TEAMDRIVER_URL)
     conn = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=200)
     try:
         payload: dict[str, object] = {
@@ -1178,7 +1182,7 @@ def _relay_challenge(relay: _ChallengeRelay) -> None:
     relay.loop.call_soon_threadsafe(relay.started.set)
     try:
         status, data = _call(
-            TEAMDRIVER_URL,
+            config.TEAMDRIVER_URL,
             "POST",
             f"/v1/teams/{relay.team_id}/chat/{relay.kind}",
             relay.body,
@@ -1199,7 +1203,7 @@ async def _driver_stop(team_id: str, hdr: dict) -> tuple[int, dict]:
         return await loop.run_in_executor(
             _STOP_EXECUTOR,
             _call,
-            TEAMDRIVER_URL,
+            config.TEAMDRIVER_URL,
             "POST",
             f"/v1/teams/{team_id}/chat/stop",
             None,
