@@ -27,9 +27,6 @@ from app import config, team_driver_contract
 from app.authn import (
     EXECUTOR as _AUTH_EXECUTOR,
 )
-from app.authn import (
-    authed_account_bounded as _authed_account_bounded,
-)
 from app.concurrency import (
     BoundedThreadPoolExecutor as _BoundedThreadPoolExecutor,
 )
@@ -53,7 +50,6 @@ from app.config import (
     MAX_CHAT_FILES,
     MAX_CHAT_MESSAGE_CHARS,
     MAX_CHAT_REPLY_CHARS,
-    MAX_INFERENCE_BODY_BYTES,
     MAX_UPSTREAM_STREAM_BYTES,
     MAX_UPSTREAM_STREAM_LINE_BYTES,
     MAX_WS_FRAME_BYTES,
@@ -72,21 +68,15 @@ from app.config import (
 from app.config import (
     canonical_origin as _canonical_origin,
 )
-from app.control import EXECUTOR as _CONTROL_EXECUTOR
-from app.inference import model as _brain_model
-from app.inference import provider as _brain_provider
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.payloads import (
     ClientPayloadError,
 )
 from app.payloads import (
-    read_bounded_json as _read_bounded_json,
-)
-from app.payloads import (
     unique_json_object as _unique_json_object,
 )
-from app.routers import account, apps, assistants, brains, files, oauth, public, static, teams
+from app.routers import account, apps, assistants, brains, files, inference, oauth, public, static, teams
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
 
@@ -193,50 +183,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
         content={"detail": "Store upstream capacity reached"},
         headers={"Retry-After": "1"},
     )
-
-
-# ── the Captain's chat (ADR-0004): forwarded to the team-driver's named exec ops ──────────────
-@app.get("/api/teams/{team_id}/inference")
-async def team_inference(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "GET",
-        f"/v1/teams/{team_id}/inference",
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
-
-
-@app.put("/api/teams/{team_id}/inference")
-async def team_inference_configure(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await _authed_account_bounded(request)
-    if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
-    try:
-        payload = await _read_bounded_json(request, MAX_INFERENCE_BODY_BYTES)
-    except ClientPayloadError as exc:
-        return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-    if set(payload) != {"provider", "model"}:
-        return JSONResponse({"detail": "inference requires provider and model"}, status_code=400)
-    provider = _brain_provider(payload.get("provider"))
-    model = _brain_model(provider, payload.get("model")) if provider is not None else None
-    if provider is None:
-        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
-    if model is None:
-        return JSONResponse({"detail": "unsupported model for provider"}, status_code=400)
-    status, data = await _bounded_call(
-        _CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "PUT",
-        f"/v1/teams/{team_id}/inference",
-        {"provider": provider, "model": model},
-        extra={"X-Shimpz-Account": token},
-    )
-    return JSONResponse(data, status_code=status)
 
 
 # ── the Captain's LIVE bridge: one closed terminal event per WebSocket turn ─────
@@ -1243,6 +1189,7 @@ app.include_router(apps.router)
 app.include_router(assistants.router)
 app.include_router(brains.router)
 app.include_router(files.router)
+app.include_router(inference.router)
 app.include_router(oauth.router)
 app.include_router(public.router)
 app.include_router(teams.router)

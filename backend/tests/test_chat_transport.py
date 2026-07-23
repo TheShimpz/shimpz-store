@@ -28,7 +28,6 @@ from app.main import (
     WebSocketPayloadError,
     _canonical_origin,
     _parsed_stream_event,
-    _read_bounded_json,
     _relay_upstream_events,
     _stream_queue_put,
     _upstream_error_event,
@@ -37,6 +36,7 @@ from app.main import (
     _ws_receive_bounded_json,
     app,
 )
+from app.payloads import read_bounded_json
 
 TEST_TEAM_ID = "test_team"
 
@@ -191,11 +191,11 @@ def _request(body: bytes, headers: list[tuple[bytes, bytes]] | None = None) -> R
 def test_bounded_json_rejects_declared_and_streamed_oversize_bodies():
     async def scenario() -> None:
         with pytest.raises(ClientPayloadError) as declared:
-            await _read_bounded_json(_request(b"{}", [(b"content-length", b"9")]), 8)
+            await read_bounded_json(_request(b"{}", [(b"content-length", b"9")]), 8)
         assert declared.value.status == 413
 
         with pytest.raises(ClientPayloadError) as streamed:
-            await _read_bounded_json(_request(b'{"x":123}'), 8)
+            await read_bounded_json(_request(b'{"x":123}'), 8)
         assert streamed.value.status == 413
 
     asyncio.run(scenario())
