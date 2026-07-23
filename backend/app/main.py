@@ -66,7 +66,6 @@ from app.config import (
     MAX_OAUTH_BODY_BYTES,
     MAX_TEAM_CREATE_BODY_BYTES,
     MAX_TEAM_INSTALL_BODY_BYTES,
-    MAX_UPSTREAM_ERROR_BYTES,
     MAX_UPSTREAM_STREAM_BYTES,
     MAX_UPSTREAM_STREAM_LINE_BYTES,
     MAX_WS_FRAME_BYTES,
@@ -1714,7 +1713,7 @@ def _parsed_stream_event(line: bytes, expected_team_id: str) -> dict | None:
     return _validated_terminal_event(event, expected_team_id)
 
 
-def _upstream_error_event(status: int, _raw: bytes) -> dict:
+def _upstream_error_event(status: int) -> dict:
     return _public_chat_error_event(status)
 
 
@@ -1885,7 +1884,7 @@ def _stream_lines(relay: _StreamRelay) -> None:
             _stream_queue_put(
                 relay.queue,
                 relay.loop,
-                _upstream_error_event(resp.status, resp.read(MAX_UPSTREAM_ERROR_BYTES + 1)),
+                _upstream_error_event(resp.status),
             )
             return
         _relay_upstream_events(resp, relay.queue, relay.loop, relay.team_id)
@@ -2192,7 +2191,7 @@ async def _ws_stop_turn(ws: WebSocket, team_id: str, hdr: dict, state: dict) -> 
                 state["pending_challenge_type"] = None
                 await ws.send_json({"type": "stopped"})
             else:
-                await ws.send_json(_upstream_error_event(status if status != 200 else 409, b""))
+                await ws.send_json(_upstream_error_event(status if status != 200 else 409))
             return
         await ws.send_json({"type": "error", "status": 409, "detail": "no active chat turn"})
         return
@@ -2215,15 +2214,7 @@ async def _ws_stop_turn(ws: WebSocket, team_id: str, hdr: dict, state: dict) -> 
     status, data = result
     if status != 200 or not data.get("requested"):
         error_status = status if status != 200 else 409
-        detail = data.get("detail") or data.get("error")
-        if not isinstance(detail, str):
-            detail = "chat turn could not be stopped"
-        await ws.send_json(
-            _upstream_error_event(
-                error_status,
-                jsonlib.dumps({"detail": detail}, ensure_ascii=False).encode(),
-            )
-        )
+        await ws.send_json(_upstream_error_event(error_status))
 
 
 def _track_ws_turn(

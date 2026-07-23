@@ -789,7 +789,7 @@ def test_retired_public_marketplace_routes_are_absent():
 
 def test_upstream_http_errors_and_unterminated_terminal_lines_are_redacted():
     leak_marker = "upstream-private-marker-7e9b"
-    http_error = _upstream_error_event(409, json.dumps({"error": leak_marker}).encode())
+    http_error = _upstream_error_event(409)
     stream_error = _parsed_stream_event(
         json.dumps({"type": "error", "status": 502, "detail": leak_marker}).encode(),
         TEST_TEAM_ID,
