@@ -51,6 +51,9 @@ def test_static_runtime_copies_only_builder_resolved_dependencies():
 
     assert f"FROM {UV_IMAGE} AS uv" in dockerfile
     assert "COPY --from=uv /uv /usr/local/bin/uv" in dockerfile
+    assert "COPY backend/pyproject.toml backend/uv.lock ./" in dockerfile
+    assert "uv sync --frozen --no-install-project --no-dev --python 3.14" in dockerfile
+    assert "requirements.lock" not in dockerfile
     assert "COPY --from=dependencies /opt/venv /opt/venv" in runtime
     assert "uv-install.sh" not in dockerfile
     assert "apt-get" not in runtime

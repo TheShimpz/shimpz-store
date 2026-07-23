@@ -26,10 +26,9 @@ FROM python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a279
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /app
 COPY --from=uv /uv /usr/local/bin/uv
-COPY backend/requirements.lock ./requirements.lock
-RUN uv venv /opt/venv \
- && uv pip install --python /opt/venv/bin/python --no-cache-dir --require-hashes --requirements requirements.lock \
- && rm -rf /root/.cache/uv /root/.cache/pip
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN UV_PROJECT_ENVIRONMENT=/opt/venv uv sync --frozen --no-install-project --no-dev --python 3.14 \
+ && rm -rf /root/.cache/uv
 
 # ── stage 4: minimal runtime ─────────────────────────────────────────────────────────────────────
 FROM python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1 AS serve

@@ -1,22 +1,16 @@
 [project]
 name = "shimpz-store-backend"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
-    "fastapi",
+    "fastapi==0.139.0",
     "python-multipart==0.0.32",
-    "uvicorn[standard]",
-    "sqlalchemy>=2",
-    "psycopg[binary]",
-    "pydantic",
-    "pydantic-settings",
-    "httpx",
-    "alembic",
-    "structlog",
+    "structlog==26.1.0",
+    "uvicorn[standard]==0.51.0",
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["httpx2==2.5.0", "pytest==9.1.1", "ruff==0.15.21"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
