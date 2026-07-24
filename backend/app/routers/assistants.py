@@ -7,11 +7,11 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config, team_driver_contract
-from app.access import mutation_origin_allowed, private_json
-from app.config import MAX_TEAM_INSTALL_BODY_BYTES, RELEASED_CLOUD_ASSISTANTS
+from app.access import private_json
+from app.config import RELEASED_CLOUD_ASSISTANTS
 from app.control import EXECUTOR as CONTROL_EXECUTOR
-from app.payloads import ClientPayloadError, read_bounded_json
 from app.projections import released_assistant_inventory, released_running_assistant_inventory
+from app.routers import app_lifecycle
 from app.upstream import call_bounded
 
 log = structlog.get_logger()
@@ -75,71 +75,39 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
 
 @router.post("/api/teams/{team_id}/assistants")
 async def cloud_assistant_install(request: Request, team_id: str) -> JSONResponse:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    if not mutation_origin_allowed(request.headers.get("origin")):
-        raise ClientPayloadError(403, "forbidden origin")
-    if request.headers.get("content-type", "").strip().lower() != "application/json":
-        raise ClientPayloadError(415, "Content-Type must be application/json")
-    team_id = team_driver_contract.canonical_team_id(team_id)
-    if team_id is None:
-        raise ClientPayloadError(400, "bad team id")
-    payload = await read_bounded_json(request, MAX_TEAM_INSTALL_BODY_BYTES)
-    if set(payload) != {"assistant"}:
-        raise ClientPayloadError(400, "body must contain only assistant")
-    assistant = team_driver_contract.canonical_assistant_id(payload["assistant"])
-    if assistant not in RELEASED_CLOUD_ASSISTANTS:
-        raise ClientPayloadError(404, "Assistant is not released")
-    status, data = await call_bounded(
-        CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "POST",
-        f"/v1/teams/{team_id}/apps",
-        {"app": assistant},
-        {"X-Shimpz-Account": token},
+    result = await app_lifecycle.install(
+        request,
+        team_id,
+        "assistant",
+        released=RELEASED_CLOUD_ASSISTANTS,
     )
     log.info(
         "assistant_install",
-        account=account_id,
-        team_id=team_id,
-        assistant=assistant,
-        status=status,
+        account=result.account_id,
+        team_id=result.team_id,
+        assistant=result.app_id,
+        status=result.status,
     )
-    if not 200 <= status < 300:
-        return private_json(data, status)
-    return private_json({"assistant": assistant, "accepted": True})
+    if not 200 <= result.status < 300:
+        return private_json(result.data, result.status)
+    return private_json({"assistant": result.app_id, "accepted": True})
 
 
 @router.delete("/api/teams/{team_id}/assistants/{assistant}")
 async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: str) -> JSONResponse:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    if not mutation_origin_allowed(request.headers.get("origin")):
-        raise ClientPayloadError(403, "forbidden origin")
-    team_id = team_driver_contract.canonical_team_id(team_id)
-    assistant_id = team_driver_contract.canonical_assistant_id(assistant)
-    if team_id is None:
-        raise ClientPayloadError(400, "bad team id")
-    if assistant_id is None:
-        raise ClientPayloadError(400, "bad Assistant id")
-    if assistant_id not in RELEASED_CLOUD_ASSISTANTS:
-        raise ClientPayloadError(404, "Assistant is not released")
-    status, data = await call_bounded(
-        CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
-        "DELETE",
-        f"/v1/teams/{team_id}/apps/{assistant_id}",
-        extra={"X-Shimpz-Account": token},
+    result = await app_lifecycle.uninstall(
+        request,
+        team_id,
+        assistant,
+        released=RELEASED_CLOUD_ASSISTANTS,
     )
     log.info(
         "assistant_uninstall",
-        account=account_id,
-        team_id=team_id,
-        assistant=assistant_id,
-        status=status,
+        account=result.account_id,
+        team_id=result.team_id,
+        assistant=result.app_id,
+        status=result.status,
     )
-    if not 200 <= status < 300:
-        return private_json(data, status)
-    return private_json({"assistant": assistant_id, "accepted": True})
+    if not 200 <= result.status < 300:
+        return private_json(result.data, result.status)
+    return private_json({"assistant": result.app_id, "accepted": True})

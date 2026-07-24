@@ -45,7 +45,7 @@ COPY backend/app/inference.py ./app/
 COPY backend/app/oauth_broker.py ./app/
 COPY backend/app/projections.py ./app/
 COPY backend/app/team_driver_contract.py ./app/
-COPY backend/app/routers/__init__.py backend/app/routers/account.py backend/app/routers/apps.py backend/app/routers/assistants.py backend/app/routers/brains.py backend/app/routers/files.py backend/app/routers/inference.py backend/app/routers/oauth.py backend/app/routers/public.py backend/app/routers/static.py backend/app/routers/teams.py ./app/routers/
+COPY backend/app/routers/__init__.py backend/app/routers/account.py backend/app/routers/app_lifecycle.py backend/app/routers/apps.py backend/app/routers/assistants.py backend/app/routers/brains.py backend/app/routers/files.py backend/app/routers/inference.py backend/app/routers/oauth.py backend/app/routers/public.py backend/app/routers/static.py backend/app/routers/teams.py ./app/routers/
 COPY --from=web /w/build ./build
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
