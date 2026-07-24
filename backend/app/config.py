@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
-from app import team_driver_contract
+from app import chat_ws_common, team_driver_contract
 
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
 ACCOUNTS_URL = os.environ.get("SHIMPZ_ACCOUNTS_URL", "http://accounts:7079")
@@ -56,27 +55,7 @@ HTML_CACHE_CONTROL = "no-cache, max-age=0, must-revalidate"
 IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
 
-def canonical_origin(value: str | None) -> str | None:
-    """Canonical exact WebSocket origin, preserving an explicitly supplied port."""
-    if not value or value == "null":
-        return None
-    parsed = urlparse(value)
-    if (
-        parsed.scheme.lower() not in {"http", "https"}
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.path
-        or parsed.params
-        or parsed.query
-        or parsed.fragment
-    ):
-        return None
-    try:
-        _ = parsed.port
-    except ValueError:
-        return None
-    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+canonical_origin = chat_ws_common.canonical_origin
 
 
 def origin_allowed(value: str | None, allowed_origins: frozenset[str]) -> bool:

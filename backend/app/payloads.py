@@ -6,6 +6,8 @@ import json
 
 from fastapi import Request
 
+from app import chat_ws_common
+
 
 class ClientPayloadError(Exception):
     def __init__(self, status: int, detail: str) -> None:
@@ -14,13 +16,7 @@ class ClientPayloadError(Exception):
         self.detail = detail
 
 
-def unique_json_object(pairs: list[tuple[str, object]]) -> dict:
-    value = {}
-    for key, item in pairs:
-        if key in value:
-            raise ValueError("duplicate JSON field")
-        value[key] = item
-    return value
+unique_json_object = chat_ws_common.unique_json_object
 
 
 async def read_bounded_json(request: Request, max_bytes: int) -> dict:

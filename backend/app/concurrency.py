@@ -3,41 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import contextlib
 import threading
 from collections import deque
 
+from app import chat_ws_common
 
-class ExecutorSaturatedError(RuntimeError):
-    """A bounded executor rejected work instead of growing its private queue."""
+ExecutorSaturatedError = chat_ws_common.ExecutorSaturatedError
+BoundedThreadPoolExecutor = chat_ws_common.BoundedThreadPoolExecutor
 
 
 async def run_bounded(executor: BoundedThreadPoolExecutor, fn, /, *args):
     """Run one blocking operation only when its finite executor admits it."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(executor, fn, *args)
-
-
-class BoundedThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
-    """ThreadPoolExecutor with a hard cap on running plus queued futures."""
-
-    def __init__(self, *, max_workers: int, max_outstanding: int, thread_name_prefix: str) -> None:
-        if max_outstanding < max_workers:
-            raise ValueError("max_outstanding must cover every worker")
-        self._permits = threading.BoundedSemaphore(max_outstanding)
-        super().__init__(max_workers=max_workers, thread_name_prefix=thread_name_prefix)
-
-    def submit(self, fn, /, *args, **kwargs):
-        if not self._permits.acquire(blocking=False):
-            raise ExecutorSaturatedError("blocking worker admission is full")
-        try:
-            future = super().submit(fn, *args, **kwargs)
-        except BaseException:
-            self._permits.release()
-            raise
-        future.add_done_callback(lambda _completed: self._permits.release())
-        return future
 
 
 class TurnAdmission:

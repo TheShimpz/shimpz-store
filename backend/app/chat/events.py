@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import re
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app import team_driver_contract
+from app import chat_ws_common, team_driver_contract
 from app.config import (
     MAX_CHAT_ASSISTANTS,
     MAX_CHAT_ERROR_DETAIL_CHARS,
@@ -16,9 +15,9 @@ from app.config import (
     MAX_CHAT_REPLY_CHARS,
     MAX_WS_FRAME_BYTES,
 )
-from app.payloads import ClientPayloadError, unique_json_object
+from app.payloads import ClientPayloadError
 
-CHALLENGE_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
+CHALLENGE_ID_RE = chat_ws_common.CHALLENGE_ID_RE
 HUMAN_REQUEST_TYPES = frozenset({"str", "int", "float", "bool", "choice", "choices"})
 
 
@@ -63,30 +62,18 @@ def chat_turn_payload(payload: dict) -> dict[str, object]:
     return {"message": message, "files": opaque_ids, "assistant_ids": canonical_ids}
 
 
-class WebSocketPayloadError(Exception):
-    def __init__(self, status: int, detail: str, close_code: int) -> None:
-        super().__init__(detail)
-        self.status = status
-        self.detail = detail
-        self.close_code = close_code
+WebSocketPayloadError = chat_ws_common.FrameError
 
 
 async def ws_receive_bounded_json(ws: WebSocket) -> dict:
     message = await ws.receive()
     if message["type"] == "websocket.disconnect":
         raise WebSocketDisconnect(message.get("code", 1000))
-    raw = message.get("text")
-    if raw is None:
-        raise WebSocketPayloadError(415, "WebSocket frame must be text JSON", 1003)
-    if len(raw.encode()) > MAX_WS_FRAME_BYTES:
-        raise WebSocketPayloadError(413, "WebSocket frame too large", 1009)
-    try:
-        payload = json.loads(raw, object_pairs_hook=unique_json_object)
-    except (json.JSONDecodeError, ValueError) as exc:
-        raise WebSocketPayloadError(400, "WebSocket frame must be valid JSON", 1007) from exc
-    if not isinstance(payload, dict):
-        raise WebSocketPayloadError(400, "WebSocket JSON must be an object", 1007)
-    return payload
+    return chat_ws_common.decode_bounded_json_frame(
+        message,
+        MAX_WS_FRAME_BYTES,
+        invalid_json_detail="WebSocket frame must be valid JSON",
+    )
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
@@ -168,8 +155,7 @@ def _validated_input_challenge(value: dict, expected_team_id: str) -> dict | Non
         value["type"] != "input-required"
         or value["status"] != "input-required"
         or team_id != expected_team_id
-        or not isinstance(challenge_id, str)
-        or CHALLENGE_ID_RE.fullmatch(challenge_id) is None
+        or not chat_ws_common.valid_challenge_id(challenge_id)
         or value["turn_id"] != challenge_id
         or not isinstance(request, dict)
         or set(request) != {"type", "title", "summary", "docs", "options"}
@@ -226,8 +212,7 @@ def _validated_approval_challenge(value: dict, expected_team_id: str) -> dict | 
         value["type"] != "approval-required"
         or value["status"] != "approval-required"
         or team_id != expected_team_id
-        or not isinstance(challenge_id, str)
-        or CHALLENGE_ID_RE.fullmatch(challenge_id) is None
+        or not chat_ws_common.valid_challenge_id(challenge_id)
         or value["turn_id"] != challenge_id
         or not isinstance(requirements, list)
         or len(requirements) != 1
@@ -305,8 +290,11 @@ def parsed_stream_event(line: bytes, expected_team_id: str) -> dict | None:
     if not line.strip():
         return None
     try:
-        event = json.loads(line, object_pairs_hook=unique_json_object)
-    except json.JSONDecodeError, UnicodeDecodeError, ValueError:
+        event = chat_ws_common.decode_bounded_json_frame(
+            {"type": "websocket.receive", "text": line.decode()},
+            len(line),
+        )
+    except chat_ws_common.FrameError, UnicodeDecodeError:
         return None
     return validated_terminal_event(event, expected_team_id)
 
