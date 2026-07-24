@@ -3,12 +3,15 @@ import contextlib
 import http.client
 import json
 import threading
+from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest import mock
 
 import pytest
 from fastapi import WebSocket
 
 from app import config
+from app.chat import relay as chat_relay
 from app.chat.relay import _relay_upstream_events
 from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_driver as _real_stream_driver
@@ -86,6 +89,48 @@ def _relay(body: bytes, team_id: str = TEST_TEAM_ID) -> dict:
             return await asyncio.to_thread(_relay_upstream_events, response, team_id)
 
     return asyncio.run(scenario())
+
+
+def test_challenge_answers_use_the_stream_chat_turn_budget():
+    async def scenario() -> None:
+        loop = asyncio.get_running_loop()
+        started = asyncio.Event()
+        connection = mock.Mock()
+        connection.request.side_effect = OSError
+        with (
+            mock.patch.object(chat_relay.http.client, "HTTPConnection", return_value=connection) as connect,
+            mock.patch.object(
+                chat_relay,
+                "_call",
+                return_value=(HTTPStatus.OK, _done(team_id=TEST_TEAM_ID)),
+            ) as call,
+        ):
+            stream_result = chat_relay._stream_lines(
+                chat_relay._StreamRelay(
+                    TEST_TEAM_ID,
+                    "hello",
+                    {},
+                    loop,
+                    started,
+                )
+            )
+            challenge_result = chat_relay._relay_challenge(
+                chat_relay._ChallengeRelay(
+                    TEST_TEAM_ID,
+                    "input",
+                    {"challenge_id": "c" * 32, "answer": "yes"},
+                    {},
+                    loop,
+                    started,
+                )
+            )
+
+        assert stream_result["type"] == "error"
+        assert challenge_result == _done(team_id=TEST_TEAM_ID)
+        assert connect.call_args.kwargs["timeout"] == chat_relay.CHAT_TURN_TIMEOUT_SECONDS
+        assert call.call_args.kwargs["timeout"] == chat_relay.CHAT_TURN_TIMEOUT_SECONDS
+
+    asyncio.run(scenario())
 
 
 @contextlib.contextmanager

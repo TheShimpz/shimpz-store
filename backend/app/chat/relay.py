@@ -21,10 +21,10 @@ from app.config import (
     MAX_UPSTREAM_STREAM_LINE_BYTES,
     TERMINAL_CONTRACT_ERROR,
 )
-from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS
 from app.upstream import call as _call
 
 log = structlog.get_logger()
+CHAT_TURN_TIMEOUT_SECONDS = 200
 
 
 class _StreamLimitError(ValueError):
@@ -113,7 +113,11 @@ class _ChallengeRelay:
 def _stream_lines(relay: _StreamRelay) -> dict:
     """BLOCKING (run in a thread): return the driver's single terminal event."""
     parsed = urlparse(config.TEAMDRIVER_URL)
-    conn = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=200)
+    conn = http.client.HTTPConnection(
+        parsed.hostname,
+        parsed.port,
+        timeout=CHAT_TURN_TIMEOUT_SECONDS,
+    )
     try:
         payload: dict[str, object] = {
             "message": relay.text,
@@ -177,6 +181,6 @@ def _relay_challenge(relay: _ChallengeRelay) -> dict:
         f"/v1/teams/{relay.team_id}/chat/{relay.kind}",
         relay.body,
         relay.headers,
-        timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
+        timeout=CHAT_TURN_TIMEOUT_SECONDS,
     )
     return _challenge_response_event(status, data, relay.team_id)

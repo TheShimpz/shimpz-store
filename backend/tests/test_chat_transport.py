@@ -473,7 +473,7 @@ def test_websocket_relays_a_bound_input_submission_to_the_hosted_controller(
             f"/v1/teams/{TEST_TEAM_ID}/chat/input",
             {"challenge_id": challenge_id, "answer": "example.com"},
             {"X-Shimpz-Account": "account-token"},
-            30,
+            chat_relay.CHAT_TURN_TIMEOUT_SECONDS,
         )
     ]
 
