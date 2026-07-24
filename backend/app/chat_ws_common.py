@@ -8,9 +8,9 @@ import re
 import threading
 from urllib.parse import urlparse
 
-_CHALLENGE_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
+HEX_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
-CHALLENGE_ID_RE = _CHALLENGE_ID_RE
+CHALLENGE_ID_RE = HEX_ID_RE
 
 
 class FrameError(ValueError):
@@ -82,6 +82,18 @@ def _reject_json_constant(_value: str) -> None:
     raise ValueError("non-finite JSON number")
 
 
+def public_text(value: object, maximum: int, *, field: str = "public text") -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > maximum
+        or not value.isprintable()
+    ):
+        raise ValueError(f"invalid {field}")
+    return value
+
+
 def decode_bounded_json_frame(
     message: dict[str, object],
     max_bytes: int,
@@ -130,7 +142,7 @@ def error_terminal(
 
 
 def valid_challenge_id(value: object) -> bool:
-    return isinstance(value, str) and _CHALLENGE_ID_RE.fullmatch(value) is not None
+    return isinstance(value, str) and CHALLENGE_ID_RE.fullmatch(value) is not None
 
 
 def challenge_identity(value: object, expected_team_id: str) -> tuple[str, str] | None:
