@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-
 import structlog
 from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -13,7 +11,7 @@ from app.access import mutation_origin_allowed, private_json
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError
 from app.projections import public_file_deletion, public_file_inventory, public_file_upload
-from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
+from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded, call_raw_bounded
 
 log = structlog.get_logger()
 router = APIRouter()
@@ -68,17 +66,13 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
     media_type = team_driver_contract.canonical_media_type(file.content_type)
     if filename is None or media_type is None:
         return private_json({"detail": "invalid file metadata"}, 400)
-    payload = {
-        "filename": filename,
-        "media_type": media_type,
-        "content_b64": base64.b64encode(data).decode(),
-    }
-    status, body = await call_bounded(
+    status, body = await call_raw_bounded(
         CONTROL_EXECUTOR,
         config.TEAMDRIVER_URL,
-        "POST",
         f"/v1/teams/{team_id}/files",
-        payload,
+        data,
+        filename=filename,
+        media_type=media_type,
         extra={"X-Shimpz-Account": token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )

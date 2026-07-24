@@ -1,4 +1,3 @@
-import base64
 import contextlib
 import hashlib
 import json
@@ -56,7 +55,16 @@ class _ControlPlaneHandler(BaseHTTPRequestHandler):
         self._json(404, {"detail": "not found"})
 
     def do_POST(self) -> None:
-        body = self._body()
+        if self.path == "/v1/teams/team_one/files":
+            length = int(self.headers["Content-Length"])
+            body = {
+                "filename": self.headers["X-Shimpz-Filename"],
+                "media_type": self.headers["Content-Type"],
+                "content": self.rfile.read(length),
+                "content_length": length,
+            }
+        else:
+            body = self._body()
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
             self._json(200, {"account_id": "account-one", "username": "captain"})
@@ -69,7 +77,7 @@ class _ControlPlaneHandler(BaseHTTPRequestHandler):
                         "id": FILE_ID,
                         "name": body["filename"],
                         "media_type": body["media_type"],
-                        "size": 5,
+                        "size": body["content_length"],
                         "sha256": FILE_SHA256,
                         "created_at": 1_700_000_000,
                         "path": "/controller/private/storage",
@@ -187,7 +195,8 @@ def test_team_files_are_opaque_typed_and_deletable_without_paths():
     assert upload_call[2] == {
         "filename": "note.txt",
         "media_type": "text/plain",
-        "content_b64": base64.b64encode(b"hello").decode(),
+        "content": b"hello",
+        "content_length": 5,
     }
     assert ("GET", "/v1/teams/team_one/files", {}) in calls
     assert ("DELETE", f"/v1/teams/team_one/files/{FILE_ID}", {}) in calls
