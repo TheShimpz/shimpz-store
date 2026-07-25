@@ -17,9 +17,6 @@ from app.config import (
 )
 from app.payloads import ClientPayloadError
 
-CHALLENGE_ID_RE = chat_ws_common.CHALLENGE_ID_RE
-HUMAN_REQUEST_TYPES = frozenset({"str", "int", "float", "bool", "choice", "choices"})
-
 
 def canonical_chat_reply(value: object) -> str | None:
     if (
@@ -124,149 +121,6 @@ def _validated_error_event(value: dict) -> dict | None:
     return public_chat_error_event(status)
 
 
-def _bounded_public_text(value: object, maximum: int, *, optional: bool = False) -> str | None:
-    if optional and value is None:
-        return None
-    if (
-        not isinstance(value, str)
-        or not value
-        or value != value.strip()
-        or len(value) > maximum
-        or re.search(r"[\x00-\x1f\x7f]", value) is not None
-    ):
-        return None
-    return value
-
-
-def _validated_input_challenge(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) != {
-        "type",
-        "status",
-        "team_id",
-        "turn_id",
-        "challenge_id",
-        "request",
-    }:
-        return None
-    challenge_id = value["challenge_id"]
-    request = value["request"]
-    team_id = team_driver_contract.canonical_team_id(value["team_id"])
-    if (
-        value["type"] != "input-required"
-        or value["status"] != "input-required"
-        or team_id != expected_team_id
-        or not chat_ws_common.valid_challenge_id(challenge_id)
-        or value["turn_id"] != challenge_id
-        or not isinstance(request, dict)
-        or set(request) != {"type", "title", "summary", "docs", "options"}
-    ):
-        return None
-    request_type = request["type"]
-    title = _bounded_public_text(request["title"], 80)
-    summary = _bounded_public_text(request["summary"], 240)
-    docs = _bounded_public_text(request["docs"], 2048, optional=True)
-    options = request["options"]
-    if (
-        not isinstance(request_type, str)
-        or request_type not in HUMAN_REQUEST_TYPES
-        or title is None
-        or summary is None
-        or (request["docs"] is not None and docs is None)
-        or not isinstance(options, list)
-        or len(options) > 64
-        or any(_bounded_public_text(option, 200) is None for option in options)
-        or len(options) != len(set(options))
-        or (request_type in {"choice", "choices"}) != bool(options)
-    ):
-        return None
-    return {
-        "type": "input-required",
-        "status": "input-required",
-        "team_id": team_id,
-        "turn_id": challenge_id,
-        "challenge_id": challenge_id,
-        "request": {
-            "type": request_type,
-            "title": title,
-            "summary": summary,
-            "docs": docs,
-            "options": list(options),
-        },
-    }
-
-
-def _validated_approval_challenge(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) != {
-        "type",
-        "status",
-        "team_id",
-        "turn_id",
-        "challenge_id",
-        "requirements",
-    }:
-        return None
-    challenge_id = value["challenge_id"]
-    requirements = value["requirements"]
-    team_id = team_driver_contract.canonical_team_id(value["team_id"])
-    if (
-        value["type"] != "approval-required"
-        or value["status"] != "approval-required"
-        or team_id != expected_team_id
-        or not chat_ws_common.valid_challenge_id(challenge_id)
-        or value["turn_id"] != challenge_id
-        or not isinstance(requirements, list)
-        or len(requirements) != 1
-        or not isinstance(requirements[0], dict)
-    ):
-        return None
-    requirement = requirements[0]
-    if set(requirement) != {
-        "assistant_id",
-        "assistant_name",
-        "power_id",
-        "title",
-        "summary",
-        "docs",
-        "approval",
-    }:
-        return None
-    assistant_id = team_driver_contract.canonical_assistant_id(requirement["assistant_id"])
-    power_id = team_driver_contract.canonical_assistant_id(requirement["power_id"])
-    assistant_name = _bounded_public_text(requirement["assistant_name"], 80)
-    title = _bounded_public_text(requirement["title"], 80)
-    summary = _bounded_public_text(requirement["summary"], 240)
-    docs = _bounded_public_text(requirement["docs"], 2048, optional=True)
-    if (
-        assistant_id is None
-        or power_id is None
-        or assistant_name is None
-        or title is None
-        or summary is None
-        or (requirement["docs"] is not None and docs is None)
-        or not isinstance(requirement["approval"], str)
-        or requirement["approval"] not in {"always", "once"}
-    ):
-        return None
-    return {
-        "type": "approval-required",
-        "status": "approval-required",
-        "team_id": team_id,
-        "turn_id": challenge_id,
-        "challenge_id": challenge_id,
-        "requirements": [
-            {
-                "assistant_id": assistant_id,
-                "assistant_name": assistant_name,
-                "power_id": power_id,
-                "title": title,
-                "summary": summary,
-                "docs": docs,
-                "approval": requirement["approval"],
-            }
-        ],
-    }
-
-
 def validated_terminal_event(value: object, expected_team_id: str) -> dict | None:
     """Project an untrusted controller value onto the only browser-visible chat events."""
     if not isinstance(value, dict):
@@ -277,10 +131,6 @@ def validated_terminal_event(value: object, expected_team_id: str) -> dict | Non
         terminal = _validated_done_event(value, expected_team_id)
     elif event_type == "error":
         terminal = _validated_error_event(value)
-    elif event_type == "input-required":
-        terminal = _validated_input_challenge(value, expected_team_id)
-    elif event_type == "approval-required":
-        terminal = _validated_approval_challenge(value, expected_team_id)
     elif event_type == "stopped" and set(value) == {"type"}:
         terminal = {"type": "stopped"}
     return terminal

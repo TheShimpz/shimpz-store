@@ -4,8 +4,6 @@ import test from "node:test";
 
 import {
   CHAT_WS_SUBPROTOCOL,
-  createApprovalSubmission,
-  createInputSubmission,
   createTeamChatTurn,
   parseChatEvent,
   parseTeamChatAssistantScope,
@@ -110,39 +108,7 @@ test("uses the single versioned Team chat WebSocket contract", () => {
   }
 });
 
-test("accepts strict human challenges and creates exact submit frames", () => {
-  const input = {
-    type: "input-required",
-    status: "input-required",
-    team_id: "marketing",
-    turn_id: "a".repeat(32),
-    challenge_id: "a".repeat(32),
-    request: {
-      type: "choice",
-      title: "Choose zone",
-      summary: "Choose the target zone.",
-      docs: null,
-      options: ["example.com", "example.net"],
-    },
-  };
-  const approval = {
-    type: "approval-required",
-    status: "approval-required",
-    team_id: "marketing",
-    turn_id: "b".repeat(32),
-    challenge_id: "b".repeat(32),
-    requirements: [{
-      assistant_id: "shimpz-cloudflare",
-      assistant_name: "Shimpz Cloudflare",
-      power_id: "list-zones",
-      title: "Publish zones",
-      summary: "Publish the current zones?",
-      docs: null,
-      approval: "once",
-    }],
-  };
-  assert.deepEqual(parseChatEvent(input, "marketing", "Marketing"), input);
-  assert.deepEqual(parseChatEvent(approval, "marketing", "Marketing"), approval);
+test("uses the terminal event contract for browser chat", () => {
   assert.deepEqual(
     parseChatEvent(
       { type: "done", team_id: "marketing", team_name: "Marketing", reply: "complete" },
@@ -151,34 +117,11 @@ test("accepts strict human challenges and creates exact submit frames", () => {
     ),
     { type: "done", team_id: "marketing", team_name: "Marketing", reply: "complete" },
   );
-  assert.deepEqual(createInputSubmission(input.challenge_id, "example.com"), {
-    type: "input-submit",
-    challenge_id: input.challenge_id,
-    answer: "example.com",
-  });
-  assert.deepEqual(createApprovalSubmission(approval.challenge_id), {
-    type: "approval-submit",
-    challenge_id: approval.challenge_id,
-    approved: true,
-  });
-  for (const forged of [
-    { ...input, team_id: "sales" },
-    { ...input, request: null },
-    { ...input, request: { ...input.request, type: "unknown" } },
-    { ...input, request: { ...input.request, options: ["same", "same"] } },
-    { ...input, request: { ...input.request, title: " invalid" } },
-    { ...approval, requirements: [] },
-    {
-      ...approval,
-      requirements: [{ ...approval.requirements[0], approval: "never" }],
-    },
-    { ...approval, trace: [] },
+  for (const retired of [
+    { type: "input-required" },
+    { type: "approval-required" },
   ]) {
-    assert.throws(() => parseChatEvent(forged, "marketing", "Marketing"));
-  }
-  for (const challengeId of [null, "not-a-challenge"]) {
-    assert.throws(() => createInputSubmission(challengeId, "answer"));
-    assert.throws(() => createApprovalSubmission(challengeId));
+    assert.throws(() => parseChatEvent(retired, "marketing", "Marketing"));
   }
 });
 

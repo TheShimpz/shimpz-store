@@ -6,22 +6,18 @@ import asyncio
 import http.client
 import json as jsonlib
 from dataclasses import dataclass
-from http import HTTPStatus
 from urllib.parse import urlparse
 
 import structlog
 
 from app import config
 from app.chat.events import parsed_stream_event as _parsed_stream_event
-from app.chat.events import public_chat_error_event as _public_chat_error_event
 from app.chat.events import upstream_error_event as _upstream_error_event
-from app.chat.events import validated_terminal_event as _validated_terminal_event
 from app.config import (
     MAX_UPSTREAM_STREAM_BYTES,
     MAX_UPSTREAM_STREAM_LINE_BYTES,
     TERMINAL_CONTRACT_ERROR,
 )
-from app.upstream import call as _call
 
 log = structlog.get_logger()
 CHAT_TURN_TIMEOUT_SECONDS = 200
@@ -100,16 +96,6 @@ class _StreamRelay:
     assistant_ids: tuple[str, ...] = ()
 
 
-@dataclass(frozen=True)
-class _ChallengeRelay:
-    team_id: str
-    kind: str
-    body: dict
-    headers: dict
-    loop: asyncio.AbstractEventLoop
-    started: asyncio.Event
-
-
 def _stream_lines(relay: _StreamRelay) -> dict:
     """BLOCKING (run in a thread): return the driver's single terminal event."""
     parsed = urlparse(config.TEAMDRIVER_URL)
@@ -147,40 +133,3 @@ def _stream_lines(relay: _StreamRelay) -> dict:
     finally:
         relay.loop.call_soon_threadsafe(relay.started.set)
         conn.close()
-
-
-def _challenge_response_event(status: int, data: object, team_id: str) -> dict:
-    projected = None
-    if isinstance(data, dict) and status in {
-        HTTPStatus.OK,
-        HTTPStatus.PRECONDITION_REQUIRED,
-    }:
-        challenge_status = data.get("status")
-        if challenge_status in {"input-required", "approval-required"}:
-            projected = {"type": challenge_status, **data}
-        elif status == HTTPStatus.OK:
-            projected = {"type": "done", **data}
-    terminal = _validated_terminal_event(projected, team_id)
-    if terminal is not None:
-        return terminal
-    if 400 <= status <= 599:
-        return _public_chat_error_event(status)
-    return {
-        "type": "error",
-        "status": 502,
-        "detail": TERMINAL_CONTRACT_ERROR,
-        "_relay_abort": True,
-    }
-
-
-def _relay_challenge(relay: _ChallengeRelay) -> dict:
-    relay.loop.call_soon_threadsafe(relay.started.set)
-    status, data = _call(
-        config.TEAMDRIVER_URL,
-        "POST",
-        f"/v1/teams/{relay.team_id}/chat/{relay.kind}",
-        relay.body,
-        relay.headers,
-        timeout=CHAT_TURN_TIMEOUT_SECONDS,
-    )
-    return _challenge_response_event(status, data, relay.team_id)

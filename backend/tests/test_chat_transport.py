@@ -10,7 +10,6 @@ from starlette.websockets import WebSocketDisconnect
 
 from app import authn, config
 from app.chat import events as chat_events
-from app.chat import relay as chat_relay
 from app.chat import ws as main
 from app.chat.events import WebSocketPayloadError
 from app.chat.events import parsed_stream_event as _parsed_stream_event
@@ -328,23 +327,7 @@ def test_websocket_allows_only_one_local_turn_task():
     asyncio.run(scenario())
 
 
-@pytest.mark.parametrize(
-    "message",
-    [
-        {
-            "type": "chat",
-            "message": "next turn",
-            "files": [],
-            "assistant_ids": [],
-        },
-        {
-            "type": "input-submit",
-            "challenge_id": "a" * 32,
-            "answer": "example.com",
-        },
-    ],
-)
-def test_completed_turn_is_free_before_its_done_callback_runs(message: dict):
+def test_completed_turn_is_free_before_its_done_callback_runs():
     async def scenario() -> None:
         websocket, sent = _websocket("{}")
         await websocket.accept()
@@ -365,20 +348,25 @@ def test_completed_turn_is_free_before_its_done_callback_runs(message: dict):
         assert occupied is not None
         previous = main._TURN_ADMISSION
         main._TURN_ADMISSION = saturated
-        state = {
-            "active": active,
-            "pending_challenge_id": "a" * 32,
-            "pending_challenge_type": "input",
-        }
+        state = {"active": active}
         try:
-            await _ws_dispatch(websocket, "test-team", {}, message, state)
+            await _ws_dispatch(
+                websocket,
+                "test-team",
+                {},
+                {
+                    "type": "chat",
+                    "message": "next turn",
+                    "files": [],
+                    "assistant_ids": [],
+                },
+                state,
+            )
             assert json.loads(sent[-1]["text"]) == {
                 "type": "error",
                 "status": 429,
                 "detail": "chat relay capacity reached",
             }
-            state["pending_challenge_id"] = None
-            state["pending_challenge_type"] = None
             await _ws_dispatch(websocket, "test-team", {}, {"type": "stop"}, state)
             assert json.loads(sent[-1]["text"]) == {
                 "type": "error",
@@ -411,71 +399,6 @@ def test_websocket_rejects_retired_answer_frames():
         }
 
     asyncio.run(scenario())
-
-
-def test_websocket_relays_a_bound_input_submission_to_the_hosted_controller(
-    monkeypatch,
-):
-    challenge_id = "a" * 32
-    calls: list[tuple] = []
-
-    def completed_call(base, method, path, payload, headers, *, timeout):
-        calls.append((base, method, path, payload, headers, timeout))
-        return 200, {
-            "team_id": TEST_TEAM_ID,
-            "team_name": "Marketing",
-            "reply": "Completed.",
-        }
-
-    monkeypatch.setattr(chat_relay, "_call", completed_call)
-
-    async def scenario() -> None:
-        websocket, sent = _websocket("{}")
-        await websocket.accept()
-        state = {
-            "active": None,
-            "stop_requested": False,
-            "pending_challenge_id": challenge_id,
-            "pending_challenge_type": "input",
-        }
-        await _ws_dispatch(
-            websocket,
-            TEST_TEAM_ID,
-            {"X-Shimpz-Account": "account-token"},
-            {
-                "type": "input-submit",
-                "challenge_id": challenge_id,
-                "answer": "example.com",
-            },
-            state,
-        )
-        active = state["active"]
-        assert active is not None
-        await active.task
-        await asyncio.sleep(0)
-        events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
-        assert events == [
-            {
-                "type": "done",
-                "team_id": TEST_TEAM_ID,
-                "team_name": "Marketing",
-                "reply": "Completed.",
-            }
-        ]
-        assert state["pending_challenge_id"] is None
-        assert state["pending_challenge_type"] is None
-
-    asyncio.run(scenario())
-    assert calls == [
-        (
-            config.TEAMDRIVER_URL,
-            "POST",
-            f"/v1/teams/{TEST_TEAM_ID}/chat/input",
-            {"challenge_id": challenge_id, "answer": "example.com"},
-            {"X-Shimpz-Account": "account-token"},
-            chat_relay.CHAT_TURN_TIMEOUT_SECONDS,
-        )
-    ]
 
 
 def test_websocket_returns_typed_429_when_global_turn_queue_is_full():
@@ -869,8 +792,6 @@ def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(monk
             _done("complete", team_name="Marketing"),
             _done("complete", team_name="Marketing"),
         ),
-        (_input_challenge(), _input_challenge()),
-        (_approval_challenge(), _approval_challenge()),
         (
             {"type": "error", "status": 504, "detail": "provider timed out"},
             {"type": "error", "status": 504, "detail": "chat service timed out"},
@@ -905,21 +826,8 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
         {"type": "tool", "label": "shell"},
         {"type": "ask", "text": "approve?"},
         {"type": "answered", "answered": True},
-        _input_challenge(team_id="another_team"),
-        {
-            **_input_challenge(),
-            "request": {**_input_challenge()["request"], "type": "unknown"},
-        },
-        {**_approval_challenge(), "requirements": []},
-        {
-            **_approval_challenge(),
-            "requirements": [
-                {
-                    **_approval_challenge()["requirements"][0],
-                    "summary": "private\x00value",
-                }
-            ],
-        },
+        _input_challenge(),
+        _approval_challenge(),
         {**_done(), "extra": True},
         {"type": "done", "reply": "hello"},
         _done("hello", team_id="another_team"),

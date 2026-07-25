@@ -12,13 +12,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app import config
 from app.authn import EXECUTOR as _AUTH_EXECUTOR
-from app.chat.events import CHALLENGE_ID_RE as _CHALLENGE_ID_RE
 from app.chat.events import WebSocketPayloadError
 from app.chat.events import chat_turn_payload as _chat_turn_payload
 from app.chat.events import upstream_error_event as _upstream_error_event
 from app.chat.events import validated_terminal_event as _validated_terminal_event
 from app.chat.events import ws_receive_bounded_json as _ws_receive_bounded_json
-from app.chat.relay import _ChallengeRelay, _relay_challenge, _stream_lines, _StreamRelay
+from app.chat.relay import _stream_lines, _StreamRelay
 from app.concurrency import BoundedThreadPoolExecutor as _BoundedThreadPoolExecutor
 from app.concurrency import ExecutorSaturatedError as _ExecutorSaturatedError
 from app.concurrency import TurnAdmission as _TurnAdmission
@@ -112,15 +111,6 @@ async def _send_relay_event(
         if not delivery.aborted:
             await _stop_delivery_once(turn.team_id, turn.headers, delivery)
         delivery.aborted = True
-    if turn.state is not None and terminal["type"] in {
-        "input-required",
-        "approval-required",
-    }:
-        turn.state["pending_challenge_id"] = terminal["challenge_id"]
-        turn.state["pending_challenge_type"] = terminal["type"].removesuffix("-required")
-    elif turn.state is not None and terminal["type"] in {"done", "stopped"}:
-        turn.state["pending_challenge_id"] = None
-        turn.state["pending_challenge_type"] = None
     delivery.terminal_seen = True
     await turn.ws.send_json(terminal)
 
@@ -155,7 +145,6 @@ class _WsTurn:
     files: tuple[str, ...] = ()
     assistant_ids: tuple[str, ...] = ()
     delivery: _RelayDelivery = field(default_factory=_RelayDelivery)
-    state: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -221,35 +210,6 @@ async def _ws_run_admitted_turn(turn: _WsTurn, lease: _TurnLease) -> None:
         await _deliver_turn(turn, worker)
 
 
-async def _ws_run_admitted_challenge(
-    turn: _WsTurn,
-    lease: _TurnLease,
-    kind: str,
-    body: dict,
-) -> None:
-    async with lease:
-        loop = asyncio.get_running_loop()
-        try:
-            worker = loop.run_in_executor(
-                _STREAM_EXECUTOR,
-                _relay_challenge,
-                _ChallengeRelay(
-                    turn.team_id,
-                    kind,
-                    body,
-                    turn.headers,
-                    loop,
-                    turn.started,
-                ),
-            )
-            turn.dispatched.set()
-        except _ExecutorSaturatedError:
-            turn.started.set()
-            await turn.ws.send_json(_relay_capacity_event())
-            return
-        await _deliver_turn(turn, worker)
-
-
 async def _ws_run_turn(
     ws: WebSocket,
     team_id: str,
@@ -299,38 +259,8 @@ def _start_ws_turn(
                 files=tuple(msg["files"]),
                 assistant_ids=tuple(msg["assistant_ids"]),
                 delivery=delivery,
-                state=context.state,
             ),
             lease,
-        )
-    )
-    return turn, started, dispatched, delivery
-
-
-def _start_ws_challenge(
-    context: _WsContext,
-    kind: str,
-    body: dict,
-    lease: _TurnLease,
-) -> tuple[asyncio.Task, asyncio.Event, asyncio.Event, _RelayDelivery]:
-    started = asyncio.Event()
-    dispatched = asyncio.Event()
-    delivery = _RelayDelivery()
-    turn = asyncio.create_task(
-        _ws_run_admitted_challenge(
-            _WsTurn(
-                ws=context.ws,
-                team_id=context.team_id,
-                headers=context.headers,
-                text="",
-                started=started,
-                dispatched=dispatched,
-                delivery=delivery,
-                state=context.state,
-            ),
-            lease,
-            kind,
-            body,
         )
     )
     return turn, started, dispatched, delivery
@@ -341,16 +271,6 @@ async def _ws_stop_turn(ws: WebSocket, team_id: str, hdr: dict, state: dict) -> 
         return
     active = state.get("active")
     if active is None or active.task.done():
-        if state.get("pending_challenge_id") is not None:
-            state["stop_requested"] = True
-            status, data = await _driver_stop(team_id, hdr)
-            if status == 200 and data.get("requested"):
-                state["pending_challenge_id"] = None
-                state["pending_challenge_type"] = None
-                await ws.send_json({"type": "stopped"})
-            else:
-                await ws.send_json(_upstream_error_event(status if status != 200 else 409))
-            return
         await ws.send_json({"type": "error", "status": 409, "detail": "no active chat turn"})
         return
     state["stop_requested"] = True
@@ -387,57 +307,6 @@ def _track_ws_turn(
             state["active"] = None
 
     turn.add_done_callback(turn_done)
-
-
-async def _ws_dispatch_challenge(
-    ws: WebSocket,
-    team_id: str,
-    hdr: dict,
-    msg: dict,
-    state: dict,
-) -> None:
-    kind = "input" if msg.get("type") == "input-submit" else "approval"
-    expected_fields = {"type", "challenge_id", "answer"} if kind == "input" else {"type", "challenge_id", "approved"}
-    challenge_id = msg.get("challenge_id")
-    valid_answer = kind == "input" or msg.get("approved") is True
-    if (
-        set(msg) != expected_fields
-        or not isinstance(challenge_id, str)
-        or _CHALLENGE_ID_RE.fullmatch(challenge_id) is None
-        or not valid_answer
-    ):
-        await ws.send_json({"type": "error", "status": 400, "detail": f"invalid {kind} submission"})
-        return
-    active = state.get("active")
-    if active is not None and not active.task.done():
-        await ws.send_json(
-            {
-                "type": "error",
-                "status": 409,
-                "detail": "a chat operation is already active",
-            }
-        )
-        return
-    if state.get("pending_challenge_type") != kind or state.get("pending_challenge_id") != challenge_id:
-        await ws.send_json(
-            {
-                "type": "error",
-                "status": 409,
-                "detail": f"no matching {kind} challenge is pending",
-            }
-        )
-        return
-    lease = _TURN_ADMISSION.reserve()
-    if lease is None:
-        await ws.send_json(_relay_capacity_event())
-        return
-    body = {key: value for key, value in msg.items() if key != "type"}
-    try:
-        tracked = _start_ws_challenge(_WsContext(ws, team_id, hdr, state), kind, body, lease)
-    except BaseException:
-        lease.release()
-        raise
-    _track_ws_turn(state, tracked, lease)
 
 
 async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state: dict) -> None:
@@ -481,8 +350,6 @@ async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state:
             lease.release()
             raise
         _track_ws_turn(state, tracked, lease)
-    elif msg.get("type") in {"input-submit", "approval-submit"}:
-        await _ws_dispatch_challenge(ws, team_id, hdr, msg, state)
     elif msg.get("type") == "stop" and set(msg) == {"type"}:
         await _ws_stop_turn(ws, team_id, hdr, state)
     else:
@@ -543,8 +410,6 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
         state: dict = {
             "active": None,
             "stop_requested": False,
-            "pending_challenge_id": None,
-            "pending_challenge_type": None,
         }
         try:
             while True:
