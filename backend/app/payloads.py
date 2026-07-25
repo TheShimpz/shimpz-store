@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
-
 from fastapi import Request
 
-from app import chat_ws_common
+from app import strict_json
 
 
 class ClientPayloadError(Exception):
@@ -14,10 +12,6 @@ class ClientPayloadError(Exception):
         super().__init__(detail)
         self.status = status
         self.detail = detail
-
-
-unique_json_object = chat_ws_common.unique_json_object
-
 
 async def read_bounded_json(request: Request, max_bytes: int) -> dict:
     """Read one JSON object without ever buffering more than `max_bytes`."""
@@ -37,8 +31,8 @@ async def read_bounded_json(request: Request, max_bytes: int) -> dict:
             raise ClientPayloadError(413, f"request body too large (max {max_bytes} bytes)")
         body.extend(chunk)
     try:
-        payload = json.loads(body or b"{}", object_pairs_hook=unique_json_object)
-    except (json.JSONDecodeError, ValueError) as exc:
+        payload = strict_json.loads(body or b"{}")
+    except ValueError as exc:
         raise ClientPayloadError(400, "invalid JSON body") from exc
     if not isinstance(payload, dict):
         raise ClientPayloadError(400, "JSON body must be an object")

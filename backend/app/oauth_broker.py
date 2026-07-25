@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Protocol
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
+from app import strict_json
+
 NEURON_ORIGIN = "https://neuron.shimpz.com"
 LOCAL_CALLBACK = "http://127.0.0.1:7777/api/oauth/cloudflare/callback"
 HOSTED_ADMIN_CALLBACK = "https://local.shimpz.com/api/oauth/cloudflare/callback"
@@ -239,17 +241,9 @@ class NeuronOAuthClient:
         if response.status != 200 or response.content_type.lower().split(";", 1)[0].strip() != "application/json":
             raise OAuthBrokerError("Neuron OAuth operation failed")
 
-        def unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
-            result: dict[str, object] = {}
-            for key, value in pairs:
-                if key in result:
-                    raise OAuthBrokerError("Neuron OAuth response is invalid")
-                result[key] = value
-            return result
-
         try:
-            value = json.loads(response.body, object_pairs_hook=unique)
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            value = strict_json.loads(response.body)
+        except (UnicodeDecodeError, ValueError) as exc:
             raise OAuthBrokerError("Neuron OAuth response is invalid") from exc
         if not isinstance(value, dict):
             raise OAuthBrokerError("Neuron OAuth response is invalid")
