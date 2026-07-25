@@ -13,6 +13,7 @@ class ClientPayloadError(Exception):
         self.status = status
         self.detail = detail
 
+
 async def read_bounded_json(request: Request, max_bytes: int) -> dict:
     """Read one JSON object without ever buffering more than `max_bytes`."""
     raw_length = request.headers.get("content-length")
