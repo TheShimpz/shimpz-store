@@ -1,4 +1,4 @@
-"""Legacy Team App control routes."""
+"""Internal Team App lifecycle routes."""
 
 from __future__ import annotations
 
