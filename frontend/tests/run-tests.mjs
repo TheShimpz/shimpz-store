@@ -3,7 +3,10 @@ import { readdirSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { join } from "node:path";
 
-const workers = Math.max(1, Math.floor(availableParallelism() / 2));
+const processors = availableParallelism();
+const workers = process.env.GITHUB_ACTIONS === "true"
+  ? processors
+  : Math.max(1, Math.floor(processors / 2));
 const tests = readdirSync("tests")
   .filter((name) => name.endsWith(".test.js"))
   .sort()
