@@ -82,7 +82,6 @@ const D: Dict = {
     en: "Run a Shimpz Space on your own infrastructure, share Service capabilities, and keep Assistants isolated inside each Team.",
     pt: "Rode um Space Shimpz na sua própria infraestrutura, compartilhe capabilities de Services e mantenha Assistants isolados em cada Time.",
   },
-  explore_drivers: { en: "Explore Services", pt: "Explorar Services" },
   create_team: { en: "Create your Team", pt: "Criar seu Time" },
   team_title: { en: "Create a Team — Shimpz", pt: "Criar um Time — Shimpz" },
   team_list_title: { en: "Your Teams — Shimpz", pt: "Seus Times — Shimpz" },
