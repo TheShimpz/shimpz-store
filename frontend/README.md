@@ -1,42 +1,20 @@
-# sv
+# Shimpz Store frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This SvelteKit application renders the public Store and the Assistant Store embedded by the local
+Admin. The production build is static and is served by the Store backend.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Use Node.js 24 and the lockfile-pinned pnpm release from this directory:
 
 ```sh
-# recreate this project
-pnpm dlx sv@0.16.2 create --template minimal --types ts --install pnpm .
+corepack pnpm@11.9.0 install --frozen-lockfile
+corepack pnpm@11.9.0 test
+corepack pnpm@11.9.0 check
+corepack pnpm@11.9.0 build
 ```
 
-## Developing
+`test` runs the frontend contracts with half of the host processors. `check` validates the Svelte
+application, and `build` produces the static files copied into the production image. Run
+`corepack pnpm@11.9.0 dev` only for local development.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Rendered navigation, responsive behavior, and the Admin-to-Store handshake are covered by the
+umbrella repository's Playwright suite against built applications.
