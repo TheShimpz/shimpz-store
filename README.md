@@ -27,3 +27,18 @@ revoked by accounts.
 The production image runs non-root with a read-only filesystem, fixed dependency locks, and only the
 compiled frontend plus explicitly copied backend modules. Backend and frontend contracts live under
 their respective `tests/` directories; built-browser behavior is exercised from the umbrella repository.
+
+## Frontend commands
+
+Use Node.js 24 and the lockfile-pinned pnpm release:
+
+```sh
+cd frontend
+corepack pnpm@11.9.0 install --frozen-lockfile
+corepack pnpm@11.9.0 test
+corepack pnpm@11.9.0 check
+corepack pnpm@11.9.0 build
+```
+
+`test` runs the dependency-free frontend contracts with half of the host processors. `check` validates
+the Svelte application, and `build` produces the static application consumed by the FastAPI image.
