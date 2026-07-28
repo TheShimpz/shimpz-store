@@ -40,7 +40,7 @@ export const SERVICES: Service[] = [
       { en: "Dropped cleanly on uninstall", pt: "Removido de forma limpa ao desinstalar" },
     ],
     boundaries: [
-      { en: "Current internal App compatibility only; Assistant binding is not released", pt: "Somente compatibilidade interna de App; o binding para Assistant não foi lançado" },
+      { en: "Available through the current internal App lifecycle; Assistant binding is not released", pt: "Disponível pelo lifecycle interno atual de Apps; o binding para Assistant não foi lançado" },
       { en: "No platform or Postgres administrator credential enters a tenant workload", pt: "Nenhuma credencial da plataforma ou de administrador Postgres entra em um workload do tenant" },
     ],
   },
