@@ -50,16 +50,6 @@ function isTrustedAdminOrigin(value) {
   }
 }
 
-/** @param {string} referrer */
-export function resolveInstallParentOrigin(referrer) {
-  if (typeof referrer !== "string" || !referrer) throw new Error("missing local Admin referrer");
-  const parent = new URL(referrer);
-  if (parent.username || parent.password || !isTrustedAdminOrigin(parent.origin)) {
-    throw new Error("unexpected local Admin origin");
-  }
-  return parent.origin;
-}
-
 /**
  * Create the exact inert frame measurement sent to a local Admin parent.
  * @param {number} height
@@ -117,13 +107,9 @@ export function acceptAssistantStoreState(event, parentWindow, parentOrigin) {
     !parentWindow ||
     event.source !== parentWindow ||
     event.origin !== parentOrigin ||
-    typeof parentOrigin !== "string"
+    typeof parentOrigin !== "string" ||
+    !isTrustedAdminOrigin(parentOrigin)
   ) {
-    return null;
-  }
-  try {
-    if (resolveInstallParentOrigin(`${parentOrigin}/`) !== parentOrigin) return null;
-  } catch {
     return null;
   }
 
@@ -161,8 +147,7 @@ export function acceptAssistantStoreState(event, parentWindow, parentOrigin) {
 }
 
 /**
- * Resolve the only safe Store action from locally held inventory state. A legacy Admin remains
- * install-compatible, while an unavailable authoritative inventory can never become uninstall.
+ * Resolve the only safe Store action from locally held authoritative inventory state.
  * @param {unknown} status
  * @param {unknown} installed
  * @param {unknown} assistant
@@ -177,7 +162,6 @@ export function assistantStoreActionForState(status, installed, assistant) {
   ) {
     return "blocked";
   }
-  if (status === "legacy") return "install";
   if (status !== "ready") return "blocked";
   return installed.includes(assistant) ? "uninstall" : "install";
 }

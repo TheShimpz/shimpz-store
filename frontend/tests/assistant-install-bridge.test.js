@@ -20,50 +20,8 @@ import {
   createAssistantUninstallRequest,
   classifyAssistantInstallAck,
   classifyAssistantUninstallAck,
-  resolveInstallParentOrigin,
   shouldReconcileAssistantStoreAction,
 } from "../src/lib/assistantInstallBridge.js";
-
-test("resolves only exact named Admin origins from the iframe referrer", () => {
-  assert.equal(resolveInstallParentOrigin("http://127.0.0.1:7777/assistants/"), "http://127.0.0.1:7777");
-  assert.equal(resolveInstallParentOrigin("http://localhost:7777/assistants/"), "http://localhost:7777");
-  assert.equal(resolveInstallParentOrigin("http://[::1]:7777/assistants/"), "http://[::1]:7777");
-  assert.equal(resolveInstallParentOrigin("https://local.shimpz.com/assistants/"), "https://local.shimpz.com");
-
-  for (const referrer of [
-    "",
-    "https://127.0.0.1:7777/assistants/",
-    "http://127.0.0.2:7777/assistants/",
-    "http://localtest.me:7777/assistants/",
-    "http://captain@localhost:7777/assistants/",
-    "http://local.shimpz.com/assistants/",
-    "https://local.shimpz.com:444/assistants/",
-    "https://local.shimpz.com.evil.test/assistants/",
-    "not a URL",
-  ]) {
-    assert.throws(() => resolveInstallParentOrigin(referrer));
-  }
-});
-
-test("keeps the validated referrer fallback compatible with an Admin that has no context handshake", () => {
-  const parentWindow = {};
-  const parentOrigin = resolveInstallParentOrigin("http://localhost:7777/assistants/");
-  const data = {
-    type: ASSISTANT_INSTALL_ACK_TYPE,
-    version: 1,
-    assistant: "shimpz-cloudflare",
-    accepted: true,
-  };
-
-  assert.equal(parentOrigin, "http://localhost:7777");
-  assert.equal(
-    classifyAssistantInstallAck(
-      { source: parentWindow, origin: parentOrigin, data },
-      { parentWindow, parentOrigin, assistant: "shimpz-cloudflare" },
-    ),
-    "accepted",
-  );
-});
 
 test("creates the exact inert Assistant install request", () => {
   assert.deepEqual(createAssistantInstallRequest("shimpz-cloudflare"), {
@@ -114,8 +72,10 @@ test("accepts Store context only from the exact parent at a named Admin origin",
 
   const rejected = [
     { source: {}, origin: "http://localhost:7777", data },
+    { source: parentWindow, origin: "", data },
     { source: parentWindow, origin: "https://localhost:7777", data },
     { source: parentWindow, origin: "http://local.shimpz.com", data },
+    { source: parentWindow, origin: "http://localtest.me:7777", data },
     { source: parentWindow, origin: "https://local.shimpz.com:444", data },
     { source: parentWindow, origin: "https://local.shimpz.com.evil.test", data },
     { source: parentWindow, origin: "not a URL", data },
@@ -244,8 +204,7 @@ test("rejects untrusted, malformed, oversized, and state-bearing non-ready inven
   );
 });
 
-test("keeps an old Admin install-compatible and requires authoritative ready state for uninstall", () => {
-  assert.equal(assistantStoreActionForState("legacy", [], "shimpz-cloudflare"), "install");
+test("requires authoritative ready state for install and uninstall", () => {
   assert.equal(assistantStoreActionForState("ready", [], "shimpz-cloudflare"), "install");
   assert.equal(assistantStoreActionForState("ready", ["shimpz-cloudflare"], "shimpz-cloudflare"), "uninstall");
   assert.equal(assistantStoreActionForState("loading", ["shimpz-cloudflare"], "shimpz-cloudflare"), "blocked");
@@ -280,7 +239,7 @@ test("reconciles ACK and cancellation only against authoritative ready inventory
     shouldReconcileAssistantStoreAction("install", "error", "ready", [], "shimpz-cloudflare"),
     true,
   );
-  for (const status of ["legacy", "loading", "error"]) {
+  for (const status of ["loading", "error"]) {
     assert.equal(
       shouldReconcileAssistantStoreAction("uninstall", "sent", status, [], "shimpz-cloudflare"),
       false,

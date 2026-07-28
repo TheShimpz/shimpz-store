@@ -14,7 +14,6 @@
     createAssistantStoreFrameMessage,
     createAssistantInstallRequest,
     createAssistantUninstallRequest,
-    resolveInstallParentOrigin,
     shouldReconcileAssistantStoreAction,
   } from "$lib/assistantInstallBridge.js";
   import {
@@ -38,7 +37,7 @@
   type ActionKind = "install" | "uninstall";
   type ActionState = "idle" | "pending" | "sent" | "error";
   type ContextState = "connecting" | "ready" | "error";
-  type InventoryState = "legacy" | "loading" | "ready" | "error";
+  type InventoryState = "loading" | "ready" | "error";
   type CloudPhase = "checking" | "unauthenticated" | "empty" | "ready" | "error";
   type CloudInventoryState = "idle" | "loading" | "ready" | "error";
   type CloudTeam = { team_id: string; team_name: string };
@@ -52,7 +51,7 @@
   let actionStates = $state<Record<string, ActionState>>({});
   let actionKinds = $state<Record<string, ActionKind>>({});
   let contextState = $state<ContextState>("connecting");
-  let inventoryState = $state<InventoryState>("legacy");
+  let inventoryState = $state<InventoryState>("loading");
   let installedAssistantIds = $state<string[]>([]);
   let parentOrigin = $state("");
   let storeElement = $state<HTMLElement>();
@@ -484,14 +483,6 @@
     window.addEventListener("message", receiveStoreMessage);
     let mounted = true;
     let resizeObserver: ResizeObserver | undefined;
-    // Rolling-deployment compatibility only: new Admin images establish the preferred explicit
-    // context handshake; old images still provide a strictly validated loopback referrer.
-    try {
-      parentOrigin = resolveInstallParentOrigin(document.referrer);
-      contextState = "ready";
-    } catch {
-      contextState = "connecting";
-    }
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(scheduleFrameMeasurement);
