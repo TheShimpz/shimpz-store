@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { t, creatorOf, type Driver, type Locale } from "$lib/catalog";
+  import { t, creatorOf, type Locale, type Service } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import ServiceIcon from "./ServiceIcon.svelte";
   import CreatorTag from "./CreatorTag.svelte";
 
-  let { driver, lang }: { driver: Driver; lang: Locale } = $props();
+  let { driver, lang }: { driver: Service; lang: Locale } = $props();
 </script>
 
 <div class="card relative flex flex-col">

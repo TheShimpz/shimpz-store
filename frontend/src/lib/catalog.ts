@@ -6,14 +6,14 @@ export type I18n = Record<Locale, string>;
 export const t = (v: I18n, l: Locale): string => v[l] ?? v.en;
 
 // ── Services (audited platform capability inventory) ────────────────────────────────────────────
-export type DriverCategory = "Data" | "Network" | "Dev" | "Automation";
+type ServiceCategory = "Data" | "Network" | "Dev" | "Automation";
 
 export type ServiceIconName = "database";
 
-export interface Driver {
+export interface Service {
   id: string;
   name: string; // brand/technical name — not translated
-  category: DriverCategory;
+  category: ServiceCategory;
   icon: ServiceIconName; // semantic Shimpz glyph; rendered as a code-native SVG
   brand?: string; // official BRAND COLOR (recognition) for third-party Services — not a reproduced logo
   summary: I18n; // one line, human-readable
@@ -23,7 +23,7 @@ export interface Driver {
   creator?: string; // Creator handle — defaults to the platform owner (see DEFAULT_CREATOR)
 }
 
-export const DRIVERS: Driver[] = [
+export const SERVICES: Service[] = [
   {
     id: "postgres", name: "Postgres", category: "Data", icon: "database", brand: "#336791",
     summary: { en: "Provision an isolated database for one admitted workload.", pt: "Provisiona um banco isolado para um workload admitido." },
@@ -46,13 +46,7 @@ export const DRIVERS: Driver[] = [
   },
 ];
 
-export const DRIVER_BY_ID = new Map(DRIVERS.map((d) => [d.id, d]));
-
-// Canonical public names. Driver-named exports remain compatibility aliases for existing runtime
-// payloads and routes while the migration happens without a breaking wire-contract rename.
-export type Service = Driver;
-export const SERVICES: Service[] = DRIVERS;
-export const SERVICE_BY_ID = DRIVER_BY_ID;
+export const SERVICE_BY_ID = new Map(SERVICES.map((service) => [service.id, service]));
 
 // ── Assistants (public presentation; execution policy remains controller-owned) ─────────────────
 // The Store intentionally exposes product facts only. Image references, digests, ports and runtime
