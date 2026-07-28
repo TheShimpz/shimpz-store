@@ -1,6 +1,4 @@
-// The Shimpz capability catalog is the source of truth for public Service documentation. The legacy
-// App shape at the end of this file is a separate, neutral runtime-policy inventory contract. It is
-// not consumed by rendered frontend code and does not describe or publish products.
+// The Shimpz capability catalog is the source of truth for public Service documentation.
 
 export const LOCALES = ["en", "pt"] as const;
 export type Locale = (typeof LOCALES)[number];
@@ -30,8 +28,8 @@ export const DRIVERS: Driver[] = [
     id: "postgres", name: "Postgres", category: "Data", icon: "database", brand: "#336791",
     summary: { en: "Provision an isolated database for one admitted workload.", pt: "Provisiona um banco isolado para um workload admitido." },
     blurb: {
-      en: "The current internal lifecycle can provision one least-privilege Postgres database (proj_<name>) per admitted workload. Assistant Spec v2 can request the Service operation, but the generic runtime binding is not released yet.",
-      pt: "O lifecycle interno atual pode provisionar um banco Postgres de menor privilégio (proj_<name>) por workload admitido. A Assistant Spec v2 pode solicitar a operação do Service, mas o binding genérico de runtime ainda não foi lançado.",
+      en: "The current internal lifecycle can provision one least-privilege Postgres database (proj_<name>) per admitted workload. Assistant Spec v1 can request the Service operation, but the generic runtime binding is not released yet.",
+      pt: "O lifecycle interno atual pode provisionar um banco Postgres de menor privilégio (proj_<name>) por workload admitido. A Assistant Spec v1 pode solicitar a operação do Service, mas o binding genérico de runtime ainda não foi lançado.",
     },
     features: [
       { en: "A dedicated database (proj_<name>), provisioned on install", pt: "Um banco dedicado (proj_<name>), provisionado na instalação" },
@@ -60,6 +58,8 @@ export const SERVICE_BY_ID = DRIVER_BY_ID;
 // The Store intentionally exposes product facts only. Image references, digests, ports and runtime
 // privileges never enter browser code; the Team controller resolves an ID against its own trusted
 // registry. This keeps the public and embedded Store on one codebase without making it an authority.
+export type Arch = "amd64" | "arm64";
+
 export interface AssistantPower {
   id: string;
   name: I18n;
@@ -132,24 +132,6 @@ export const ASSISTANT_CATALOG: AssistantListing[] = [
 
 export const ASSISTANT_BY_ID = new Map(ASSISTANT_CATALOG.map((assistant) => [assistant.id, assistant]));
 
-// ── Apps (legacy internal operational inventory only) ───────────────────────────────────────────
-// This type deliberately contains only deployment-policy facts. It has no public presentation,
-// publisher, pricing, review, or route metadata, and no rendered component imports APPS. Adding a
-// trusted registry entry here therefore cannot silently publish a product surface or an install CTA.
-export type Arch = "amd64" | "arm64";
-
-export interface App {
-  id: string;
-  permissions: string[]; // driver ids it needs
-  dependsOn: string[]; // app ids it needs installed
-  archs: Arch[];
-}
-
-// Runtime status and installed-Assistant controls come from the Team controller API.
-export const APPS: App[] = [];
-export type Assistant = App;
-export const ASSISTANTS: Assistant[] = APPS;
-
 // ── Creators ─────────────────────────────────────────────────────────────────────────
 // A Creator owns platform artifacts such as Services. GitHub identity is explicit catalog metadata;
 // the handle is the profile slug. Platform-owned artifacts default to DEFAULT_CREATOR.
@@ -176,5 +158,4 @@ export const CREATORS: Creator[] = [
 ];
 
 export const CREATOR_BY_HANDLE = new Map(CREATORS.map((c) => [c.handle, c]));
-export const driversByCreator = (handle: string): Driver[] => DRIVERS.filter((d) => creatorOf(d) === handle);
 export const servicesByCreator = (handle: string): Service[] => SERVICES.filter((service) => creatorOf(service) === handle);
