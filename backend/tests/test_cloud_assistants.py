@@ -233,7 +233,7 @@ def test_cloud_assistant_install_rejects_origin_content_type_shape_and_unrelease
         _assert_private(response)
 
 
-def test_legacy_app_install_cannot_bypass_origin_json_or_exact_body_contract():
+def test_retired_app_field_cannot_bypass_origin_json_or_exact_body_contract():
     cases = (
         ({"Content-Type": "text/plain"}, b'{"app":"shimpz-cloudflare"}', 403),
         (

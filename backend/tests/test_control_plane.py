@@ -187,11 +187,11 @@ def test_model_credentials_accept_only_generic_provider_api_keys():
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         valid = client.post("/api/brains/anthropic", json={"auth_type": "api_key", "secret": "secret-key"})
         oauth = client.post("/api/brains/anthropic", json={"auth_type": "oauth", "secret": "oauth-token"})
-        legacy = client.post("/api/brains/codex", json={"auth_type": "api_key", "secret": "secret-key"})
+        retired_provider = client.post("/api/brains/codex", json={"auth_type": "api_key", "secret": "secret-key"})
 
     assert valid.status_code == 200
     assert valid.json() == {"provider": "anthropic", "auth_type": "api_key", "status": "configured"}
-    assert oauth.status_code == legacy.status_code == 400
+    assert oauth.status_code == retired_provider.status_code == 400
     assert [call for call in calls if call[1] == "/v1/brains/upsert"] == [
         (
             "POST",
@@ -213,12 +213,12 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
             "/api/teams",
             json={"team_name": "Astra", "provider": "openai", "model": "gpt-5.5"},
         )
-        legacy = client.post(
+        unsupported_payload = client.post(
             "/api/teams",
-            json={"team_name": "Legacy", "provider": "openai", "model": "gpt-5.5", "brain": "codex"},
+            json={"team_name": "Rejected", "provider": "openai", "model": "gpt-5.5", "brain": "codex"},
         )
     assert response.status_code == 201
-    assert legacy.status_code == 400
+    assert unsupported_payload.status_code == 400
     assert [
         call for call in calls if call[0] == "POST" and call[1].startswith("/v1/teams/") and call[1].endswith("/create")
     ] == [

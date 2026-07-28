@@ -389,7 +389,7 @@ def test_websocket_rejects_retired_answer_frames():
             websocket,
             "test-team",
             {},
-            {"type": "answer", "rid": "legacy", "answer": "yes"},
+            {"type": "answer", "rid": "answer-1", "answer": "yes"},
             {"active": None},
         )
         assert json.loads(sent[-1]["text"]) == {
@@ -581,7 +581,7 @@ def test_duplicate_stop_then_disconnect_requests_provider_stop_once(monkeypatch)
 @pytest.mark.parametrize(
     "event",
     [
-        {"type": "text", "text": "legacy"},
+        {"type": "text", "text": "nonterminal"},
         _done("invalid Team identity", team_name=" Marketing "),
     ],
 )
@@ -840,7 +840,7 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
         {"type": "stopped", "requested": True},
     ],
 )
-def test_terminal_event_contract_rejects_legacy_extra_and_unbounded_values(event: dict):
+def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(event: dict):
     assert _validated_terminal_event(event, TEST_TEAM_ID) is None
 
 
