@@ -767,13 +767,17 @@
     line-clamp: 2;
   }
   .assistant-action {
-    display: none;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
     border-top: 1px solid var(--color-border);
     padding: 0.75rem 1rem 1rem;
   }
   .assistant-card:hover .assistant-action,
   .assistant-card:focus-within .assistant-action {
-    display: block;
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
   }
   .install-action { width: 100%; min-height: 2.5rem; border: 0; padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.62rem; }
   .install-status { margin: 0.55rem 0 0; color: var(--color-green); font-size: 0.68rem; line-height: 1.45; }
@@ -869,7 +873,7 @@
     .context-error { align-items: stretch; flex-direction: column; }
   }
   @media (hover: none) {
-    .assistant-action { display: block; }
+    .assistant-action { position: static; opacity: 1; pointer-events: auto; }
   }
   @media (prefers-reduced-motion: reduce) {
     .assistant-card { transition: none; }
