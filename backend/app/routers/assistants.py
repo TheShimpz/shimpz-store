@@ -76,12 +76,7 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
 
 @router.post("/api/teams/{team_id}/assistants")
 async def cloud_assistant_install(request: Request, team_id: str) -> JSONResponse:
-    result = await app_lifecycle.install(
-        request,
-        team_id,
-        "assistant",
-        released=RELEASED_CLOUD_ASSISTANTS,
-    )
+    result = await app_lifecycle.install_assistant_publication(request, team_id)
     log.info(
         "assistant_install",
         account=result.account_id,

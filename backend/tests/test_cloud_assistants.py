@@ -58,7 +58,10 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
             else:
                 self._json(401, {"detail": "invalid token"})
             return
-        if self.path == "/v1/teams/team_one/apps":
+        if self.path in {
+            "/v1/teams/team_one/apps",
+            "/v1/teams/team_one/assistants",
+        }:
             self._json(
                 self.app_status,
                 {"installed": True} if self.app_status == 200 else {"detail": "blocked"},
@@ -129,7 +132,9 @@ def test_cloud_assistant_lifecycle_requires_authentication_before_upstream():
             client.get("/api/teams/team_one/chat/assistants"),
             client.post(
                 "/api/teams/team_one/assistants",
-                content=b'{"assistant":"shimpz-cloudflare"}',
+                content=b'{"assistant_id":"shimpz-cloudflare","source_digest":"sha256:'
+                + b'a' * 64
+                + b'"}',
                 headers=_mutation_headers(),
             ),
             client.delete(
@@ -190,37 +195,43 @@ def test_cloud_chat_scope_fails_closed_on_ambiguous_running_inventory():
     _assert_private(response)
 
 
-def test_cloud_assistant_install_rejects_origin_content_type_shape_and_unreleased_ids_before_team():
+def test_cloud_assistant_install_rejects_origin_content_type_and_shape_before_team():
+    digest = b"sha256:" + b"a" * 64
     cases = (
-        ("/api/teams/team_one/assistants", {}, b'{"assistant":"shimpz-cloudflare"}', 403),
+        (
+            "/api/teams/team_one/assistants",
+            {},
+            b'{"assistant_id":"shimpz-cloudflare","source_digest":"' + digest + b'"}',
+            403,
+        ),
         (
             "/api/teams/team_one/assistants",
             {"Origin": "https://store.shimpz.com", "Content-Type": "application/json"},
-            b'{"assistant":"shimpz-cloudflare"}',
+            b'{"assistant_id":"shimpz-cloudflare","source_digest":"' + digest + b'"}',
             403,
         ),
         (
             "/api/teams/team_one/assistants",
             {"Origin": "https://shimpz.com", "Content-Type": "text/plain"},
-            b'{"assistant":"shimpz-cloudflare"}',
+            b'{"assistant_id":"shimpz-cloudflare","source_digest":"' + digest + b'"}',
             415,
         ),
         (
             "/api/teams/team_one/assistants",
             _mutation_headers(),
-            b'{"assistant":"shimpz-cloudflare","image":"attacker/image"}',
+            b'{"assistant_id":"shimpz-cloudflare","source_digest":"' + digest + b'","image":"attacker/image"}',
             400,
         ),
         (
             "/api/teams/team_one/assistants",
             _mutation_headers(),
-            b'{"assistant":"unknown-assistant"}',
-            404,
+            b'{"assistant_id":"unknown-assistant","source_digest":"sha256:bad"}',
+            400,
         ),
         (
             "/api/teams/TEAM_ONE/assistants",
             _mutation_headers(),
-            b'{"assistant":"shimpz-cloudflare"}',
+            b'{"assistant_id":"shimpz-cloudflare","source_digest":"' + digest + b'"}',
             400,
         ),
     )
@@ -228,7 +239,7 @@ def test_cloud_assistant_install_rejects_origin_content_type_shape_and_unrelease
         _authenticate(client)
         responses = [client.post(path, content=body, headers=headers) for path, headers, body, _ in cases]
     assert [response.status_code for response in responses] == [case[3] for case in cases]
-    assert not any(path.endswith("/apps") for _method, path, _body, _token in calls)
+    assert not any(path.endswith("/assistants") for _method, path, _body, _token in calls)
     for response in responses:
         _assert_private(response)
 
@@ -293,11 +304,15 @@ def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_be
 
 
 def test_cloud_assistant_mutations_translate_only_identity_and_refreshable_acceptance():
+    source_digest = f"sha256:{'a' * 64}"
     with _assistant_control_plane() as calls, TestClient(main.app) as client:
         _authenticate(client)
         installed = client.post(
             "/api/teams/team_one/assistants",
-            content=b'{"assistant":"shimpz-cloudflare"}',
+            json={
+                "assistant_id": "shimpz-cloudflare",
+                "source_digest": source_digest,
+            },
             headers=_mutation_headers(),
         )
         removed = client.delete(
@@ -316,8 +331,11 @@ def test_cloud_assistant_mutations_translate_only_identity_and_refreshable_accep
         _assert_private(response)
     assert (
         "POST",
-        "/v1/teams/team_one/apps",
-        {"app": "shimpz-cloudflare"},
+        "/v1/teams/team_one/assistants",
+        {
+            "assistant_id": "shimpz-cloudflare",
+            "source_digest": source_digest,
+        },
         "valid-token",
     ) in calls
     assert (
@@ -330,12 +348,16 @@ def test_cloud_assistant_mutations_translate_only_identity_and_refreshable_accep
 
 
 def test_cloud_assistant_upstream_failures_remain_private_and_typed():
+    source_digest = f"sha256:{'a' * 64}"
     with _assistant_control_plane(app_status=503), TestClient(main.app) as client:
         _authenticate(client)
         inventory = client.get("/api/teams/team_one/assistants")
         install = client.post(
             "/api/teams/team_one/assistants",
-            content=b'{"assistant":"shimpz-cloudflare"}',
+            json={
+                "assistant_id": "shimpz-cloudflare",
+                "source_digest": source_digest,
+            },
             headers=_mutation_headers(),
         )
         uninstall = client.delete(

@@ -65,6 +65,38 @@ async def install(
     return AppMutation(account_id, canonical_team, app_id, status, data)
 
 
+async def install_assistant_publication(request: Request, team_id: str) -> AppMutation:
+    token, account_id, _ = await authn.authed_account_bounded(request)
+    if not token:
+        raise ClientPayloadError(401, "not authenticated")
+    if not mutation_origin_allowed(request.headers.get("origin")):
+        raise ClientPayloadError(403, "forbidden origin")
+    if request.headers.get("content-type", "").strip().lower() != "application/json":
+        raise ClientPayloadError(415, "Content-Type must be application/json")
+    payload = await read_bounded_json(request, MAX_TEAM_INSTALL_BODY_BYTES)
+    if set(payload) != {"assistant_id", "source_digest"}:
+        raise ClientPayloadError(400, "body must contain only assistant_id and source_digest")
+    canonical_team = team_contract.canonical_team_id(team_id)
+    assistant_id = team_contract.canonical_assistant_id(payload["assistant_id"])
+    source_digest = team_contract.canonical_source_digest(payload["source_digest"])
+    if canonical_team is None:
+        raise ClientPayloadError(400, "bad team id")
+    if assistant_id is None:
+        raise ClientPayloadError(400, "bad Assistant id")
+    if source_digest is None:
+        raise ClientPayloadError(400, "bad source digest")
+    status, data = await call_bounded(
+        CONTROL_EXECUTOR,
+        config.TEAM_URL,
+        "POST",
+        f"/v1/teams/{canonical_team}/assistants",
+        {"assistant_id": assistant_id, "source_digest": source_digest},
+        {"X-Shimpz-Account": token},
+        timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
+    )
+    return AppMutation(account_id, canonical_team, assistant_id, status, data)
+
+
 async def uninstall(
     request: Request,
     team_id: str,
