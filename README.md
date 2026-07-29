@@ -6,7 +6,7 @@ release discovery and installation, hosted App inventory, provider/model selecti
 the strict `shimpz.chat.v3` WebSocket surface.
 
 The Store is an unprivileged gateway, not a controller. It has no Docker socket, provider admin key, or
-Team-team bearer. It forwards the authenticated account token to the internal accounts and Team
+Team bearer. It forwards the authenticated account token to the internal accounts and Team
 controller services, which enforce account/Team ownership and perform privileged work. Its one
 file-backed service capability can only finalize an exact model-credential generation already being
 revoked by accounts.
