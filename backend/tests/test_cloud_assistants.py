@@ -46,7 +46,7 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
         self.calls.append(("POST", self.path, body, token))
         if self.path == "/v1/verify":
             if body.get("token") == "valid-token":
-                self._json(200, {"account_id": "account-1", "username": "captain"})
+                self._json(200, {"account_id": "account-1", "username": "account-user"})
             else:
                 self._json(401, {"detail": "invalid token"})
             return

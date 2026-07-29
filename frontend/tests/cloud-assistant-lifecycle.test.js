@@ -60,7 +60,7 @@ test("projects a bounded canonical cloud Team selector", () => {
 });
 
 test("accepts only an explicit account state and exact bounded Assistant inventory", () => {
-  assert.deepEqual(parseCloudAccount({ authenticated: true, username: "captain" }), { authenticated: true });
+  assert.deepEqual(parseCloudAccount({ authenticated: true, username: "account-user" }), { authenticated: true });
   assert.deepEqual(parseCloudAssistantInventory({ installed: ["shimpz-cloudflare"] }), ["shimpz-cloudflare"]);
   for (const value of [null, {}, { authenticated: "yes" }]) assert.throws(() => parseCloudAccount(value));
   for (const value of [

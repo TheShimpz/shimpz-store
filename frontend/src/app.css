@@ -268,7 +268,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .md hr { border: 0; border-top: 1px solid var(--color-border); margin: 0.8rem 0; }
 
   /* chat bubbles — chamfered to match the HUD language (.panel/.card/.field are all chamfered).
-     .bubble = captain (outgoing, notch bottom-right); .bubble-in = brain/ask (notch bottom-left). */
+     .bubble = user (outgoing, notch bottom-right); .bubble-in = brain/ask (notch bottom-left). */
   .bubble { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%); }
   .bubble-in { clip-path: polygon(0 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px)); }
 

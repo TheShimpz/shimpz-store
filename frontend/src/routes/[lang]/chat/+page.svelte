@@ -231,7 +231,7 @@
     inferenceSaved = "";
   }
 
-  // Auto-follow only when the Captain is already at the bottom; never yank them while reading.
+  // Auto-follow only when the user is already at the bottom; never yank them while reading.
   let stick = $state(true);
 
   function onThreadScroll() {
@@ -416,7 +416,7 @@
     busy = true;
     stopping = false;
     status = tr("chat_thinking", lang);
-    messages.push({ role: "captain", text, files: attachedFiles.map((file) => file.name) });
+    messages.push({ role: "user", text, files: attachedFiles.map((file) => file.name) });
     attachedFileIds = [];
     stick = true; // sending re-engages auto-follow
     scrollDown(true);
@@ -692,8 +692,8 @@
           tabindex="-1"
           class="conversation-thread">
           {#each messages as m, i (i)}
-            {#if m.role === "captain"}
-              <div class="message captain-message">
+            {#if m.role === "user"}
+              <div class="message user-message">
                 <span>{m.text}</span>
                 {#if m.files?.length}
                   <span class="message-files">
@@ -1039,7 +1039,7 @@
     overflow-wrap: anywhere;
   }
 
-  .captain-message {
+  .user-message {
     display: grid;
     gap: 0.55rem;
     align-self: flex-end;

@@ -720,7 +720,7 @@ def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
     with TestClient(app) as client:
         response = client.post(
             "/api/signup",
-            json={"username": "captain", "password": "correct horse battery staple", "github": "ignored"},
+            json={"username": "account-user", "password": "correct horse battery staple", "github": "ignored"},
         )
 
     assert response.status_code == 400
@@ -728,7 +728,7 @@ def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
     assert len(forwarded) == 1
     base, method, path, payload, extra, timeout = forwarded[0]
     assert (base, method, path) == (authn.ACCOUNTS_URL, "POST", "/v1/signup")
-    assert payload == {"username": "captain", "password": "correct horse battery staple"}
+    assert payload == {"username": "account-user", "password": "correct horse battery staple"}
     assert set(extra) == {"X-Forwarded-For"}
     assert timeout == 30
 

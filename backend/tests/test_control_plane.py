@@ -80,7 +80,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(length) or b"{}")
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
-            self._json(200, {"account_id": "account-1", "username": "captain"})
+            self._json(200, {"account_id": "account-1", "username": "account-user"})
         elif self.path == "/v1/brains/upsert":
             self._json(
                 200,

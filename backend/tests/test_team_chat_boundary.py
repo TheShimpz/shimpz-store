@@ -67,7 +67,7 @@ class _ControlPlaneHandler(BaseHTTPRequestHandler):
             body = self._body()
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
-            self._json(200, {"account_id": "account-one", "username": "captain"})
+            self._json(200, {"account_id": "account-one", "username": "account-user"})
         elif self.path == "/v1/teams/team_one/files":
             self._json(
                 200,
