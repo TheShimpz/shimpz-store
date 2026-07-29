@@ -245,7 +245,7 @@
         <small>{content.assistantSafety}</small>
         <div class="card-actions">
           <a class="btn-primary card-primary" href={u.assistants(lang)}>{content.useAssistant}</a>
-          <a class="btn-ghost card-secondary" href={`${u.assistants(lang)}?assistant=shimpz-cloudflare`}>{content.addAssistant}</a>
+          <a class="btn-ghost card-secondary" href={u.assistants(lang)}>{content.addAssistant}</a>
         </div>
       </article>
 

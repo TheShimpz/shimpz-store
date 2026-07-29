@@ -23,21 +23,25 @@ import {
   shouldReconcileAssistantStoreAction,
 } from "../src/lib/assistantInstallBridge.js";
 
+const SOURCE_DIGEST = `sha256:${"a".repeat(64)}`;
+
 test("creates the exact inert Assistant install request", () => {
-  assert.deepEqual(createAssistantInstallRequest("shimpz-cloudflare"), {
+  assert.deepEqual(createAssistantInstallRequest("example-assistant", SOURCE_DIGEST), {
     type: "shimpz:assistant-install",
-    version: 1,
-    assistant: "shimpz-cloudflare",
+    version: 2,
+    assistant: "example-assistant",
+    source_digest: SOURCE_DIGEST,
   });
   for (const assistant of ["", "Hello-Pulse", "../hello", "shimpz_assistant", "a".repeat(81)]) {
-    assert.throws(() => createAssistantInstallRequest(assistant));
+    assert.throws(() => createAssistantInstallRequest(assistant, SOURCE_DIGEST));
   }
+  assert.throws(() => createAssistantInstallRequest("example-assistant", "sha256:bad"));
 });
 
 test("creates the exact inert Assistant uninstall request", () => {
   assert.deepEqual(createAssistantUninstallRequest("shimpz-cloudflare"), {
     type: "shimpz:assistant-uninstall",
-    version: 1,
+    version: 2,
     assistant: "shimpz-cloudflare",
   });
   for (const assistant of ["", "Hello-Pulse", "../hello", "shimpz_assistant", "a".repeat(81)]) {
@@ -48,7 +52,7 @@ test("creates the exact inert Assistant uninstall request", () => {
 test("creates one exact bounded integer frame measurement", () => {
   assert.deepEqual(createAssistantStoreFrameMessage(719.2), {
     type: ASSISTANT_STORE_FRAME_TYPE,
-    version: 1,
+    version: 2,
     height: 720,
   });
   assert.equal(createAssistantStoreFrameMessage(1).height, ASSISTANT_STORE_FRAME_MIN_HEIGHT);
@@ -60,7 +64,7 @@ test("creates one exact bounded integer frame measurement", () => {
 
 test("accepts Store context only from the exact parent at a named Admin origin", () => {
   const parentWindow = {};
-  const data = { type: ASSISTANT_STORE_CONTEXT_TYPE, version: 1 };
+  const data = { type: ASSISTANT_STORE_CONTEXT_TYPE, version: 2 };
   for (const origin of [
     "http://127.0.0.1:7777",
     "http://localhost:7777",
@@ -83,8 +87,8 @@ test("accepts Store context only from the exact parent at a named Admin origin",
     { source: parentWindow, origin: "http://captain@localhost:7777", data },
     { source: parentWindow, origin: "http://localhost:7777/path", data },
     { source: parentWindow, origin: "http://localhost:7777", data: { ...data, extra: true } },
-    { source: parentWindow, origin: "http://localhost:7777", data: { ...data, version: 2 } },
-    { source: parentWindow, origin: "http://localhost:7777", data: { type: ASSISTANT_STORE_FRAME_TYPE, version: 1 } },
+    { source: parentWindow, origin: "http://localhost:7777", data: { ...data, version: 1 } },
+    { source: parentWindow, origin: "http://localhost:7777", data: { type: ASSISTANT_STORE_FRAME_TYPE, version: 2 } },
   ];
   for (const event of rejected) assert.equal(acceptAssistantStoreContext(event, parentWindow), null);
   assert.equal(acceptAssistantStoreContext(null, parentWindow), null);
@@ -96,7 +100,7 @@ test("accepts only exact bounded installed-Assistant state from the loopback par
   const parentOrigin = "http://localhost:7777";
   const ready = {
     type: ASSISTANT_STORE_STATE_TYPE,
-    version: 1,
+    version: 2,
     status: "ready",
     installed: ["shimpz-cloudflare", "salesnator"],
   };
@@ -136,7 +140,7 @@ test("accepts bounded installed-Assistant state from the named hosted Admin", ()
   const parentOrigin = "https://local.shimpz.com";
   const ready = {
     type: ASSISTANT_STORE_STATE_TYPE,
-    version: 1,
+    version: 2,
     status: "ready",
     installed: ["shimpz-cloudflare"],
   };
@@ -159,7 +163,7 @@ test("rejects untrusted, malformed, oversized, and state-bearing non-ready inven
     origin: parentOrigin,
     data: {
       type: ASSISTANT_STORE_STATE_TYPE,
-      version: 1,
+      version: 2,
       status: "ready",
       installed: ["shimpz-cloudflare"],
     },
@@ -173,7 +177,7 @@ test("rejects untrusted, malformed, oversized, and state-bearing non-ready inven
     { ...exact, origin: "http://localhost:7777" },
     { ...exact, data: { ...exact.data, type: "shimpz:assistant-store-inventory" } },
     { ...exact, data: { ...exact.data, version: "1" } },
-    { ...exact, data: { ...exact.data, version: 2 } },
+    { ...exact, data: { ...exact.data, version: 1 } },
     { ...exact, data: { ...exact.data, status: "idle" } },
     { ...exact, data: { ...exact.data, installed: null } },
     { ...exact, data: { ...exact.data, installed: "shimpz-cloudflare" } },
@@ -252,7 +256,7 @@ test("accepts only the exact generic ACK from the exact parent source and origin
   const parentOrigin = "http://127.0.0.1:7777";
   const data = {
     type: ASSISTANT_INSTALL_ACK_TYPE,
-    version: 1,
+    version: 2,
     assistant: "shimpz-cloudflare",
     accepted: true,
   };
@@ -279,13 +283,13 @@ test("rejects every malformed trusted ACK and defines a bounded wait", () => {
   const context = { parentWindow, parentOrigin, assistant: "shimpz-cloudflare" };
   const exact = {
     type: ASSISTANT_INSTALL_ACK_TYPE,
-    version: 1,
+    version: 2,
     assistant: "shimpz-cloudflare",
     accepted: true,
   };
   const cases = [
     { ...exact, version: "1" },
-    { ...exact, version: 2 },
+    { ...exact, version: 1 },
     { ...exact, assistant: "salesnator" },
     { ...exact, accepted: false },
     { ...exact, team_id: "private_team" },
@@ -303,7 +307,7 @@ test("accepts only the exact uninstall ACK and never confuses it with install", 
   const context = { parentWindow, parentOrigin, assistant: "shimpz-cloudflare" };
   const exact = {
     type: ASSISTANT_UNINSTALL_ACK_TYPE,
-    version: 1,
+    version: 2,
     assistant: "shimpz-cloudflare",
     accepted: true,
   };
@@ -320,7 +324,7 @@ test("accepts only the exact uninstall ACK and never confuses it with install", 
     "ignore",
   );
   for (const data of [
-    { ...exact, version: 2 },
+    { ...exact, version: 1 },
     { ...exact, assistant: "salesnator" },
     { ...exact, accepted: false },
     { ...exact, installed: false },

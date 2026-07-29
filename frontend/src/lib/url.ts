@@ -1,5 +1,5 @@
 // Public URLs for the implemented product and platform-capability surfaces.
-import type { AssistantListing, Locale, Service } from "$lib/catalog";
+import type { Locale, Service } from "$lib/catalog";
 
 export const SITE = "https://shimpz.com";
 
@@ -8,7 +8,6 @@ export const u = {
   services: (l: Locale) => `/${l}/services`,
   service: (l: Locale, service: Service) => `/${l}/services/${service.id}`,
   assistants: (l: Locale) => `/${l}/assistants`,
-  assistant: (l: Locale, assistant: AssistantListing) => `/${l}/assistants/${assistant.id}`,
   team: (l: Locale) => `/${l}/team`,
   chat: (l: Locale, teamId?: string) =>
     `/${l}/chat${teamId ? `?team=${encodeURIComponent(teamId)}` : ""}`,

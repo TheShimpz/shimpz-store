@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
-  import { ASSISTANT_CATALOG, t, type Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
-  import { u } from "$lib/url";
+  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import {
     ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
     acceptAssistantStoreContext,
@@ -41,6 +41,14 @@
   type CloudPhase = "checking" | "unauthenticated" | "empty" | "ready" | "error";
   type CloudInventoryState = "idle" | "loading" | "ready" | "error";
   type CloudTeam = { team_id: string; team_name: string };
+  type CatalogAssistant = {
+    id: string;
+    name: string;
+    summary: string;
+    version: string;
+    creators: readonly string[];
+    sourceDigest: string;
+  };
   type PendingAction = {
     action: ActionKind;
     parentOrigin: string;
@@ -68,6 +76,8 @@
   let cloudFeedback = $state<"" | "success" | "error">("");
   let cloudGeneration = 0;
   let requestedAssistant = $state("");
+  let assistantCatalog = $state<readonly CatalogAssistant[]>([]);
+  let catalogState = $state<"loading" | "ready" | "error">("loading");
   const cloudTargetTeam = $derived(
     cloudTeams.find((team) => team.team_id === cloudSelectedTeam),
   );
@@ -108,26 +118,27 @@
     return assistantStoreActionForState(inventoryState, installedAssistantIds, assistant) === "blocked";
   }
 
-  function requestAssistantAction(assistant: string) {
-    if (pendingActions.has(assistant)) return;
-    const resolvedAction = assistantStoreActionForState(inventoryState, installedAssistantIds, assistant);
+  function requestAssistantAction(assistant: CatalogAssistant) {
+    const assistantId = assistant.id;
+    if (pendingActions.has(assistantId)) return;
+    const resolvedAction = assistantStoreActionForState(inventoryState, installedAssistantIds, assistantId);
     if (resolvedAction === "blocked") return;
     const action: ActionKind = resolvedAction;
     try {
       if (window.parent === window) throw new Error("not embedded");
       if (!parentOrigin) throw new Error("local Admin context unavailable");
       const request = action === "uninstall"
-        ? createAssistantUninstallRequest(assistant)
-        : createAssistantInstallRequest(assistant);
-      setActionState(assistant, action, "pending");
+        ? createAssistantUninstallRequest(assistantId)
+        : createAssistantInstallRequest(assistantId, assistant.sourceDigest);
+      setActionState(assistantId, action, "pending");
       window.parent.postMessage(request, parentOrigin);
       const timeout = setTimeout(
-        () => finishActionRequest(assistant, "error"),
+        () => finishActionRequest(assistantId, "error"),
         ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
       );
-      pendingActions.set(assistant, { action, parentOrigin, timeout });
+      pendingActions.set(assistantId, { action, parentOrigin, timeout });
     } catch {
-      setActionState(assistant, action, "error");
+      setActionState(assistantId, action, "error");
     }
   }
 
@@ -294,14 +305,15 @@
     await loadCloudInventory(cloudSelectedTeam, generation);
   }
 
-  async function mutateCloudAssistant(assistant: string) {
+  async function mutateCloudAssistant(assistant: CatalogAssistant) {
+    const assistantId = assistant.id;
     if (
       !cloudStoreCanStart("cloud", window.top === window.self) ||
       cloudActionLatch ||
       !cloudSelectedTeam ||
       cloudInventoryState !== "ready"
     ) return;
-    const action = cloudAssistantAction(true, cloudInstalledAssistantIds, assistant);
+    const action = cloudAssistantAction(true, cloudInstalledAssistantIds, assistantId);
     if (action === "blocked") return;
     const teamId = cloudSelectedTeam;
     const teamName = cloudTargetTeam?.team_name ?? teamId;
@@ -309,8 +321,8 @@
       action === "uninstall" &&
       !window.confirm(
         lang === "pt"
-          ? `Desinstalar ${assistant} do Time ${teamName}?`
-          : `Uninstall ${assistant} from Team ${teamName}?`,
+          ? `Desinstalar ${assistantId} do Time ${teamName}?`
+          : `Uninstall ${assistantId} from Team ${teamName}?`,
       )
     ) {
       return;
@@ -326,9 +338,12 @@
         ? await fetch(base, {
             method: "POST",
             headers: { Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({ assistant }),
+            body: JSON.stringify({
+              assistant_id: assistantId,
+              source_digest: assistant.sourceDigest,
+            }),
           })
-        : await fetch(`${base}/${encodeURIComponent(assistant)}`, {
+        : await fetch(`${base}/${encodeURIComponent(assistantId)}`, {
             method: "DELETE",
             headers: { Accept: "application/json" },
           });
@@ -343,7 +358,7 @@
       if (cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) {
         const installed = await loadCloudInventory(teamId, generation);
         if (installed && cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) {
-          const nextAction = cloudAssistantAction(true, installed, assistant);
+          const nextAction = cloudAssistantAction(true, installed, assistantId);
           const committed = action === "install" ? nextAction === "uninstall" : nextAction === "install";
           cloudFeedback = committed ? "success" : "error";
         }
@@ -377,13 +392,13 @@
       ));
   }
 
-  async function cloudPrimaryAction(assistant: string) {
+  async function cloudPrimaryAction(assistant: CatalogAssistant) {
     if (cloudPhase === "unauthenticated") {
-      await goto(closedAssistantLoginHref(lang, assistant));
+      await goto(closedAssistantLoginHref(lang, assistant.id));
       return;
     }
     if (cloudPhase === "empty") {
-      await goto(closedAssistantTeamHref(lang, assistant));
+      await goto(closedAssistantTeamHref(lang, assistant.id));
       return;
     }
     if (cloudPhase === "error") {
@@ -395,6 +410,22 @@
       return;
     }
     await mutateCloudAssistant(assistant);
+  }
+
+  async function loadAssistantCatalog() {
+    catalogState = "loading";
+    try {
+      const response = await fetch("/api/assistants", {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      assistantCatalog = parseAssistantCatalog(await response.json());
+      catalogState = "ready";
+    } catch {
+      assistantCatalog = [];
+      catalogState = "error";
+    }
   }
 
   function measureFrameHeight(): number {
@@ -467,6 +498,7 @@
   }
 
   onMount(() => {
+    void loadAssistantCatalog();
     const mode = assistantStoreMode(embedded);
     if (mode === "cloud") {
       if (!cloudStoreCanStart(mode, window.top === window.self)) {
@@ -570,24 +602,28 @@
     </section>
   {/if}
 
-  <div class="assistant-grid">
-    {#each ASSISTANT_CATALOG as assistant (assistant.id)}
+  {#if catalogState === "error"}
+    <div class="context-error" role="alert">
+      <span>{tr("assistants_inventory_unavailable", lang)}</span>
+      <button type="button" onclick={loadAssistantCatalog}>
+        {tr("assistants_admin_connection_retry", lang)}
+      </button>
+    </div>
+  {/if}
+
+  <div class="assistant-grid" aria-busy={catalogState === "loading"}>
+    {#each assistantCatalog as assistant (assistant.id)}
       <article
         id={`assistant-${assistant.id}`}
         class:installed={renderedAssistantInstalled(assistant.id)}
         class:requested={!embedded && requestedAssistant === assistant.id}
         class="assistant-card">
-        <a
-          class="assistant-details"
-          href={u.assistant(lang, assistant)}
-          target={embedded ? "_blank" : undefined}
-          rel={embedded ? "noopener noreferrer" : undefined}
-          aria-label={assistant.name}>
+        <div class="assistant-details">
           <div class="assistant-heading">
             <AssistantIcon size={64} />
             <div class="assistant-identity">
               <h2>{assistant.name}</h2>
-              <p>@{assistant.creator}</p>
+              <p>{assistant.creators.join(", ")}</p>
             </div>
             {#if renderedAssistantInstalled(assistant.id)}
               <span class="installed-badge"><HudIcon name="check" size={13} />{tr("assistants_installed_local", lang)}</span>
@@ -595,8 +631,8 @@
               <span class="free-badge">{tr("assistants_free", lang)}</span>
             {/if}
           </div>
-          <p class="assistant-summary">{t(assistant.summary, lang)}</p>
-        </a>
+          <p class="assistant-summary">{assistant.summary}</p>
+        </div>
 
         <div class="assistant-action">
           {#if embedded}
@@ -606,7 +642,7 @@
               class="install-action"
               type="button"
               disabled={contextState !== "ready" || inventoryBlocksAction(assistant.id) || actionState(assistant.id) === "pending"}
-              onclick={() => requestAssistantAction(assistant.id)}>
+              onclick={() => requestAssistantAction(assistant)}>
               <HudIcon name={localAssistantInstalled(assistant.id) ? "uninstall" : "add"} size={17} />
               {actionLabel(assistant.id)}
             </button>
@@ -617,7 +653,7 @@
               class="install-action"
               type="button"
               disabled={cloudButtonDisabled()}
-              onclick={() => cloudPrimaryAction(assistant.id)}>
+              onclick={() => cloudPrimaryAction(assistant)}>
               <HudIcon name={cloudAssistantInstalled(assistant.id) ? "uninstall" : "add"} size={17} />
               {cloudButtonLabel(assistant.id)}
             </button>

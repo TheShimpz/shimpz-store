@@ -1,5 +1,6 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const REQUEST_KEYS = Object.freeze(["assistant", "type", "version"]);
+const INSTALL_REQUEST_KEYS = Object.freeze(["assistant", "source_digest", "type", "version"]);
+const UNINSTALL_REQUEST_KEYS = Object.freeze(["assistant", "type", "version"]);
 const ACK_KEYS = Object.freeze(["accepted", "assistant", "type", "version"]);
 const FRAME_KEYS = Object.freeze(["height", "type", "version"]);
 const CONTEXT_KEYS = Object.freeze(["type", "version"]);
@@ -12,13 +13,13 @@ export const ASSISTANT_INSTALL_TYPE = "shimpz:assistant-install";
 export const ASSISTANT_INSTALL_ACK_TYPE = "shimpz:assistant-install-ack";
 export const ASSISTANT_UNINSTALL_TYPE = "shimpz:assistant-uninstall";
 export const ASSISTANT_UNINSTALL_ACK_TYPE = "shimpz:assistant-uninstall-ack";
-export const ASSISTANT_INSTALL_VERSION = 1;
+export const ASSISTANT_INSTALL_VERSION = 2;
 export const ASSISTANT_INSTALL_ACK_TIMEOUT_MS = 3000;
 export const ASSISTANT_STORE_FRAME_TYPE = "shimpz:assistant-store-frame";
 export const ASSISTANT_STORE_CONTEXT_TYPE = "shimpz:assistant-store-context";
 export const ASSISTANT_STORE_STATE_TYPE = "shimpz:assistant-store-state";
-export const ASSISTANT_STORE_FRAME_VERSION = 1;
-export const ASSISTANT_STORE_STATE_VERSION = 1;
+export const ASSISTANT_STORE_FRAME_VERSION = 2;
+export const ASSISTANT_STORE_STATE_VERSION = 2;
 export const ASSISTANT_STORE_FRAME_MIN_HEIGHT = 320;
 export const ASSISTANT_STORE_FRAME_MAX_HEIGHT = 5000;
 export const ASSISTANT_STORE_STATE_MAX_IDS = 128;
@@ -196,13 +197,24 @@ export function shouldReconcileAssistantStoreAction(
     (action === "uninstall" && nextAction === "install");
 }
 
-/** @param {string} assistant */
-export function createAssistantInstallRequest(assistant) {
-  if (typeof assistant !== "string" || !ASSISTANT_ID_RE.test(assistant) || assistant.length > 80) {
+/** @param {string} assistant @param {string} sourceDigest */
+export function createAssistantInstallRequest(assistant, sourceDigest) {
+  if (
+    typeof assistant !== "string" ||
+    !ASSISTANT_ID_RE.test(assistant) ||
+    assistant.length > 80 ||
+    typeof sourceDigest !== "string" ||
+    !/^sha256:[0-9a-f]{64}$/.test(sourceDigest)
+  ) {
     throw new Error("invalid Assistant id");
   }
-  const request = { type: ASSISTANT_INSTALL_TYPE, version: ASSISTANT_INSTALL_VERSION, assistant };
-  if (!hasExactKeys(request, REQUEST_KEYS)) throw new Error("invalid install request");
+  const request = {
+    type: ASSISTANT_INSTALL_TYPE,
+    version: ASSISTANT_INSTALL_VERSION,
+    assistant,
+    source_digest: sourceDigest,
+  };
+  if (!hasExactKeys(request, INSTALL_REQUEST_KEYS)) throw new Error("invalid install request");
   return request;
 }
 
@@ -212,7 +224,7 @@ export function createAssistantUninstallRequest(assistant) {
     throw new Error("invalid Assistant id");
   }
   const request = { type: ASSISTANT_UNINSTALL_TYPE, version: ASSISTANT_INSTALL_VERSION, assistant };
-  if (!hasExactKeys(request, REQUEST_KEYS)) throw new Error("invalid uninstall request");
+  if (!hasExactKeys(request, UNINSTALL_REQUEST_KEYS)) throw new Error("invalid uninstall request");
   return request;
 }
 

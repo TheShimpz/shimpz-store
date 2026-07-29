@@ -80,7 +80,8 @@ test("derives one contextual action only from authoritative selected-Team state"
   assert.equal(cloudAssistantAction(true, [], "shimpz-cloudflare"), "install");
   assert.equal(cloudAssistantAction(true, ["shimpz-cloudflare"], "shimpz-cloudflare"), "uninstall");
   assert.equal(cloudAssistantAction(false, ["shimpz-cloudflare"], "shimpz-cloudflare"), "blocked");
-  assert.equal(cloudAssistantAction(true, [], "unknown"), "blocked");
+  assert.equal(cloudAssistantAction(true, [], "another-assistant"), "install");
+  assert.equal(cloudAssistantAction(true, [], "../unknown"), "blocked");
 });
 
 test("rejects stale inventory and mutation completions after a Team switch", () => {
@@ -106,7 +107,7 @@ test("uses a closed Store/login return enum and never accepts an arbitrary redir
   );
   for (const search of [
     "?return=https://evil.example&assistant=shimpz-cloudflare",
-    "?return=assistants&assistant=unknown",
+    "?return=assistants&assistant=../unknown",
     "?return=assistants&assistant=shimpz-cloudflare&next=https://evil.example",
     "?return=assistants&return=assistants&assistant=shimpz-cloudflare",
   ]) {
@@ -114,8 +115,9 @@ test("uses a closed Store/login return enum and never accepts an arbitrary redir
   }
   assert.equal(requestedAssistantFromSearch("?assistant=shimpz-cloudflare"), "shimpz-cloudflare");
   assert.equal(requestedAssistantFromSearch("?assistant=shimpz-cloudflare&install=true"), "");
-  assert.equal(requestedAssistantFromSearch("?assistant=unknown"), "");
-  assert.throws(() => closedAssistantStoreHref("en", "unknown"));
+  assert.equal(requestedAssistantFromSearch("?assistant=another-assistant"), "another-assistant");
+  assert.equal(requestedAssistantFromSearch("?assistant=../unknown"), "");
+  assert.equal(closedAssistantStoreHref("en", "another-assistant"), "/en/assistants?assistant=another-assistant");
   assert.throws(() => closedAssistantLoginHref("xx", "shimpz-cloudflare"));
-  assert.throws(() => closedAssistantTeamHref("en", "unknown"));
+  assert.throws(() => closedAssistantTeamHref("en", "../unknown"));
 });
