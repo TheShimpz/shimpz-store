@@ -93,7 +93,7 @@ async def _stop_delivery_once(
     if delivery.stop_attempted:
         return None
     delivery.stop_attempted = True
-    return await _driver_stop(team_id, hdr)
+    return await _team_stop(team_id, hdr)
 
 
 async def _send_relay_event(
@@ -115,14 +115,14 @@ async def _send_relay_event(
     await turn.ws.send_json(terminal)
 
 
-async def _driver_stop(team_id: str, hdr: dict) -> tuple[int, dict]:
+async def _team_stop(team_id: str, hdr: dict) -> tuple[int, dict]:
     loop = asyncio.get_running_loop()
     try:
         return await loop.run_in_executor(
             _STOP_EXECUTOR,
             functools.partial(
                 _call,
-                config.TEAMDRIVER_URL,
+                config.TEAM_URL,
                 "POST",
                 f"/v1/teams/{team_id}/chat/stop",
                 None,

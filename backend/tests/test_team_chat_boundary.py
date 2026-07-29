@@ -5,7 +5,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
 
-from app import authn, config, main, projections, team_driver_contract
+from app import authn, config, main, projections, team_contract
 from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
 
@@ -114,14 +114,14 @@ def _control_plane():
     worker.start()
     base = f"http://127.0.0.1:{server.server_port}"
     previous_accounts = authn.ACCOUNTS_URL
-    previous_driver = config.TEAMDRIVER_URL
+    previous_team = config.TEAM_URL
     authn.ACCOUNTS_URL = base
-    config.TEAMDRIVER_URL = base
+    config.TEAM_URL = base
     try:
         yield calls
     finally:
         authn.ACCOUNTS_URL = previous_accounts
-        config.TEAMDRIVER_URL = previous_driver
+        config.TEAM_URL = previous_team
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
@@ -202,7 +202,7 @@ def test_team_files_are_opaque_typed_and_deletable_without_paths():
     assert ("DELETE", f"/v1/teams/team_one/files/{FILE_ID}", {}) in calls
 
 
-def test_team_file_mutations_reject_untrusted_origins_and_ids_before_the_driver():
+def test_team_file_mutations_reject_untrusted_origins_and_ids_before_the_team():
     with _control_plane() as calls, _authenticated_client() as client:
         upload = client.post(
             "/api/teams/team_one/files",
@@ -220,12 +220,12 @@ def test_team_file_mutations_reject_untrusted_origins_and_ids_before_the_driver(
 
 
 def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade():
-    assert team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}) == {
+    assert team_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 0}) == {
         "used_bytes": 8,
         "limit_bytes": 4,
         "remaining_bytes": 0,
     }
-    assert team_driver_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
+    assert team_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
 
 
 def test_storage_projection_requires_the_shared_file_metadata_contract():
@@ -242,5 +242,5 @@ def test_storage_projection_requires_the_shared_file_metadata_contract():
         projections.public_file_metadata({key: value for key, value in metadata.items() if key != "created_at"}) is None
     )
     assert (
-        projections.public_file_metadata({**metadata, "size": team_driver_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None
+        projections.public_file_metadata({**metadata, "size": team_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None
     )

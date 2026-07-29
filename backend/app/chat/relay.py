@@ -1,4 +1,4 @@
-"""Bounded blocking relay between the Team driver NDJSON stream and asyncio."""
+"""Bounded blocking relay between the Team NDJSON stream and asyncio."""
 
 from __future__ import annotations
 
@@ -24,11 +24,11 @@ CHAT_TURN_TIMEOUT_SECONDS = 200
 
 
 class _StreamLimitError(ValueError):
-    """The team-driver stream exceeded a bounded relay contract."""
+    """The team stream exceeded a bounded relay contract."""
 
 
 class _StreamProtocolError(ValueError):
-    """The team-driver stream violated its typed NDJSON contract."""
+    """The team stream violated its typed NDJSON contract."""
 
 
 def _bounded_upstream_lines(resp: http.client.HTTPResponse):
@@ -97,8 +97,8 @@ class _StreamRelay:
 
 
 def _stream_lines(relay: _StreamRelay) -> dict:
-    """BLOCKING (run in a thread): return the driver's single terminal event."""
-    parsed = urlparse(config.TEAMDRIVER_URL)
+    """BLOCKING (run in a thread): return the team's single terminal event."""
+    parsed = urlparse(config.TEAM_URL)
     conn = http.client.HTTPConnection(
         parsed.hostname,
         parsed.port,
@@ -127,7 +127,7 @@ def _stream_lines(relay: _StreamRelay) -> dict:
         return {
             "type": "error",
             "status": 502,
-            "detail": "team-driver stream failed",
+            "detail": "team stream failed",
             "_relay_abort": True,
         }
     finally:

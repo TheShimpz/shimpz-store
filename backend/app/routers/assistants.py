@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app import authn, config, team_driver_contract
+from app import authn, config, team_contract
 from app.access import private_json
 from app.config import RELEASED_CLOUD_ASSISTANTS
 from app.control import EXECUTOR as CONTROL_EXECUTOR
@@ -29,12 +29,12 @@ async def _assistant_inventory(
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_driver_contract.canonical_team_id(team_id)
+    team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
         return private_json({"detail": "bad team id"}, 400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/apps",
         extra={"X-Shimpz-Account": token},

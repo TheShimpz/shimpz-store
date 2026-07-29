@@ -147,17 +147,17 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
         base = f"http://127.0.0.1:{server.server_port}"
         previous = (
             config.ACCOUNTS_URL,
-            config.TEAMDRIVER_URL,
+            config.TEAM_URL,
             config.BRAIN_FINALIZE_TOKEN_FILE,
         )
-        authn.ACCOUNTS_URL = config.ACCOUNTS_URL = config.TEAMDRIVER_URL = base
+        authn.ACCOUNTS_URL = config.ACCOUNTS_URL = config.TEAM_URL = base
         config.BRAIN_FINALIZE_TOKEN_FILE = token_path
         try:
             yield calls
         finally:
             (
                 config.ACCOUNTS_URL,
-                config.TEAMDRIVER_URL,
+                config.TEAM_URL,
                 config.BRAIN_FINALIZE_TOKEN_FILE,
             ) = previous
             authn.ACCOUNTS_URL = config.ACCOUNTS_URL

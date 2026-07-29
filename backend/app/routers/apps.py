@@ -38,7 +38,7 @@ async def team_apps(request: Request, team_id: str) -> JSONResponse:
         return private_json({"detail": "not authenticated"}, 401)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/apps",
         extra={"X-Shimpz-Account": token},

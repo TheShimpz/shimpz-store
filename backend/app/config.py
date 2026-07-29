@@ -6,11 +6,11 @@ import json
 import os
 from pathlib import Path
 
-from app import chat_ws_common, team_driver_contract
+from app import chat_ws_common, team_contract
 
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
 ACCOUNTS_URL = os.environ.get("SHIMPZ_ACCOUNTS_URL", "http://accounts:7079")
-TEAMDRIVER_URL = os.environ.get("SHIMPZ_TEAMDRIVER_URL", "http://team-driver:7077")
+TEAM_URL = os.environ.get("SHIMPZ_TEAM_URL", "http://team:7077")
 BRAIN_FINALIZE_TOKEN_FILE = Path(
     os.environ.get(
         "SHIMPZ_ACCOUNTS_BRAIN_FINALIZE_TOKEN_FILE",
@@ -74,10 +74,10 @@ MODEL_CATALOG = {
 }
 RELEASED_CLOUD_ASSISTANTS = frozenset({"shimpz-cloudflare"})
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
-MAX_CHAT_MESSAGE_CHARS = team_driver_contract.MAX_CHAT_MESSAGE_CHARS
-MAX_CHAT_FILES = team_driver_contract.MAX_CHAT_FILES
-MAX_CHAT_ASSISTANTS = team_driver_contract.MAX_CHAT_ASSISTANTS
+MAX_CHAT_MESSAGE_CHARS = team_contract.MAX_CHAT_MESSAGE_CHARS
+MAX_CHAT_FILES = team_contract.MAX_CHAT_FILES
+MAX_CHAT_ASSISTANTS = team_contract.MAX_CHAT_ASSISTANTS
 MAX_CHAT_REPLY_CHARS = 60_000
 MAX_CHAT_ERROR_DETAIL_CHARS = 800
-TERMINAL_CONTRACT_ERROR = "team-driver stream violated the terminal event contract"
+TERMINAL_CONTRACT_ERROR = "team stream violated the terminal event contract"
 CHAT_WS_SUBPROTOCOL = "shimpz.chat.v3"

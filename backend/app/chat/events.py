@@ -6,7 +6,7 @@ import re
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app import chat_ws_common, team_driver_contract
+from app import chat_ws_common, team_contract
 from app.config import (
     MAX_CHAT_ASSISTANTS,
     MAX_CHAT_ERROR_DETAIL_CHARS,
@@ -44,7 +44,7 @@ def chat_turn_payload(payload: dict) -> dict[str, object]:
     files = payload["files"]
     if not isinstance(files, list) or len(files) > MAX_CHAT_FILES:
         raise ClientPayloadError(400, f"files must contain at most {MAX_CHAT_FILES} opaque ids")
-    opaque_ids = [team_driver_contract.canonical_file_id(file_id) for file_id in files]
+    opaque_ids = [team_contract.canonical_file_id(file_id) for file_id in files]
     if any(file_id is None for file_id in opaque_ids) or len(opaque_ids) != len(set(opaque_ids)):
         raise ClientPayloadError(400, "files must contain unique opaque ids")
     assistant_ids = payload["assistant_ids"]
@@ -53,7 +53,7 @@ def chat_turn_payload(payload: dict) -> dict[str, object]:
             400,
             f"assistant_ids must contain at most {MAX_CHAT_ASSISTANTS} Assistant ids",
         )
-    canonical_ids = [team_driver_contract.canonical_assistant_id(value) for value in assistant_ids]
+    canonical_ids = [team_contract.canonical_assistant_id(value) for value in assistant_ids]
     if any(value is None for value in canonical_ids) or len(canonical_ids) != len(set(canonical_ids)):
         raise ClientPayloadError(400, "assistant_ids must contain unique canonical Assistant ids")
     return {"message": message, "files": opaque_ids, "assistant_ids": canonical_ids}
@@ -76,9 +76,9 @@ async def ws_receive_bounded_json(ws: WebSocket) -> dict:
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
     if set(value) != {"type", "team_id", "team_name", "reply"}:
         return None
-    team_id = team_driver_contract.canonical_team_id(value["team_id"])
+    team_id = team_contract.canonical_team_id(value["team_id"])
     reply = canonical_chat_reply(value["reply"])
-    team_name = team_driver_contract.canonical_team_name(value["team_name"])
+    team_name = team_contract.canonical_team_name(value["team_name"])
     if team_id is None or team_id != expected_team_id or reply is None or team_name is None:
         return None
     return {

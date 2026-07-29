@@ -12,7 +12,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app import config
 from app.chat import ws as main
-from tests.chat_relay_fixture import real_stream_driver as _real_stream_driver
+from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 
 TEST_TEAM_ID = "test_team"
 
@@ -74,7 +74,7 @@ def test_stream_workers_cannot_starve_the_default_control_pool():
         )
         started = asyncio.Event()
         try:
-            with _real_stream_driver(reply):
+            with _real_stream_team(reply):
                 worker = loop.run_in_executor(
                     main._STREAM_EXECUTOR,
                     main._stream_lines,
@@ -92,7 +92,7 @@ def test_stream_workers_cannot_starve_the_default_control_pool():
 
 
 @contextlib.contextmanager
-def _real_relay_abort_driver(on_stop: Callable[[], None] | None = None):
+def _real_relay_abort_team(on_stop: Callable[[], None] | None = None):
     calls: list[str] = []
     unterminated = b'{"type":"text","text":"partial"}\n'
 
@@ -125,12 +125,12 @@ def _real_relay_abort_driver(on_stop: Callable[[], None] | None = None):
         daemon=True,
     )
     worker.start()
-    previous = config.TEAMDRIVER_URL
-    config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = config.TEAM_URL
+    config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield calls
     finally:
-        config.TEAMDRIVER_URL = previous
+        config.TEAM_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
@@ -141,7 +141,7 @@ def test_local_relay_eof_stops_provider_before_browser_error():
         websocket, sent = _websocket("{}")
         await websocket.accept()
         started = asyncio.Event()
-        with _real_relay_abort_driver() as calls:
+        with _real_relay_abort_team() as calls:
             await main._ws_run_turn(
                 websocket,
                 "team-abort",
@@ -180,7 +180,7 @@ def test_browser_disconnect_requests_provider_stop_exactly_once():
         await websocket.accept()
         stopped = threading.Event()
 
-        with _real_relay_abort_driver(stopped.set) as calls:
+        with _real_relay_abort_team(stopped.set) as calls:
             worker = asyncio.get_running_loop().create_future()
             worker.set_result(_done("complete", team_id="team_disconnect"))
             try:

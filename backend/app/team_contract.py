@@ -1,4 +1,4 @@
-"""Pure Team-driver wire contract shared by the Admin and Store backends."""
+"""Pure Team-team wire contract shared by the Admin and Store backends."""
 
 from __future__ import annotations
 

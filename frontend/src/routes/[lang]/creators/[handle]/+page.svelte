@@ -3,7 +3,7 @@
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
-  import DriverCard from "$lib/components/DriverCard.svelte";
+  import ServiceCard from "$lib/components/ServiceCard.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
 
   let { data } = $props();
@@ -38,9 +38,9 @@
 
   {#if services.length}
     <div class="mt-12">
-      <h2 class="kicker">{tr("created_drivers", lang)} <span class="ml-1 opacity-60">{services.length}</span></h2>
+      <h2 class="kicker">{tr("created_services", lang)} <span class="ml-1 opacity-60">{services.length}</span></h2>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {#each services as service (service.id)}<DriverCard driver={service} {lang} />{/each}
+        {#each services as service (service.id)}<ServiceCard {service} {lang} />{/each}
       </div>
     </div>
   {/if}

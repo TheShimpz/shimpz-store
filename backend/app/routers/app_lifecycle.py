@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-from app import authn, config, team_driver_contract
+from app import authn, config, team_contract
 from app.access import mutation_origin_allowed
 from app.config import MAX_TEAM_INSTALL_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
@@ -24,8 +24,8 @@ class AppMutation:
 
 
 def _canonical_ids(team_id: str, app_id: object, released: frozenset[str] | None) -> tuple[str, str]:
-    canonical_team = team_driver_contract.canonical_team_id(team_id)
-    canonical_app = team_driver_contract.canonical_assistant_id(app_id)
+    canonical_team = team_contract.canonical_team_id(team_id)
+    canonical_app = team_contract.canonical_assistant_id(app_id)
     if canonical_team is None:
         raise ClientPayloadError(400, "bad team id")
     if canonical_app is None:
@@ -55,7 +55,7 @@ async def install(
     canonical_team, app_id = _canonical_ids(team_id, payload[body_key], released)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "POST",
         f"/v1/teams/{canonical_team}/apps",
         {"app": app_id},
@@ -80,7 +80,7 @@ async def uninstall(
     canonical_team, canonical_app = _canonical_ids(team_id, app_id, released)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{canonical_team}/apps/{canonical_app}",
         extra={"X-Shimpz-Account": token},

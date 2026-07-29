@@ -535,7 +535,7 @@ def test_duplicate_stop_then_disconnect_requests_provider_stop_once(monkeypatch)
             def cancel_if_queued() -> bool:
                 return False
 
-        monkeypatch.setattr(main, "_driver_stop", stop)
+        monkeypatch.setattr(main, "_team_stop", stop)
         websocket, _ = _websocket("{}")
         await websocket.accept()
         started = asyncio.Event()
@@ -593,7 +593,7 @@ def test_final_websocket_gate_converts_invalid_events(event: dict, monkeypatch):
             stops.append((team_id, headers))
             return 200, {"requested": True}
 
-        monkeypatch.setattr(main, "_driver_stop", stop)
+        monkeypatch.setattr(main, "_team_stop", stop)
         websocket, sent = _websocket("{}")
         await websocket.accept()
         turn = main._WsTurn(

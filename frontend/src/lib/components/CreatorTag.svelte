@@ -1,5 +1,5 @@
 <script lang="ts">
-  // "Created by @handle" — the Creator who built a Shimpz/driver, linking to their profile.
+  // "Created by @handle" — the Creator who built a Shimpz Service, linking to their profile.
   import { CREATOR_BY_HANDLE, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";

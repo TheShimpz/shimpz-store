@@ -21,7 +21,7 @@ async def team_inference(request: Request, team_id: str) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/inference",
         extra={"X-Shimpz-Account": token},
@@ -46,7 +46,7 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
         return JSONResponse({"detail": "unsupported model for provider"}, status_code=400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "PUT",
         f"/v1/teams/{team_id}/inference",
         {"provider": provider, "model": model},

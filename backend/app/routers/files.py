@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from app import authn, config, team_driver_contract
+from app import authn, config, team_contract
 from app.access import mutation_origin_allowed, private_json
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError
@@ -16,7 +16,7 @@ from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded, call_raw_b
 log = structlog.get_logger()
 router = APIRouter()
 
-MAX_UPLOAD_BYTES = team_driver_contract.MAX_FILE_UPLOAD_BYTES
+MAX_UPLOAD_BYTES = team_contract.MAX_FILE_UPLOAD_BYTES
 
 
 @router.get("/api/teams/{team_id}/files")
@@ -25,12 +25,12 @@ async def team_files(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_driver_contract.canonical_team_id(team_id)
+    team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
         return private_json({"detail": "bad team id"}, 400)
     status, body = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/files",
         extra={"X-Shimpz-Account": token},
@@ -53,7 +53,7 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
         raise ClientPayloadError(401, "not authenticated")
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
-    team_id = team_driver_contract.canonical_team_id(team_id)
+    team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
         raise ClientPayloadError(400, "bad team id")
     data = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -62,13 +62,13 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
             {"detail": f"file too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)"},
             413,
         )
-    filename = team_driver_contract.canonical_filename(file.filename or "upload.bin")
-    media_type = team_driver_contract.canonical_media_type(file.content_type)
+    filename = team_contract.canonical_filename(file.filename or "upload.bin")
+    media_type = team_contract.canonical_media_type(file.content_type)
     if filename is None or media_type is None:
         return private_json({"detail": "invalid file metadata"}, 400)
     status, body = await call_raw_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         f"/v1/teams/{team_id}/files",
         data,
         filename=filename,
@@ -99,15 +99,15 @@ async def team_file_delete(request: Request, team_id: str, file_id: str) -> JSON
         raise ClientPayloadError(401, "not authenticated")
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
-    team_id = team_driver_contract.canonical_team_id(team_id)
-    opaque_id = team_driver_contract.canonical_file_id(file_id)
+    team_id = team_contract.canonical_team_id(team_id)
+    opaque_id = team_contract.canonical_file_id(file_id)
     if team_id is None:
         raise ClientPayloadError(400, "bad team id")
     if opaque_id is None:
         raise ClientPayloadError(404, "file not found")
     status, body = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{team_id}/files/{opaque_id}",
         extra={"X-Shimpz-Account": token},

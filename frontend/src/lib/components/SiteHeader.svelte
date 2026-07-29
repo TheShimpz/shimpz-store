@@ -17,7 +17,7 @@
 
     <nav class="primary-nav" aria-label={tr("nav_main", lang)}>
       <a href={u.services(lang)} class:active={path.includes("/services")} aria-current={path.includes("/services") ? "page" : undefined}>
-        {tr("nav_drivers", lang)}
+        {tr("nav_services", lang)}
       </a>
       <a href={u.assistants(lang)} class:active={path.includes("/assistants")} aria-current={path.includes("/assistants") ? "page" : undefined}>
         {tr("nav_assistants", lang)}

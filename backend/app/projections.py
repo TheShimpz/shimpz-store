@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from app import team_driver_contract
+from app import team_contract
 from app.config import MAX_CHAT_ASSISTANTS, RELEASED_CLOUD_ASSISTANTS
 
 
 def public_file_metadata(value: object) -> dict | None:
     """Copy only opaque, non-path file metadata from the trusted controller response."""
-    return team_driver_contract.project_file_metadata(value, include_usage=False)
+    return team_contract.project_file_metadata(value, include_usage=False)
 
 
 def public_file_upload(value: object, expected_team_id: str) -> dict | None:
-    return team_driver_contract.project_storage_response(
+    return team_contract.project_storage_response(
         value,
         kind="upload",
         expected_team_id=expected_team_id,
@@ -21,7 +21,7 @@ def public_file_upload(value: object, expected_team_id: str) -> dict | None:
 
 
 def public_file_inventory(value: object, expected_team_id: str) -> dict | None:
-    return team_driver_contract.project_storage_response(
+    return team_contract.project_storage_response(
         value,
         kind="list",
         expected_team_id=expected_team_id,
@@ -30,7 +30,7 @@ def public_file_inventory(value: object, expected_team_id: str) -> dict | None:
 
 
 def public_file_deletion(value: object, expected_team_id: str, expected_id: str) -> dict | None:
-    return team_driver_contract.project_storage_response(
+    return team_contract.project_storage_response(
         value,
         kind="delete",
         expected_team_id=expected_team_id,

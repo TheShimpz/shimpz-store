@@ -1,4 +1,4 @@
-"""Loopback Team chat stream driver shared by relay suites."""
+"""Loopback Team chat stream team shared by relay suites."""
 
 import contextlib
 import threading
@@ -8,7 +8,7 @@ from app import config
 
 
 @contextlib.contextmanager
-def real_stream_driver(response_body: bytes, *, status: int = 200):
+def real_stream_team(response_body: bytes, *, status: int = 200):
     requests: list[bytes] = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -31,12 +31,12 @@ def real_stream_driver(response_body: bytes, *, status: int = 200):
         daemon=True,
     )
     worker.start()
-    previous = config.TEAMDRIVER_URL
-    config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = config.TEAM_URL
+    config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield requests
     finally:
-        config.TEAMDRIVER_URL = previous
+        config.TEAM_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)

@@ -51,7 +51,7 @@ async def teams_list(request: Request) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "GET",
         "/v1/teams",
         extra={"X-Shimpz-Account": token},
@@ -69,7 +69,7 @@ async def teams_create(request: Request) -> JSONResponse:
     team_id, create_payload = _create_payload(payload, account_id)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "POST",
         f"/v1/teams/{team_id}/create",
         create_payload,
@@ -86,7 +86,7 @@ async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
-        config.TEAMDRIVER_URL,
+        config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{team_id}",
         extra={"X-Shimpz-Account": token},

@@ -11,7 +11,7 @@ from fastapi import WebSocket
 from app import config
 from app.chat.relay import _relay_upstream_events
 from app.chat import ws as main
-from tests.chat_relay_fixture import real_stream_driver as _real_stream_driver
+from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 
 TEST_TEAM_ID = "test_team"
 
@@ -168,7 +168,7 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
         started = asyncio.Event()
         prompt = "ação e camarão 🦐"
         opaque_file = "a" * 32
-        with _real_stream_driver(encoded_reply) as requests:
+        with _real_stream_team(encoded_reply) as requests:
             event = await asyncio.to_thread(
                 main._stream_lines,
                 main._StreamRelay(
@@ -220,13 +220,13 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
         ),
     ],
 )
-def test_driver_terminal_failures_reach_websocket_as_errors(terminal: dict):
+def test_team_terminal_failures_reach_websocket_as_errors(terminal: dict):
     async def scenario() -> None:
         websocket, sent = _websocket("{}")
         await websocket.accept()
         started = asyncio.Event()
         response = json.dumps(terminal, separators=(",", ":")).encode() + b"\n"
-        with _real_stream_driver(response) as requests:
+        with _real_stream_team(response) as requests:
             await main._ws_run_turn(
                 websocket,
                 "team-terminal",
@@ -266,7 +266,7 @@ def test_real_upstream_non_2xx_reaches_websocket_redacted(status: int, payload: 
         await websocket.accept()
         started = asyncio.Event()
         body = json.dumps(payload, separators=(",", ":")).encode()
-        with _real_stream_driver(body, status=status) as requests:
+        with _real_stream_team(body, status=status) as requests:
             await main._ws_run_turn(
                 websocket,
                 "team-upstream-error",
@@ -295,7 +295,7 @@ def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
     protocol_error = {
         "type": "error",
         "status": 502,
-        "detail": "team-driver stream violated the terminal event contract",
+        "detail": "team stream violated the terminal event contract",
         "_relay_abort": True,
     }
     text_then_terminal = b'{"type":"text","text":"partial"}\n' + json.dumps(_done()).encode() + b"\n"

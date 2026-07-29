@@ -43,7 +43,7 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
                     "apps": self.apps,
                 }
                 if self.app_status == 200
-                else {"detail": "driver unavailable"},
+                else {"detail": "team unavailable"},
             )
             return
         self._json(404, {"detail": "not found"})
@@ -99,12 +99,12 @@ def _assistant_control_plane(*, app_status: int = 200, apps: list[dict] | None =
         daemon=True,
     )
     worker.start()
-    previous = authn.ACCOUNTS_URL, config.TEAMDRIVER_URL
-    authn.ACCOUNTS_URL = config.TEAMDRIVER_URL = f"http://127.0.0.1:{server.server_port}"
+    previous = authn.ACCOUNTS_URL, config.TEAM_URL
+    authn.ACCOUNTS_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
     try:
         yield calls
     finally:
-        authn.ACCOUNTS_URL, config.TEAMDRIVER_URL = previous
+        authn.ACCOUNTS_URL, config.TEAM_URL = previous
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
@@ -190,7 +190,7 @@ def test_cloud_chat_scope_fails_closed_on_ambiguous_running_inventory():
     _assert_private(response)
 
 
-def test_cloud_assistant_install_rejects_origin_content_type_shape_and_unreleased_ids_before_driver():
+def test_cloud_assistant_install_rejects_origin_content_type_shape_and_unreleased_ids_before_team():
     cases = (
         ("/api/teams/team_one/assistants", {}, b'{"assistant":"shimpz-cloudflare"}', 403),
         (
@@ -264,7 +264,7 @@ def test_retired_app_field_cannot_bypass_origin_json_or_exact_body_contract():
         _assert_private(response)
 
 
-def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_before_driver():
+def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_before_team():
     cases = (
         ("/api/teams/team_one/assistants/shimpz-cloudflare", {}, 403),
         (
