@@ -12,13 +12,8 @@ from app import authn, config, main
 class _AssistantControlHandler(BaseHTTPRequestHandler):
     calls: list[tuple[str, str, dict, str]]
     app_status = 200
-    apps: ClassVar[list[dict[str, object]]] = [
-        {
-            "app": "shimpz-cloudflare",
-            "status": "running",
-            "container": "private-name",
-        },
-        {"app": "notification-center", "status": "running"},
+    assistants: ClassVar[list[dict[str, object]]] = [
+        {"assistant": "example-assistant", "status": "running"},
     ]
 
     def _json(self, status: int, payload: dict) -> None:
@@ -35,13 +30,10 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}, self.headers.get("X-Shimpz-Account", "")))
-        if self.path == "/v1/teams/team_one/apps":
+        if self.path == "/v1/teams/team_one/assistants":
             self._json(
                 self.app_status,
-                {
-                    "team_id": "team_one",
-                    "apps": self.apps,
-                }
+                {"assistants": self.assistants}
                 if self.app_status == 200
                 else {"detail": "team unavailable"},
             )
@@ -71,10 +63,12 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         self.calls.append(("DELETE", self.path, {}, self.headers.get("X-Shimpz-Account", "")))
-        if self.path.startswith("/v1/teams/team_one/apps/"):
+        if self.path.startswith("/v1/teams/team_one/assistants/"):
             self._json(
-                self.app_status,
-                {"uninstalled": True} if self.app_status == 200 else {"detail": "blocked"},
+                self.app_status if self.path.endswith("/example-assistant") else 404,
+                {"uninstalled": True}
+                if self.app_status == 200 and self.path.endswith("/example-assistant")
+                else {"detail": "blocked"},
             )
             return
         self._json(404, {"detail": "not found"})
@@ -84,7 +78,7 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
 
 
 @contextlib.contextmanager
-def _assistant_control_plane(*, app_status: int = 200, apps: list[dict] | None = None):
+def _assistant_control_plane(*, app_status: int = 200, assistants: list[dict] | None = None):
     calls: list[tuple[str, str, dict, str]] = []
     handler = type(
         "_ScopedAssistantControlHandler",
@@ -92,7 +86,7 @@ def _assistant_control_plane(*, app_status: int = 200, apps: list[dict] | None =
         {
             "calls": calls,
             "app_status": app_status,
-            "apps": _AssistantControlHandler.apps if apps is None else apps,
+            "assistants": _AssistantControlHandler.assistants if assistants is None else assistants,
         },
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -149,32 +143,31 @@ def test_cloud_assistant_lifecycle_requires_authentication_before_upstream():
         _assert_private(response)
 
 
-def test_cloud_assistant_inventory_projects_only_released_ids_without_private_runtime_data():
+def test_cloud_assistant_inventory_projects_only_bound_ids_without_private_runtime_data():
     with _assistant_control_plane() as calls, TestClient(main.app) as client:
         _authenticate(client)
         response = client.get("/api/teams/team_one/assistants")
     assert response.status_code == 200
-    assert response.json() == {"installed": ["shimpz-cloudflare"]}
+    assert response.json() == {"installed": ["example-assistant"]}
     _assert_private(response)
-    assert ("GET", "/v1/teams/team_one/apps", {}, "valid-token") in calls
+    assert ("GET", "/v1/teams/team_one/assistants", {}, "valid-token") in calls
 
 
-def test_cloud_chat_scope_projects_only_released_running_assistants():
+def test_cloud_chat_scope_projects_only_running_assistants():
     with _assistant_control_plane() as calls, TestClient(main.app) as client:
         _authenticate(client)
         response = client.get("/api/teams/team_one/chat/assistants")
     assert response.status_code == 200
-    assert response.json() == {"assistant_ids": ["shimpz-cloudflare"]}
+    assert response.json() == {"assistant_ids": ["example-assistant"]}
     _assert_private(response)
-    assert ("GET", "/v1/teams/team_one/apps", {}, "valid-token") in calls
+    assert ("GET", "/v1/teams/team_one/assistants", {}, "valid-token") in calls
 
 
-def test_cloud_chat_scope_is_brain_only_when_the_released_assistant_is_not_running():
-    apps = [
-        {"app": "shimpz-cloudflare", "status": "stopped"},
-        {"app": "notification-center", "status": "running"},
+def test_cloud_chat_scope_is_brain_only_when_the_assistant_is_not_running():
+    assistants = [
+        {"assistant": "example-assistant", "status": "stopped"},
     ]
-    with _assistant_control_plane(apps=apps), TestClient(main.app) as client:
+    with _assistant_control_plane(assistants=assistants), TestClient(main.app) as client:
         _authenticate(client)
         response = client.get("/api/teams/team_one/chat/assistants")
     assert response.status_code == 200
@@ -183,11 +176,11 @@ def test_cloud_chat_scope_is_brain_only_when_the_released_assistant_is_not_runni
 
 
 def test_cloud_chat_scope_fails_closed_on_ambiguous_running_inventory():
-    apps = [
-        {"app": "shimpz-cloudflare", "status": "running"},
-        {"app": "shimpz-cloudflare", "status": "running"},
+    assistants = [
+        {"assistant": "example-assistant", "status": "running"},
+        {"assistant": "example-assistant", "status": "running"},
     ]
-    with _assistant_control_plane(apps=apps), TestClient(main.app) as client:
+    with _assistant_control_plane(assistants=assistants), TestClient(main.app) as client:
         _authenticate(client)
         response = client.get("/api/teams/team_one/chat/assistants")
     assert response.status_code == 502
@@ -275,11 +268,11 @@ def test_retired_app_field_cannot_bypass_origin_json_or_exact_body_contract():
         _assert_private(response)
 
 
-def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_before_team():
+def test_cloud_assistant_delete_rejects_untrusted_origins_before_team():
     cases = (
-        ("/api/teams/team_one/assistants/shimpz-cloudflare", {}, 403),
+        ("/api/teams/team_one/assistants/example-assistant", {}, 403),
         (
-            "/api/teams/team_one/assistants/shimpz-cloudflare",
+            "/api/teams/team_one/assistants/example-assistant",
             {"Origin": "https://shimpz.com.evil.example"},
             403,
         ),
@@ -289,7 +282,7 @@ def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_be
             404,
         ),
         (
-            "/api/teams/TEAM_ONE/assistants/shimpz-cloudflare",
+            "/api/teams/TEAM_ONE/assistants/example-assistant",
             {"Origin": "https://shimpz.com"},
             400,
         ),
@@ -298,7 +291,9 @@ def test_cloud_assistant_delete_rejects_untrusted_origins_and_nonreleased_ids_be
         _authenticate(client)
         responses = [client.delete(path, headers=headers) for path, headers, _status in cases]
     assert [response.status_code for response in responses] == [case[2] for case in cases]
-    assert not any(method == "DELETE" for method, _path, _body, _token in calls)
+    assert [
+        path for method, path, _body, _token in calls if method == "DELETE"
+    ] == ["/v1/teams/team_one/assistants/retired-assistant"]
     for response in responses:
         _assert_private(response)
 
@@ -310,13 +305,13 @@ def test_cloud_assistant_mutations_translate_only_identity_and_refreshable_accep
         installed = client.post(
             "/api/teams/team_one/assistants",
             json={
-                "assistant_id": "shimpz-cloudflare",
+                "assistant_id": "example-assistant",
                 "source_digest": source_digest,
             },
             headers=_mutation_headers(),
         )
         removed = client.delete(
-            "/api/teams/team_one/assistants/shimpz-cloudflare",
+            "/api/teams/team_one/assistants/example-assistant",
             headers={"Origin": "https://shimpz.com"},
         )
         retired_removed = client.delete(
@@ -325,26 +320,31 @@ def test_cloud_assistant_mutations_translate_only_identity_and_refreshable_accep
         )
     assert installed.status_code == removed.status_code == 200
     assert retired_removed.status_code == 404
-    assert installed.json() == {"assistant": "shimpz-cloudflare", "accepted": True}
-    assert removed.json() == {"assistant": "shimpz-cloudflare", "accepted": True}
+    assert installed.json() == {"assistant": "example-assistant", "accepted": True}
+    assert removed.json() == {"assistant": "example-assistant", "accepted": True}
     for response in (installed, removed, retired_removed):
         _assert_private(response)
     assert (
         "POST",
         "/v1/teams/team_one/assistants",
         {
-            "assistant_id": "shimpz-cloudflare",
+            "assistant_id": "example-assistant",
             "source_digest": source_digest,
         },
         "valid-token",
     ) in calls
     assert (
         "DELETE",
-        "/v1/teams/team_one/apps/shimpz-cloudflare",
+        "/v1/teams/team_one/assistants/example-assistant",
         {},
         "valid-token",
     ) in calls
-    assert not any(path.endswith("/retired-assistant") for _method, path, _body, _token in calls)
+    assert (
+        "DELETE",
+        "/v1/teams/team_one/assistants/retired-assistant",
+        {},
+        "valid-token",
+    ) in calls
 
 
 def test_cloud_assistant_upstream_failures_remain_private_and_typed():
@@ -355,13 +355,13 @@ def test_cloud_assistant_upstream_failures_remain_private_and_typed():
         install = client.post(
             "/api/teams/team_one/assistants",
             json={
-                "assistant_id": "shimpz-cloudflare",
+                "assistant_id": "example-assistant",
                 "source_digest": source_digest,
             },
             headers=_mutation_headers(),
         )
         uninstall = client.delete(
-            "/api/teams/team_one/assistants/shimpz-cloudflare",
+            "/api/teams/team_one/assistants/example-assistant",
             headers={"Origin": "https://shimpz.com"},
         )
     assert [response.status_code for response in (inventory, install, uninstall)] == [

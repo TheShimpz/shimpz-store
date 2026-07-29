@@ -73,7 +73,6 @@ MODEL_CATALOG = {
     provider["id"]: frozenset(model["id"] for model in provider["models"])
     for provider in json.loads(Path(__file__).with_name("model_catalog.json").read_text(encoding="utf-8"))["providers"]
 }
-RELEASED_CLOUD_ASSISTANTS = frozenset({"shimpz-cloudflare"})
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
 MAX_CHAT_MESSAGE_CHARS = team_contract.MAX_CHAT_MESSAGE_CHARS
 MAX_CHAT_FILES = team_contract.MAX_CHAT_FILES

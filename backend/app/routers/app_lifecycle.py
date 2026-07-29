@@ -119,3 +119,25 @@ async def uninstall(
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return AppMutation(account_id, canonical_team, canonical_app, status, data)
+
+
+async def uninstall_assistant(
+    request: Request,
+    team_id: str,
+    assistant_id: str,
+) -> AppMutation:
+    token, account_id, _ = await authn.authed_account_bounded(request)
+    if not token:
+        raise ClientPayloadError(401, "not authenticated")
+    if not mutation_origin_allowed(request.headers.get("origin")):
+        raise ClientPayloadError(403, "forbidden origin")
+    canonical_team, canonical_assistant = _canonical_ids(team_id, assistant_id, None)
+    status, data = await call_bounded(
+        CONTROL_EXECUTOR,
+        config.TEAM_URL,
+        "DELETE",
+        f"/v1/teams/{canonical_team}/assistants/{canonical_assistant}",
+        extra={"X-Shimpz-Account": token},
+        timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
+    )
+    return AppMutation(account_id, canonical_team, canonical_assistant, status, data)

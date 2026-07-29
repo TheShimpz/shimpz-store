@@ -8,9 +8,8 @@ from fastapi.responses import JSONResponse
 
 from app import authn, config, team_contract
 from app.access import private_json
-from app.config import RELEASED_CLOUD_ASSISTANTS
 from app.control import EXECUTOR as CONTROL_EXECUTOR
-from app.projections import released_assistant_inventory, released_running_assistant_inventory
+from app.projections import assistant_inventory, running_assistant_inventory
 from app.routers import app_lifecycle
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
@@ -36,7 +35,7 @@ async def _assistant_inventory(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
         "GET",
-        f"/v1/teams/{team_id}/apps",
+        f"/v1/teams/{team_id}/assistants",
         extra={"X-Shimpz-Account": token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
@@ -54,7 +53,7 @@ async def cloud_assistants_list(request: Request, team_id: str) -> JSONResponse:
     return await _assistant_inventory(
         request,
         team_id,
-        released_assistant_inventory,
+        assistant_inventory,
         "installed",
         "invalid Assistant inventory",
         "assistant_inventory_invalid",
@@ -67,7 +66,7 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
     return await _assistant_inventory(
         request,
         team_id,
-        released_running_assistant_inventory,
+        running_assistant_inventory,
         "assistant_ids",
         "invalid chat Assistant inventory",
         "chat_assistant_inventory_invalid",
@@ -91,11 +90,10 @@ async def cloud_assistant_install(request: Request, team_id: str) -> JSONRespons
 
 @router.delete("/api/teams/{team_id}/assistants/{assistant}")
 async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: str) -> JSONResponse:
-    result = await app_lifecycle.uninstall(
+    result = await app_lifecycle.uninstall_assistant(
         request,
         team_id,
         assistant,
-        released=RELEASED_CLOUD_ASSISTANTS,
     )
     log.info(
         "assistant_uninstall",
