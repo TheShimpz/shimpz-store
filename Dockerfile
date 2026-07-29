@@ -39,6 +39,7 @@ COPY backend/app/__init__.py backend/app/authn.py backend/app/chat_ws_common.py 
      backend/app/middleware.py backend/app/payloads.py backend/app/upstream.py ./app/
 COPY backend/app/access.py ./app/
 COPY backend/app/assistant_releases.py ./app/
+COPY backend/app/catalog.py ./app/
 COPY backend/app/chat/__init__.py backend/app/chat/events.py backend/app/chat/relay.py backend/app/chat/ws.py ./app/chat/
 COPY backend/app/control.py ./app/
 COPY backend/app/inference.py ./app/

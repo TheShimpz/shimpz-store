@@ -17,6 +17,7 @@ VERIFY_TIMEOUT_SECONDS = 5
 CONTROL_PLANE_TIMEOUT_SECONDS = 30
 CHAT_STOP_TIMEOUT_SECONDS = 10
 FILE_NAME_HEADER = "X-Shimpz-Filename"
+MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
 
 
 def _request(
@@ -27,15 +28,18 @@ def _request(
     headers: dict[str, str],
     *,
     timeout: float,
+    max_response_bytes: int = MAX_JSON_RESPONSE_BYTES,
 ) -> tuple[int, dict]:
     parsed = urlparse(base)
     connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=timeout)
     try:
         connection.request(method, path, body, headers)
         response = connection.getresponse()
-        raw = response.read()
+        raw = response.read(max_response_bytes + 1)
+        if len(raw) > max_response_bytes:
+            return 502, {"detail": "the Space returned an oversized response"}
         return response.status, (json.loads(raw) if raw else {})
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         log.warning("proxy_unreachable", base=base, path=path, error=str(exc))
         return 502, {"detail": "the Space is unreachable"}
     finally:
@@ -50,6 +54,7 @@ def call(
     extra: dict | None = None,
     *,
     timeout: float,
+    max_response_bytes: int = MAX_JSON_RESPONSE_BYTES,
 ) -> tuple[int, dict]:
     """Proxy one trusted internal hop with a closed generic failure."""
     headers: dict[str, str] = dict(extra or {})
@@ -57,7 +62,15 @@ def call(
     if payload is not None:
         body = json.dumps(payload)
         headers["Content-Type"] = "application/json"
-    return _request(base, method, path, body, headers, timeout=timeout)
+    return _request(
+        base,
+        method,
+        path,
+        body,
+        headers,
+        timeout=timeout,
+        max_response_bytes=max_response_bytes,
+    )
 
 
 def call_raw(

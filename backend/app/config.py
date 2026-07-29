@@ -11,6 +11,7 @@ from app import chat_ws_common, team_contract
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
 ACCOUNTS_URL = os.environ.get("SHIMPZ_ACCOUNTS_URL", "http://accounts:7079")
 TEAM_URL = os.environ.get("SHIMPZ_TEAM_URL", "http://team:7077")
+DEVELOPERS_URL = os.environ.get("SHIMPZ_DEVELOPERS_URL", "http://developers-api:8080")
 BRAIN_FINALIZE_TOKEN_FILE = Path(
     os.environ.get(
         "SHIMPZ_ACCOUNTS_BRAIN_FINALIZE_TOKEN_FILE",
