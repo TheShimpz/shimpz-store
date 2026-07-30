@@ -22,7 +22,7 @@
     <ul>
       <li><strong>Account information:</strong> email address, password verifier, session data, and account status.</li>
       <li><strong>Team content:</strong> Team settings, chat messages, files, instructions, and Assistant results you submit or create.</li>
-      <li><strong>Connected accounts:</strong> provider identity, approved scopes, connection status, token expiry, and OAuth access or refresh tokens.</li>
+      <li><strong>Connected Integrations:</strong> provider identity, approved scopes, connection status, token expiry, and OAuth access or refresh tokens.</li>
       <li><strong>Configuration:</strong> model-provider choices, Assistant installations, approvals, and resource settings.</li>
       <li><strong>Security records:</strong> bounded logs about requests, authentication, changes, failures, and suspected abuse.</li>
     </ul>

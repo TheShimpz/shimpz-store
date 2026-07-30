@@ -24,13 +24,15 @@ def _assistant(**changes) -> dict[str, object]:
         "source_digest": DIGEST,
         "platforms": ["linux/amd64", "linux/arm64"],
         "allowed_hosts": ["api.example.com"],
-        "accounts": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
+        "integrations": [
+            {"id": "github", "provider": "github", "scopes": ["repo:read"]}
+        ],
         "powers": [
             {
                 "id": "hello",
                 "input_schema": {"type": "object"},
                 "output_schema": {"type": "object"},
-                "accounts": ["github"],
+                "integrations": ["github"],
             }
         ],
     }
@@ -54,8 +56,10 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "source_digest": DIGEST,
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
-                "accounts": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
-                "powers": [{"id": "hello", "accounts": ["github"]}],
+                "integrations": [
+                    {"id": "github", "provider": "github", "scopes": ["repo:read"]}
+                ],
+                "powers": [{"id": "hello", "integrations": ["github"]}],
             }
         ],
     }
@@ -95,7 +99,9 @@ def test_public_route_caches_only_a_valid_developers_catalog(monkeypatch) -> Non
     assert response.json()["assistants"][0]["source_digest"] == DIGEST
 
 
-@pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "assistants": "bad"})])
+@pytest.mark.parametrize(
+    "upstream", [(502, {}), (200, {"version": 1, "assistants": "bad"})]
+)
 def test_public_route_fails_closed_without_cache(monkeypatch, upstream) -> None:
     async def invalid_catalog(*_args, **_kwargs):
         return upstream

@@ -2,7 +2,7 @@ const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
 const EXPECTED_ASSISTANT_KEYS = Object.freeze([
-  "accounts",
+  "integrations",
   "allowed_hosts",
   "assistant_id",
   "assistant_version",
@@ -59,21 +59,21 @@ function boundedStrings(value, maximumItems, maximumLength, pattern = null) {
 }
 
 /** @param {unknown} value */
-function validAccounts(value) {
-  return Array.isArray(value) && value.length <= 32 && value.every((account) =>
-    hasExactKeys(account, ["id", "provider", "scopes"]) &&
-    boundedText(account.id, 80) &&
-    boundedText(account.provider, 80) &&
-    boundedStrings(account.scopes, 64, 160)
+function validIntegrations(value) {
+  return Array.isArray(value) && value.length <= 32 && value.every((integration) =>
+    hasExactKeys(integration, ["id", "provider", "scopes"]) &&
+    boundedText(integration.id, 80) &&
+    boundedText(integration.provider, 80) &&
+    boundedStrings(integration.scopes, 64, 160)
   );
 }
 
 /** @param {unknown} value */
 function validPowers(value) {
   return Array.isArray(value) && value.length <= 128 && value.every((power) =>
-    hasExactKeys(power, ["accounts", "id"]) &&
+    hasExactKeys(power, ["integrations", "id"]) &&
     boundedText(power.id, 80) &&
-    boundedStrings(power.accounts, 32, 80)
+    boundedStrings(power.integrations, 32, 80)
   );
 }
 
@@ -94,7 +94,7 @@ function parseAssistant(value) {
     !boundedStrings(record.creators, 16, 80) ||
     !boundedStrings(record.platforms, 2, 20, PLATFORM_RE) ||
     !boundedStrings(record.allowed_hosts, 64, 253) ||
-    !validAccounts(record.accounts) ||
+    !validIntegrations(record.integrations) ||
     !validPowers(record.powers)
   ) {
     throw new Error("invalid Assistant catalog");

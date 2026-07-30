@@ -20,8 +20,8 @@ function catalog() {
         source_digest: DIGEST,
         platforms: ["linux/amd64", "linux/arm64"],
         allowed_hosts: ["api.example.com"],
-        accounts: [{ id: "example", provider: "example", scopes: ["read"] }],
-        powers: [{ id: "lookup", accounts: ["example"] }],
+        integrations: [{ id: "example", provider: "example", scopes: ["read"] }],
+        powers: [{ id: "lookup", integrations: ["example"] }],
       },
     ],
   };
@@ -47,13 +47,13 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].image_reference = "registry/image"; },
     (value) => { value.assistants.push(structuredClone(value.assistants[0])); },
     (value) => { value.assistants[0].powers[0].command = "/bin/sh"; },
-    (value) => { value.assistants[0].accounts = "example"; },
+    (value) => { value.assistants[0].integrations = "example"; },
     (value) => { value.assistants[0].powers = "lookup"; },
     (value) => { value.assistants[0].allowed_hosts = ["api.example.com", "api.example.com"]; },
     (value) => { value.assistants[0].allowed_hosts = [42]; },
     (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 65 }, (_, index) => `api-${index}.example.com`); },
     (value) => { value.assistants[0].platforms = ["windows/amd64"]; },
-    (value) => { value.assistants[0].accounts[0].scopes = ["read", "read"]; },
+    (value) => { value.assistants[0].integrations[0].scopes = ["read", "read"]; },
   ];
   for (const mutate of mutations) {
     const value = catalog();

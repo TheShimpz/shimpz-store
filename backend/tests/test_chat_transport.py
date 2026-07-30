@@ -39,7 +39,9 @@ def _done(
     }
 
 
-def _input_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 32) -> dict:
+def _input_challenge(
+    *, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 32
+) -> dict:
     return {
         "type": "input-required",
         "status": "input-required",
@@ -56,7 +58,9 @@ def _input_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 3
     }
 
 
-def _approval_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" * 32) -> dict:
+def _approval_challenge(
+    *, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" * 32
+) -> dict:
     return {
         "type": "approval-required",
         "status": "approval-required",
@@ -197,7 +201,9 @@ def test_chat_turn_requires_an_explicit_bounded_assistant_scope():
         "files": ["a" * 32],
         "assistant_ids": ["shimpz-cloudflare"],
     }
-    assert main._chat_turn_payload({"message": "brain only", "files": [], "assistant_ids": []}) == {
+    assert main._chat_turn_payload(
+        {"message": "brain only", "files": [], "assistant_ids": []}
+    ) == {
         "message": "brain only",
         "files": [],
         "assistant_ids": [],
@@ -504,7 +510,11 @@ def test_queued_turn_stop_removes_its_fifo_lease_before_it_can_run():
             await _ws_dispatch(websocket, "team-queued", {}, {"type": "stop"}, state)
             assert admission.snapshot() == (1, 0)
             assert state["active"] is None
-            events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
+            events = [
+                json.loads(message["text"])
+                for message in sent
+                if message["type"] == "websocket.send"
+            ]
             assert events == [{"type": "stopped"}]
 
             occupied.release()
@@ -618,7 +628,9 @@ def test_final_websocket_gate_converts_invalid_events(event: dict, monkeypatch):
 
 
 def test_websocket_connection_admission_bounds_global_account_and_team_counts():
-    admission = main._WsConnectionAdmission(global_limit=3, account_limit=2, team_limit=1)
+    admission = main._WsConnectionAdmission(
+        global_limit=3, account_limit=2, team_limit=1
+    )
     account_a_one = admission.reserve("account-a", "team-1")
     assert account_a_one is not None
     assert admission.reserve("account-a", "team-1") is None
@@ -703,7 +715,9 @@ def test_public_auth_json_is_bounded_before_any_upstream_hop():
     oversized = json.dumps({"padding": "x" * (config.MAX_AUTH_BODY_BYTES + 1)})
     with TestClient(app) as client:
         responses = [
-            client.post(path, content=oversized, headers={"Content-Type": "application/json"})
+            client.post(
+                path, content=oversized, headers={"Content-Type": "application/json"}
+            )
             for path in ("/api/signup", "/api/login")
         ]
     assert [response.status_code for response in responses] == [413, 413]
@@ -720,7 +734,11 @@ def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
     with TestClient(app) as client:
         response = client.post(
             "/api/signup",
-            json={"username": "account-user", "password": "correct horse battery staple", "github": "ignored"},
+            json={
+                "username": "account-user",
+                "password": "correct horse battery staple",
+                "github": "ignored",
+            },
         )
 
     assert response.status_code == 400
@@ -728,7 +746,10 @@ def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
     assert len(forwarded) == 1
     base, method, path, payload, extra, timeout = forwarded[0]
     assert (base, method, path) == (authn.ACCOUNTS_URL, "POST", "/v1/signup")
-    assert payload == {"username": "account-user", "password": "correct horse battery staple"}
+    assert payload == {
+        "username": "account-user",
+        "password": "correct horse battery staple",
+    }
     assert set(extra) == {"X-Forwarded-For"}
     assert timeout == 30
 
@@ -744,7 +765,9 @@ def test_retired_public_marketplace_routes_are_absent():
     with TestClient(app) as client:
         responses = (
             client.post("/api/accounts/v1/verify", json={"token": "unused"}),
-            client.post("/api/apps/dormant/reviews", json={"rating": 5, "body": "unused"}),
+            client.post(
+                "/api/apps/dormant/reviews", json={"rating": 5, "body": "unused"}
+            ),
         )
 
     # The GET-only static catch-all makes unknown POST paths method-not-allowed; neither path has an
@@ -772,7 +795,9 @@ def test_upstream_http_errors_and_unterminated_terminal_lines_are_redacted():
     assert leak_marker not in json.dumps([http_error, stream_error])
 
 
-def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(monkeypatch):
+def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(
+    monkeypatch,
+):
     clamped: list[object] = []
     monkeypatch.setattr(
         chat_events.chat_ws_common,
@@ -802,7 +827,9 @@ def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(monk
         ({"type": "stopped"}, {"type": "stopped"}),
     ],
 )
-def test_terminal_event_contract_accepts_only_exact_bounded_schemas(event: dict, expected: dict):
+def test_terminal_event_contract_accepts_only_exact_bounded_schemas(
+    event: dict, expected: dict
+):
     assert _validated_terminal_event(event, TEST_TEAM_ID) == expected
 
 
@@ -810,8 +837,8 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
     assert (
         _validated_terminal_event(
             {
-                "type": "accounts-required",
-                "status": "accounts-required",
+                "type": "integrations-required",
+                "status": "integrations-required",
                 "team_id": TEST_TEAM_ID,
                 "challenge_id": "a" * 32,
                 "requirements": [],
@@ -839,13 +866,21 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
         _done("x" * (config.MAX_CHAT_REPLY_CHARS + 1)),
         {"type": "error", "status": True, "detail": "failed"},
         {"type": "error", "status": 200, "detail": "not an error"},
-        {"type": "error", "status": 502, "detail": "x" * (config.MAX_CHAT_ERROR_DETAIL_CHARS + 1)},
+        {
+            "type": "error",
+            "status": 502,
+            "detail": "x" * (config.MAX_CHAT_ERROR_DETAIL_CHARS + 1),
+        },
         {"type": "stopped", "requested": True},
     ],
 )
-def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(event: dict):
+def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(
+    event: dict,
+):
     assert _validated_terminal_event(event, TEST_TEAM_ID) is None
 
 
 def test_terminal_event_parser_rejects_duplicate_fields():
-    assert _parsed_stream_event(b'{"type":"stopped","type":"done"}', TEST_TEAM_ID) is None
+    assert (
+        _parsed_stream_event(b'{"type":"stopped","type":"done"}', TEST_TEAM_ID) is None
+    )

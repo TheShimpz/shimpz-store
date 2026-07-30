@@ -25,7 +25,7 @@ _ASSISTANT_FIELDS = {
     "source_digest",
     "platforms",
     "allowed_hosts",
-    "accounts",
+    "integrations",
     "powers",
 }
 
@@ -35,7 +35,11 @@ class CatalogError(ValueError):
 
 
 def _text(value: object, maximum: int) -> str:
-    if not isinstance(value, str) or not 1 <= len(value) <= maximum or any(ord(char) < 32 for char in value):
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= maximum
+        or any(ord(char) < 32 for char in value)
+    ):
         raise CatalogError("catalog text is invalid")
     return value
 
@@ -44,7 +48,9 @@ def _closed_strings(value: object, maximum: int, item_maximum: int) -> list[str]
     if (
         not isinstance(value, list)
         or len(value) > maximum
-        or not all(isinstance(item, str) and 1 <= len(item) <= item_maximum for item in value)
+        or not all(
+            isinstance(item, str) and 1 <= len(item) <= item_maximum for item in value
+        )
         or len(set(value)) != len(value)
     ):
         raise CatalogError("catalog string collection is invalid")
@@ -58,19 +64,23 @@ def _creators(value: object) -> list[str]:
     return creators
 
 
-def _accounts(value: object) -> list[dict[str, object]]:
+def _integrations(value: object) -> list[dict[str, object]]:
     if not isinstance(value, list) or len(value) > 16:
-        raise CatalogError("catalog accounts are invalid")
+        raise CatalogError("catalog integrations are invalid")
     projected = []
     for item in value:
         if not isinstance(item, dict) or set(item) != {"id", "provider", "scopes"}:
-            raise CatalogError("catalog Account is invalid")
-        account_id = item["id"]
+            raise CatalogError("catalog Integration is invalid")
+        integration_id = item["id"]
         provider = item["provider"]
         scopes = _closed_strings(item["scopes"], 32, 128)
-        if not isinstance(account_id, str) or account_id != provider or _POWER_ID.fullmatch(account_id) is None:
-            raise CatalogError("catalog Account identity is invalid")
-        projected.append({"id": account_id, "provider": provider, "scopes": scopes})
+        if (
+            not isinstance(integration_id, str)
+            or integration_id != provider
+            or _POWER_ID.fullmatch(integration_id) is None
+        ):
+            raise CatalogError("catalog Integration identity is invalid")
+        projected.append({"id": integration_id, "provider": provider, "scopes": scopes})
     return projected
 
 
@@ -81,7 +91,7 @@ def _powers(value: object) -> list[dict[str, object]]:
     for item in value:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "input_schema", "output_schema", "accounts"}
+            or set(item) != {"id", "input_schema", "output_schema", "integrations"}
             or not isinstance(item["id"], str)
             or _POWER_ID.fullmatch(item["id"]) is None
             or not isinstance(item["input_schema"], dict)
@@ -91,7 +101,7 @@ def _powers(value: object) -> list[dict[str, object]]:
         projected.append(
             {
                 "id": item["id"],
-                "accounts": _closed_strings(item["accounts"], 16, 64),
+                "integrations": _closed_strings(item["integrations"], 16, 64),
             }
         )
     return projected
@@ -125,14 +135,18 @@ def _assistant(value: object) -> dict[str, object]:
         "source_digest": digest,
         "platforms": platforms,
         "allowed_hosts": _closed_strings(value["allowed_hosts"], 32, 253),
-        "accounts": _accounts(value["accounts"]),
+        "integrations": _integrations(value["integrations"]),
         "powers": _powers(value["powers"]),
     }
 
 
 def project_catalog(value: object) -> dict[str, object]:
     """Validate Developers' closed catalog and return browser-safe metadata."""
-    if not isinstance(value, dict) or set(value) != {"version", "assistants"} or value["version"] != 1:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"version", "assistants"}
+        or value["version"] != 1
+    ):
         raise CatalogError("catalog envelope is invalid")
     assistants = value["assistants"]
     if not isinstance(assistants, list) or len(assistants) > MAX_ASSISTANTS:
