@@ -18,7 +18,7 @@ revoked by accounts.
 - OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state,
   logs, or controller chat frames.
 - Chat v3 accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs, and
-  emits only exact terminal frames. Assistant Accounts must be connected out of band through the OAuth
+  emits only exact terminal frames. Assistant Integrations must be connected out of band through the OAuth
   routes before chat, so `integrations-required` is intentionally never browser-visible. Assistant Spec v1
   has no static-secret, in-body approval, or human-input continuation flow.
 - Static files resolve beneath the built application root; unknown API paths do not fall through to the
