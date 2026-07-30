@@ -1,8 +1,10 @@
 import contextlib
 import hashlib
 import json
+import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import ClassVar
 
 from app import authn, config, main, projections
@@ -11,6 +13,7 @@ from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
 
 FILE_ID = "a" * 32
+VERIFY_CAPABILITY = "b" * 64
 FILE_SHA256 = hashlib.sha256(b"hello").hexdigest()
 USAGE = {"used_bytes": 5, "limit_bytes": 100 * 1024 * 1024, "remaining_bytes": 100 * 1024 * 1024 - 5}
 
@@ -68,7 +71,10 @@ class _ControlPlaneHandler(BaseHTTPRequestHandler):
             body = self._body()
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
-            self._json(200, {"account_id": "account-one", "username": "account-user"})
+            if self.headers.get("Authorization") != f"Bearer {VERIFY_CAPABILITY}":
+                self._json(403, {"detail": "invalid credentials"})
+            else:
+                self._json(200, {"account_id": "account-one", "username": "account-user"})
         elif self.path == "/v1/teams/team_one/files":
             self._json(
                 200,
@@ -106,26 +112,33 @@ def _control_plane():
     calls: list[tuple[str, str, dict]] = []
     _ControlPlaneHandler.calls = calls
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _ControlPlaneHandler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    base = f"http://127.0.0.1:{server.server_port}"
-    previous_accounts = authn.ACCOUNTS_URL
-    previous_team = config.TEAM_URL
-    authn.ACCOUNTS_URL = base
-    config.TEAM_URL = base
-    try:
-        yield calls
-    finally:
-        authn.ACCOUNTS_URL = previous_accounts
-        config.TEAM_URL = previous_team
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with tempfile.TemporaryDirectory() as temporary:
+        token_path = Path(temporary) / "account-verify"
+        token_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
+        token_path.chmod(0o440)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _ControlPlaneHandler)
+        worker = threading.Thread(
+            target=server.serve_forever,
+            kwargs={"poll_interval": 0.01},
+            daemon=True,
+        )
+        worker.start()
+        base = f"http://127.0.0.1:{server.server_port}"
+        previous_accounts = authn.ACCOUNTS_URL
+        previous_verify = authn.ACCOUNT_VERIFY_TOKEN_FILE
+        previous_team = config.TEAM_URL
+        authn.ACCOUNTS_URL = base
+        authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
+        config.TEAM_URL = base
+        try:
+            yield calls
+        finally:
+            authn.ACCOUNTS_URL = previous_accounts
+            authn.ACCOUNT_VERIFY_TOKEN_FILE = previous_verify
+            config.TEAM_URL = previous_team
+            server.shutdown()
+            server.server_close()
+            worker.join(timeout=5)
 
 
 def _authenticated_client() -> TestClient:

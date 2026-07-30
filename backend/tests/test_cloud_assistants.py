@@ -1,12 +1,16 @@
 import contextlib
 import json
+import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import ClassVar
 
 from fastapi.testclient import TestClient
 
 from app import authn, config, main
+
+VERIFY_CAPABILITY = "a" * 64
 
 
 class _AssistantControlHandler(BaseHTTPRequestHandler):
@@ -33,9 +37,7 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
         if self.path == "/v1/teams/team_one/assistants":
             self._json(
                 self.assistant_status,
-                {"assistants": self.assistants}
-                if self.assistant_status == 200
-                else {"detail": "team unavailable"},
+                {"assistants": self.assistants} if self.assistant_status == 200 else {"detail": "team unavailable"},
             )
             return
         self._json(404, {"detail": "not found"})
@@ -45,6 +47,9 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
         token = self.headers.get("X-Shimpz-Account", "")
         self.calls.append(("POST", self.path, body, token))
         if self.path == "/v1/verify":
+            if self.headers.get("Authorization") != f"Bearer {VERIFY_CAPABILITY}":
+                self._json(403, {"detail": "invalid credentials"})
+                return
             if body.get("token") == "valid-token":
                 self._json(200, {"account_id": "account-1", "username": "account-user"})
             else:
@@ -86,22 +91,27 @@ def _assistant_control_plane(*, assistant_status: int = 200, assistants: list[di
             "assistants": _AssistantControlHandler.assistants if assistants is None else assistants,
         },
     )
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    previous = authn.ACCOUNTS_URL, config.TEAM_URL
-    authn.ACCOUNTS_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
-    try:
-        yield calls
-    finally:
-        authn.ACCOUNTS_URL, config.TEAM_URL = previous
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with tempfile.TemporaryDirectory() as temporary:
+        token_path = Path(temporary) / "account-verify"
+        token_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
+        token_path.chmod(0o440)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        worker = threading.Thread(
+            target=server.serve_forever,
+            kwargs={"poll_interval": 0.01},
+            daemon=True,
+        )
+        worker.start()
+        previous = authn.ACCOUNTS_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL
+        authn.ACCOUNTS_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
+        authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
+        try:
+            yield calls
+        finally:
+            authn.ACCOUNTS_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL = previous
+            server.shutdown()
+            server.server_close()
+            worker.join(timeout=5)
 
 
 def _authenticate(client: TestClient) -> None:
@@ -123,9 +133,7 @@ def test_cloud_assistant_lifecycle_requires_authentication_before_upstream():
             client.get("/api/teams/team_one/chat/assistants"),
             client.post(
                 "/api/teams/team_one/assistants",
-                content=b'{"assistant_id":"shimpz-cloudflare","source_digest":"sha256:'
-                + b'a' * 64
-                + b'"}',
+                content=b'{"assistant_id":"shimpz-cloudflare","source_digest":"sha256:' + b"a" * 64 + b'"}',
                 headers=_mutation_headers(),
             ),
             client.delete(
@@ -282,9 +290,9 @@ def test_cloud_assistant_delete_rejects_untrusted_origins_before_team():
         _authenticate(client)
         responses = [client.delete(path, headers=headers) for path, headers, _status in cases]
     assert [response.status_code for response in responses] == [case[2] for case in cases]
-    assert [
-        path for method, path, _body, _token in calls if method == "DELETE"
-    ] == ["/v1/teams/team_one/assistants/retired-assistant"]
+    assert [path for method, path, _body, _token in calls if method == "DELETE"] == [
+        "/v1/teams/team_one/assistants/retired-assistant"
+    ]
     for response in responses:
         _assert_private(response)
 

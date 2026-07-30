@@ -1,6 +1,7 @@
 import asyncio
 import json
 import threading
+from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import pytest
@@ -23,6 +24,7 @@ from app.main import app
 from app.payloads import ClientPayloadError, read_bounded_json
 
 TEST_TEAM_ID = "test_team"
+VERIFY_CAPABILITY = "d" * 64
 
 
 def _done(
@@ -39,9 +41,7 @@ def _done(
     }
 
 
-def _input_challenge(
-    *, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 32
-) -> dict:
+def _input_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 32) -> dict:
     return {
         "type": "input-required",
         "status": "input-required",
@@ -58,9 +58,7 @@ def _input_challenge(
     }
 
 
-def _approval_challenge(
-    *, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" * 32
-) -> dict:
+def _approval_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" * 32) -> dict:
     return {
         "type": "approval-required",
         "status": "approval-required",
@@ -120,6 +118,41 @@ def test_websocket_origin_is_exact_and_checked_before_authentication():
         # An exact first-party Origin advances to the cookie check; no account service call is made
         # because this handshake deliberately has no account cookie.
         assert _websocket_disconnect_code(client, allowed) == 4401
+
+
+def test_websocket_verification_requires_and_sends_the_file_capability(tmp_path, monkeypatch):
+    token_path = tmp_path / "account-verify"
+    calls: list[tuple[tuple, dict]] = []
+
+    async def fake_bounded_call(*args, **kwargs):
+        calls.append((args, kwargs))
+        return 200, {"account_id": "account-one"}
+
+    monkeypatch.setattr(authn, "ACCOUNT_VERIFY_TOKEN_FILE", token_path)
+    monkeypatch.setattr(main, "_bounded_call", fake_bounded_call)
+    websocket = SimpleNamespace(cookies={config.ACCOUNT_COOKIE: "session-token"})
+
+    assert asyncio.run(main._ws_verify(websocket)) == ("", "")
+    assert calls == []
+
+    token_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
+    token_path.chmod(0o440)
+    assert asyncio.run(main._ws_verify(websocket)) == ("session-token", "account-one")
+    assert calls == [
+        (
+            (
+                authn.EXECUTOR,
+                config.ACCOUNTS_URL,
+                "POST",
+                "/v1/verify",
+                {"token": "session-token"},
+            ),
+            {
+                "extra": {"Authorization": f"Bearer {VERIFY_CAPABILITY}"},
+                "timeout": 5,
+            },
+        )
+    ]
 
 
 def test_websocket_requires_and_negotiates_the_v2_chat_subprotocol(monkeypatch):
@@ -201,9 +234,7 @@ def test_chat_turn_requires_an_explicit_bounded_assistant_scope():
         "files": ["a" * 32],
         "assistant_ids": ["shimpz-cloudflare"],
     }
-    assert main._chat_turn_payload(
-        {"message": "brain only", "files": [], "assistant_ids": []}
-    ) == {
+    assert main._chat_turn_payload({"message": "brain only", "files": [], "assistant_ids": []}) == {
         "message": "brain only",
         "files": [],
         "assistant_ids": [],
@@ -510,11 +541,7 @@ def test_queued_turn_stop_removes_its_fifo_lease_before_it_can_run():
             await _ws_dispatch(websocket, "team-queued", {}, {"type": "stop"}, state)
             assert admission.snapshot() == (1, 0)
             assert state["active"] is None
-            events = [
-                json.loads(message["text"])
-                for message in sent
-                if message["type"] == "websocket.send"
-            ]
+            events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
             assert events == [{"type": "stopped"}]
 
             occupied.release()
@@ -628,9 +655,7 @@ def test_final_websocket_gate_converts_invalid_events(event: dict, monkeypatch):
 
 
 def test_websocket_connection_admission_bounds_global_account_and_team_counts():
-    admission = main._WsConnectionAdmission(
-        global_limit=3, account_limit=2, team_limit=1
-    )
+    admission = main._WsConnectionAdmission(global_limit=3, account_limit=2, team_limit=1)
     account_a_one = admission.reserve("account-a", "team-1")
     assert account_a_one is not None
     assert admission.reserve("account-a", "team-1") is None
@@ -715,9 +740,7 @@ def test_public_auth_json_is_bounded_before_any_upstream_hop():
     oversized = json.dumps({"padding": "x" * (config.MAX_AUTH_BODY_BYTES + 1)})
     with TestClient(app) as client:
         responses = [
-            client.post(
-                path, content=oversized, headers={"Content-Type": "application/json"}
-            )
+            client.post(path, content=oversized, headers={"Content-Type": "application/json"})
             for path in ("/api/signup", "/api/login")
         ]
     assert [response.status_code for response in responses] == [413, 413]
@@ -765,9 +788,7 @@ def test_retired_public_marketplace_routes_are_absent():
     with TestClient(app) as client:
         responses = (
             client.post("/api/accounts/v1/verify", json={"token": "unused"}),
-            client.post(
-                "/api/apps/dormant/reviews", json={"rating": 5, "body": "unused"}
-            ),
+            client.post("/api/apps/dormant/reviews", json={"rating": 5, "body": "unused"}),
         )
 
     # The GET-only static catch-all makes unknown POST paths method-not-allowed; neither path has an
@@ -827,9 +848,7 @@ def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(
         ({"type": "stopped"}, {"type": "stopped"}),
     ],
 )
-def test_terminal_event_contract_accepts_only_exact_bounded_schemas(
-    event: dict, expected: dict
-):
+def test_terminal_event_contract_accepts_only_exact_bounded_schemas(event: dict, expected: dict):
     assert _validated_terminal_event(event, TEST_TEAM_ID) == expected
 
 
@@ -881,6 +900,4 @@ def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(
 
 
 def test_terminal_event_parser_rejects_duplicate_fields():
-    assert (
-        _parsed_stream_event(b'{"type":"stopped","type":"done"}', TEST_TEAM_ID) is None
-    )
+    assert _parsed_stream_event(b'{"type":"stopped","type":"done"}', TEST_TEAM_ID) is None

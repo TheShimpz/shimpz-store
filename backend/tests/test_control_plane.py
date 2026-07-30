@@ -6,12 +6,55 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
 from app import authn, config, main, upstream
 from app.config import ACCOUNT_COOKIE
 from app.main import app
+
+VERIFY_CAPABILITY = "c" * 64
+
+
+def test_account_verification_uses_only_an_exact_file_capability(tmp_path, monkeypatch):
+    token_path = tmp_path / "account-verify"
+    calls: list[dict] = []
+
+    def fake_call(*_args, **kwargs):
+        calls.append(kwargs)
+        return 200, {"account_id": "account-1", "username": "account-user"}
+
+    monkeypatch.setattr(authn, "ACCOUNT_VERIFY_TOKEN_FILE", token_path)
+    monkeypatch.setattr(authn, "call", fake_call)
+    request = SimpleNamespace(cookies={ACCOUNT_COOKIE: "session-token"})
+
+    assert authn.authed_account(request) == ("", "", "")
+    assert calls == []
+    for raw, mode in (
+        (b"a" * 63, 0o440),
+        (b"a" * 64 + b"\n", 0o440),
+        (b"A" * 64, 0o440),
+        (b"a" * 64, 0o640),
+    ):
+        if token_path.exists():
+            token_path.chmod(0o600)
+        token_path.write_bytes(raw)
+        token_path.chmod(mode)
+        assert authn.authed_account(request) == ("", "", "")
+    target = tmp_path / "target"
+    target.write_bytes(b"a" * 64)
+    target.chmod(0o440)
+    token_path.unlink()
+    token_path.symlink_to(target)
+    assert authn.authed_account(request) == ("", "", "")
+    assert calls == []
+
+    token_path.unlink()
+    token_path.write_bytes(b"a" * 64)
+    token_path.chmod(0o440)
+    assert authn.authed_account(request) == ("session-token", "account-1", "account-user")
+    assert calls == [{"extra": {"Authorization": f"Bearer {'a' * 64}"}, "timeout": 5}]
 
 
 def test_verify_timeout_uses_fast_budget_and_surfaces_502(monkeypatch):
@@ -80,7 +123,10 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(length) or b"{}")
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
-            self._json(200, {"account_id": "account-1", "username": "account-user"})
+            if self.headers.get("Authorization") != f"Bearer {VERIFY_CAPABILITY}":
+                self._json(403, {"error": "invalid or missing credentials"})
+            else:
+                self._json(200, {"account_id": "account-1", "username": "account-user"})
         elif self.path == "/v1/brains/upsert":
             self._json(
                 200,
@@ -135,6 +181,9 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
 
     with tempfile.TemporaryDirectory() as temporary:
         token_path = Path(temporary) / "brain-finalize-token"
+        verify_path = Path(temporary) / "account-verify-token"
+        verify_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
+        verify_path.chmod(0o440)
         if finalize_token_available:
             token_path.write_text(finalize_token)
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -149,9 +198,11 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
             config.ACCOUNTS_URL,
             config.TEAM_URL,
             config.BRAIN_FINALIZE_TOKEN_FILE,
+            authn.ACCOUNT_VERIFY_TOKEN_FILE,
         )
         authn.ACCOUNTS_URL = config.ACCOUNTS_URL = config.TEAM_URL = base
         config.BRAIN_FINALIZE_TOKEN_FILE = token_path
+        authn.ACCOUNT_VERIFY_TOKEN_FILE = verify_path
         try:
             yield calls
         finally:
@@ -159,6 +210,7 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
                 config.ACCOUNTS_URL,
                 config.TEAM_URL,
                 config.BRAIN_FINALIZE_TOKEN_FILE,
+                authn.ACCOUNT_VERIFY_TOKEN_FILE,
             ) = previous
             authn.ACCOUNTS_URL = config.ACCOUNTS_URL
             server.shutdown()
@@ -327,9 +379,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
     for private_response in (inference, credential):
         assert private_response.headers["cache-control"] == "private, no-store"
     assert [
-        path
-        for method, path, _body in calls
-        if method == "POST" and path.endswith(("/create", "/assistants"))
+        path for method, path, _body in calls if method == "POST" and path.endswith(("/create", "/assistants"))
     ] == []
     assert not any(
         path == "/v1/brains/upsert" or (method == "PUT" and path.endswith("/inference"))

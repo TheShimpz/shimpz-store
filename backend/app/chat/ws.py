@@ -10,8 +10,7 @@ from dataclasses import dataclass, field
 import structlog
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app import config
-from app.authn import EXECUTOR as _AUTH_EXECUTOR
+from app import authn, config
 from app.chat.events import WebSocketPayloadError
 from app.chat.events import chat_turn_payload as _chat_turn_payload
 from app.chat.events import upstream_error_event as _upstream_error_event
@@ -59,11 +58,15 @@ _WS_CONNECTION_ADMISSION = _WsConnectionAdmission(
     WS_ACCOUNT_CONNECTION_LIMIT,
     WS_TEAM_CONNECTION_LIMIT,
 )
+_AUTH_EXECUTOR = authn.EXECUTOR
 
 
 async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
     token = ws.cookies.get(ACCOUNT_COOKIE, "")
     if not token:
+        return "", ""
+    capability = authn.verification_capability()
+    if not capability:
         return "", ""
     status, data = await _bounded_call(
         _AUTH_EXECUTOR,
@@ -71,6 +74,7 @@ async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
         "POST",
         "/v1/verify",
         {"token": token},
+        extra={"Authorization": f"Bearer {capability}"},
         timeout=VERIFY_TIMEOUT_SECONDS,
     )
     account_id = data.get("account_id") if status == 200 else None

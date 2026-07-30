@@ -19,6 +19,12 @@ BRAIN_FINALIZE_TOKEN_FILE = Path(
         "/run/shimpz-accounts-brain-finalize/token",
     )
 )
+ACCOUNT_VERIFY_TOKEN_FILE = Path(
+    os.environ.get(
+        "SHIMPZ_ACCOUNT_STORE_VERIFY_TOKEN_FILE",
+        "/run/shimpz-account-store-verify/token",
+    )
+)
 ACCOUNT_COOKIE = "shimpz_account"
 COOKIE_MAX_AGE = 7 * 24 * 3600
 MAX_TEAM_CREATE_BODY_BYTES = max(
