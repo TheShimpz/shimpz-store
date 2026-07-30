@@ -34,7 +34,7 @@ async def team_files(request: Request, team_id: str) -> JSONResponse:
         config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/files",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     if status != 200:
@@ -74,7 +74,7 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
         data,
         filename=filename,
         media_type=media_type,
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     log.info(
@@ -111,7 +111,7 @@ async def team_file_delete(request: Request, team_id: str, file_id: str) -> JSON
         config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{team_id}/files/{opaque_id}",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     log.info(

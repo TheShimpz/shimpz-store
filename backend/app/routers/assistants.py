@@ -37,7 +37,7 @@ async def _assistant_inventory(
         config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/assistants",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     if status != 200:

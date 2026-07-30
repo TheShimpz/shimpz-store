@@ -9,6 +9,7 @@ from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
 from app.inference import provider as canonical_provider
 from app.payloads import read_bounded_json
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
 router = APIRouter()
@@ -24,7 +25,7 @@ async def team_inference(request: Request, team_id: str) -> JSONResponse:
         config.TEAM_URL,
         "GET",
         f"/v1/teams/{team_id}/inference",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return JSONResponse(data, status_code=status)
@@ -50,7 +51,7 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
         "PUT",
         f"/v1/teams/{team_id}/inference",
         {"provider": provider, "model": model},
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return JSONResponse(data, status_code=status)

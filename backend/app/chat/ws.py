@@ -36,6 +36,7 @@ from app.config import (
     WS_TEAM_CONNECTION_LIMIT,
 )
 from app.payloads import ClientPayloadError
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import CHAT_STOP_TIMEOUT_SECONDS, VERIFY_TIMEOUT_SECONDS
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
@@ -410,7 +411,7 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
         return
     try:
         await ws.accept(subprotocol=CHAT_WS_SUBPROTOCOL)
-        hdr = {"X-Shimpz-Account": token}
+        hdr = {team_contract.ACCOUNT_SESSION_HEADER: token}
         state: dict = {
             "active": None,
             "stop_requested": False,

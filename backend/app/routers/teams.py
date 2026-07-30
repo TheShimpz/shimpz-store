@@ -14,6 +14,7 @@ from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
 from app.inference import provider as canonical_provider
 from app.payloads import ClientPayloadError, read_bounded_json
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
 router = APIRouter()
@@ -54,7 +55,7 @@ async def teams_list(request: Request) -> JSONResponse:
         config.TEAM_URL,
         "GET",
         "/v1/teams",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return JSONResponse(data, status_code=status)
@@ -73,7 +74,7 @@ async def teams_create(request: Request) -> JSONResponse:
         "POST",
         f"/v1/teams/{team_id}/create",
         create_payload,
-        {"X-Shimpz-Account": token},
+        {team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return JSONResponse(data, status_code=status)
@@ -89,7 +90,7 @@ async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
         config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{team_id}",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return JSONResponse(data, status_code=status)

@@ -60,7 +60,7 @@ async def install_assistant_publication(request: Request, team_id: str) -> Assis
         "POST",
         f"/v1/teams/{canonical_team}/assistants",
         {"assistant_id": assistant_id, "source_digest": source_digest},
-        {"X-Shimpz-Account": token},
+        {team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return AssistantMutation(account_id, canonical_team, assistant_id, status, data)
@@ -82,7 +82,7 @@ async def uninstall_assistant(
         config.TEAM_URL,
         "DELETE",
         f"/v1/teams/{canonical_team}/assistants/{canonical_assistant}",
-        extra={"X-Shimpz-Account": token},
+        extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     return AssistantMutation(account_id, canonical_team, canonical_assistant, status, data)
