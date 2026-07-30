@@ -44,7 +44,7 @@
     <h2>4. OAuth and connected providers</h2>
     <p>
       Connecting a provider is optional. Shimpz requests only reviewed scopes and uses the resulting grant
-      to perform operations you authorize. We do not sell OAuth data. We do not use connected-account data
+      to perform operations you authorize. We do not sell OAuth data. We do not use connected Integration data
       for advertising. You may disconnect a provider, and you may also revoke Shimpz from that provider's
       authorization settings.
     </p>
