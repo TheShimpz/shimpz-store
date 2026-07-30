@@ -376,13 +376,13 @@
       phase = "login";
       return;
     }
-    const [r, brainsResponse] = await Promise.all([
+    const [r, providersResponse] = await Promise.all([
       fetch("/api/teams"),
-      fetch("/api/brains").catch(() => null),
+      fetch("/api/model-providers").catch(() => null),
     ]);
-    const brainsResult = await brainsResponse?.json().catch(() => null);
-    configuredProviders = brainsResponse?.ok && Array.isArray(brainsResult?.brains)
-      ? brainsResult.brains
+    const providersResult = await providersResponse?.json().catch(() => null);
+    configuredProviders = providersResponse?.ok && Array.isArray(providersResult?.providers)
+      ? providersResult.providers
           .filter((entry: any) => entry?.status === "configured" && (entry.provider === "openai" || entry.provider === "anthropic"))
           .map((entry: any) => entry.provider)
       : [];

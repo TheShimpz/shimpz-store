@@ -8,7 +8,7 @@
 
   type ProviderId = "anthropic" | "openai";
   type LoadState = "loading" | "ready" | "error";
-  type BrainRecord = {
+  type ProviderRecord = {
     provider: ProviderId;
     auth_type: "api_key";
     status: "configured" | "revoking";
@@ -17,7 +17,7 @@
   let { lang }: { lang: Locale } = $props();
 
   let loadState = $state<LoadState>("loading");
-  let brains = $state<BrainRecord[]>([]);
+  let providers = $state<ProviderRecord[]>([]);
   let provider = $state<ProviderId>("openai");
   let step = $state<1 | 2 | 3>(1);
   let secret = $state("");
@@ -29,7 +29,7 @@
   let fieldError = $state("");
 
   function recordFor(id: ProviderId) {
-    return brains.find((entry) => entry.provider === id);
+    return providers.find((entry) => entry.provider === id);
   }
 
   function providerTitle(id: ProviderId) {
@@ -46,11 +46,11 @@
     loadState = "loading";
     if (!preserveMessage) message = "";
     try {
-      const response = await fetch("/api/brains");
+      const response = await fetch("/api/model-providers");
       const result = await response.json().catch(() => null);
-      if (!response.ok || !Array.isArray(result?.brains)) throw new Error("providers unavailable");
-      brains = result.brains.filter(
-        (entry: BrainRecord) => entry?.provider === "openai" || entry?.provider === "anthropic",
+      if (!response.ok || !Array.isArray(result?.providers)) throw new Error("providers unavailable");
+      providers = result.providers.filter(
+        (entry: ProviderRecord) => entry?.provider === "openai" || entry?.provider === "anthropic",
       );
       loadState = "ready";
     } catch {
@@ -80,7 +80,7 @@
     message = "";
     messageTone = "";
     try {
-      const response = await fetch(`/api/brains/${provider}`, {
+      const response = await fetch(`/api/model-providers/${provider}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ auth_type: "api_key", secret: value }),
@@ -113,7 +113,7 @@
     message = "";
     messageTone = "";
     try {
-      const response = await fetch(`/api/brains/${id}`, { method: "DELETE" }).catch(() => null);
+      const response = await fetch(`/api/model-providers/${id}`, { method: "DELETE" }).catch(() => null);
       const result = await response?.json().catch(() => ({}));
       if (!response?.ok) {
         message = result?.detail ?? result?.error ?? (lang === "pt" ? "Não foi possível remover a chave." : "Could not remove the key.");
@@ -220,10 +220,10 @@
 
     <div class="configured-list">
       <h3>{tr("brain_configured_list", lang)}</h3>
-      {#if brains.length === 0}
+      {#if providers.length === 0}
         <p>{tr("brain_none_configured", lang)}</p>
       {:else}
-        {#each brains as entry (entry.provider)}
+        {#each providers as entry (entry.provider)}
           <div class="configured-row">
             <span class="configured-icon"><HudIcon name="brain" size={18} /></span>
             <span class="configured-name"><strong>{providerTitle(entry.provider)}</strong><small>{tr("brain_api_key", lang)}</small></span>

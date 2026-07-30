@@ -136,6 +136,19 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                     "status": "configured",
                 },
             )
+        elif self.path == "/v1/brains/list":
+            self._json(
+                200,
+                {
+                    "brains": [
+                        {
+                            "provider": "openai",
+                            "auth_type": "api_key",
+                            "status": "configured",
+                        }
+                    ]
+                },
+            )
         elif self.path == "/v1/brains/revoke-begin":
             self.state["begin_count"] += 1
             self._json(
@@ -221,7 +234,7 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
 def test_provider_key_delete_revokes_generation_without_touching_teams():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.delete("/api/brains/openai")
+        response = client.delete("/api/model-providers/openai")
     begin = ("POST", "/v1/brains/revoke-begin", {"token": "valid-token", "provider": "openai"})
     finalize = (
         "POST",
@@ -234,12 +247,35 @@ def test_provider_key_delete_revokes_generation_without_touching_teams():
     assert not any(call[1].startswith("/v1/teams/") for call in calls)
 
 
+def test_model_provider_inventory_has_one_public_responsibility():
+    with _brain_control_plane() as calls, TestClient(app) as client:
+        client.cookies.set(ACCOUNT_COOKIE, "valid-token")
+        response = client.get("/api/model-providers")
+        retired = client.get("/api/brains")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "providers": [
+            {
+                "provider": "openai",
+                "auth_type": "api_key",
+                "status": "configured",
+            }
+        ]
+    }
+    assert retired.status_code == 404
+    assert ("POST", "/v1/brains/list", {"token": "valid-token"}) in calls
+
+
 def test_model_credentials_accept_only_generic_provider_api_keys():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        valid = client.post("/api/brains/anthropic", json={"auth_type": "api_key", "secret": "secret-key"})
-        oauth = client.post("/api/brains/anthropic", json={"auth_type": "oauth", "secret": "oauth-token"})
-        retired_provider = client.post("/api/brains/codex", json={"auth_type": "api_key", "secret": "secret-key"})
+        valid = client.post("/api/model-providers/anthropic", json={"auth_type": "api_key", "secret": "secret-key"})
+        oauth = client.post("/api/model-providers/anthropic", json={"auth_type": "oauth", "secret": "oauth-token"})
+        retired_provider = client.post(
+            "/api/model-providers/codex",
+            json={"auth_type": "api_key", "secret": "secret-key"},
+        )
 
     assert valid.status_code == 200
     assert valid.json() == {"provider": "anthropic", "auth_type": "api_key", "status": "configured"}
@@ -355,7 +391,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
         {"provider": "openai", "model": "gpt-5.5", "padding": "x" * config.MAX_INFERENCE_BODY_BYTES}
     ).encode()
     credential_body = json.dumps(
-        {"auth_type": "api_key", "secret": "x" * main.brains.MAX_CREDENTIAL_BODY_BYTES}
+        {"auth_type": "api_key", "secret": "x" * main.model_providers.MAX_CREDENTIAL_BODY_BYTES}
     ).encode()
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
@@ -371,7 +407,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
             headers={"Content-Type": "application/json"},
         )
         credential = client.post(
-            "/api/brains/openai",
+            "/api/model-providers/openai",
             content=credential_body,
             headers={"Content-Type": "application/json"},
         )
@@ -390,7 +426,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
 def test_provider_key_delete_fails_closed_without_the_finalizer_bearer():
     with _brain_control_plane(finalize_token_available=False) as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        response = client.delete("/api/brains/openai")
+        response = client.delete("/api/model-providers/openai")
     assert response.status_code == 502
     assert response.json() == {"detail": "Brain credential finalization is unavailable"}
     assert not any(call[1] == "/v1/internal/brains/revoke-finalize" for call in calls)

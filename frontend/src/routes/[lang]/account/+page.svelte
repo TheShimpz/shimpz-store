@@ -4,7 +4,7 @@
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
-  import BrainSetupWizard from "$lib/components/BrainSetupWizard.svelte";
+  import ModelProviderSetupWizard from "$lib/components/ModelProviderSetupWizard.svelte";
   import HudIcon from "$lib/components/HudIcon.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -56,7 +56,7 @@
     <p class="mt-8 dim" role="status">{tr("loading", lang)}</p>
   {:else}
     <div class="account-grid">
-      <BrainSetupWizard {lang} />
+      <ModelProviderSetupWizard {lang} />
 
       <aside class="account-aside">
         <section class="panel compact-panel" aria-labelledby="identity-title">
