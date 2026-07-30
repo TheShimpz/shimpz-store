@@ -10,13 +10,13 @@ from app.protocol.http.v1 import payload as team_contract
 from app.protocol.http.v1 import websocket as chat_ws_common
 
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
-ACCOUNTS_URL = os.environ.get("SHIMPZ_ACCOUNTS_URL", "http://accounts:7079")
+ACCOUNT_URL = os.environ.get("SHIMPZ_ACCOUNT_URL", "http://account:7079")
 TEAM_URL = os.environ.get("SHIMPZ_TEAM_URL", "http://team:7077")
 DEVELOPERS_URL = os.environ.get("SHIMPZ_DEVELOPERS_URL", "http://developers-api:8080")
 BRAIN_FINALIZE_TOKEN_FILE = Path(
     os.environ.get(
-        "SHIMPZ_ACCOUNTS_BRAIN_FINALIZE_TOKEN_FILE",
-        "/run/shimpz-accounts-brain-finalize/token",
+        "SHIMPZ_ACCOUNT_BRAIN_FINALIZE_TOKEN_FILE",
+        "/run/shimpz-account-brain-finalize/token",
     )
 )
 ACCOUNT_VERIFY_TOKEN_FILE = Path(

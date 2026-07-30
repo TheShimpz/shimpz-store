@@ -15,7 +15,7 @@ from app.concurrency import run_bounded as run_with_executor
 from app.config import (
     ACCOUNT_COOKIE,
     ACCOUNT_VERIFY_TOKEN_FILE,
-    ACCOUNTS_URL,
+    ACCOUNT_URL,
     AUTH_QUEUE_MAX,
     AUTH_WORKER_THREADS,
     COOKIE_MAX_AGE,
@@ -79,7 +79,7 @@ def authed_account(request: Request) -> tuple[str, str, str]:
     if not capability:
         return "", "", ""
     status, data = call(
-        ACCOUNTS_URL,
+        ACCOUNT_URL,
         "POST",
         "/v1/verify",
         {"token": token},

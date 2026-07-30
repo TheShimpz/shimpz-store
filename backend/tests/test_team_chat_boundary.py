@@ -124,16 +124,16 @@ def _control_plane():
         )
         worker.start()
         base = f"http://127.0.0.1:{server.server_port}"
-        previous_accounts = authn.ACCOUNTS_URL
+        previous_account_url = authn.ACCOUNT_URL
         previous_verify = authn.ACCOUNT_VERIFY_TOKEN_FILE
         previous_team = config.TEAM_URL
-        authn.ACCOUNTS_URL = base
+        authn.ACCOUNT_URL = base
         authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
         config.TEAM_URL = base
         try:
             yield calls
         finally:
-            authn.ACCOUNTS_URL = previous_accounts
+            authn.ACCOUNT_URL = previous_account_url
             authn.ACCOUNT_VERIFY_TOKEN_FILE = previous_verify
             config.TEAM_URL = previous_team
             server.shutdown()

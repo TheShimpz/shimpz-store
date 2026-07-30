@@ -102,13 +102,13 @@ def _assistant_control_plane(*, assistant_status: int = 200, assistants: list[di
             daemon=True,
         )
         worker.start()
-        previous = authn.ACCOUNTS_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL
-        authn.ACCOUNTS_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
+        previous = authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL
+        authn.ACCOUNT_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
         authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
         try:
             yield calls
         finally:
-            authn.ACCOUNTS_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL = previous
+            authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL = previous
             server.shutdown()
             server.server_close()
             worker.join(timeout=5)

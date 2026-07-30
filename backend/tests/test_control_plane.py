@@ -73,7 +73,7 @@ def test_verify_timeout_uses_fast_budget_and_surfaces_502(monkeypatch):
     monkeypatch.setattr(upstream.http.client, "HTTPConnection", TimedOutConnection)
 
     status, body = upstream.call(
-        "http://accounts:8080",
+        "http://account:8080",
         "POST",
         "/v1/verify",
         {"token": "opaque"},
@@ -82,7 +82,7 @@ def test_verify_timeout_uses_fast_budget_and_surfaces_502(monkeypatch):
 
     assert (status, body) == (502, {"detail": "the Space is unreachable"})
     assert observed == {
-        "hostname": "accounts",
+        "hostname": "account",
         "port": 8080,
         "timeout": 5,
         "closed": True,
@@ -195,24 +195,24 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
         worker.start()
         base = f"http://127.0.0.1:{server.server_port}"
         previous = (
-            config.ACCOUNTS_URL,
+            config.ACCOUNT_URL,
             config.TEAM_URL,
             config.BRAIN_FINALIZE_TOKEN_FILE,
             authn.ACCOUNT_VERIFY_TOKEN_FILE,
         )
-        authn.ACCOUNTS_URL = config.ACCOUNTS_URL = config.TEAM_URL = base
+        authn.ACCOUNT_URL = config.ACCOUNT_URL = config.TEAM_URL = base
         config.BRAIN_FINALIZE_TOKEN_FILE = token_path
         authn.ACCOUNT_VERIFY_TOKEN_FILE = verify_path
         try:
             yield calls
         finally:
             (
-                config.ACCOUNTS_URL,
+                config.ACCOUNT_URL,
                 config.TEAM_URL,
                 config.BRAIN_FINALIZE_TOKEN_FILE,
                 authn.ACCOUNT_VERIFY_TOKEN_FILE,
             ) = previous
-            authn.ACCOUNTS_URL = config.ACCOUNTS_URL
+            authn.ACCOUNT_URL = config.ACCOUNT_URL
             server.shutdown()
             server.server_close()
             worker.join(timeout=5)

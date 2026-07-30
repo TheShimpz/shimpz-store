@@ -6,14 +6,14 @@ release discovery and installation, Hosted Assistant inventory, provider/model s
 the strict `shimpz.chat.v3` WebSocket surface.
 
 The Store is an unprivileged gateway, not a controller. It has no Docker socket, provider admin key, or
-Team bearer. It forwards the authenticated account token to the internal accounts and Team
+Team bearer. It forwards the authenticated account token to the internal Account and Team
 controller services, which enforce account/Team ownership and perform privileged work. Its one
 file-backed service capability can only finalize an exact model-credential generation already being
-revoked by accounts.
+revoked by Account.
 
 ## Security boundary
 
-- Session cookies are secure, HTTP-only, same-site, and verified against accounts before protected work.
+- Session cookies are secure, HTTP-only, same-site, and verified against Account before protected work.
 - Team IDs bind the complete account ID and normalized Team name with a collision-resistant digest.
 - OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state,
   logs, or controller chat frames.

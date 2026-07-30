@@ -142,7 +142,7 @@ def test_websocket_verification_requires_and_sends_the_file_capability(tmp_path,
         (
             (
                 authn.EXECUTOR,
-                config.ACCOUNTS_URL,
+                config.ACCOUNT_URL,
                 "POST",
                 "/v1/verify",
                 {"token": "session-token"},
@@ -768,7 +768,7 @@ def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
     assert response.headers["cache-control"] == "private, no-store"
     assert len(forwarded) == 1
     base, method, path, payload, extra, timeout = forwarded[0]
-    assert (base, method, path) == (authn.ACCOUNTS_URL, "POST", "/v1/signup")
+    assert (base, method, path) == (authn.ACCOUNT_URL, "POST", "/v1/signup")
     assert payload == {
         "username": "account-user",
         "password": "correct horse battery staple",

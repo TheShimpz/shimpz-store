@@ -71,7 +71,7 @@ async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
         return "", ""
     status, data = await _bounded_call(
         _AUTH_EXECUTOR,
-        config.ACCOUNTS_URL,
+        config.ACCOUNT_URL,
         "POST",
         "/v1/verify",
         {"token": token},

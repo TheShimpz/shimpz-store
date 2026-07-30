@@ -26,7 +26,7 @@ async def brains_list(request: Request) -> JSONResponse:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
     status, data = await call_bounded(
         authn.EXECUTOR,
-        config.ACCOUNTS_URL,
+        config.ACCOUNT_URL,
         "POST",
         "/v1/brains/list",
         {"token": token},
@@ -53,7 +53,7 @@ async def brain_upsert(request: Request, provider: str) -> JSONResponse:
         return JSONResponse({"detail": "invalid Brain credential"}, status_code=400)
     status, data = await call_bounded(
         authn.EXECUTOR,
-        config.ACCOUNTS_URL,
+        config.ACCOUNT_URL,
         "POST",
         "/v1/brains/upsert",
         {
@@ -96,7 +96,7 @@ def _revocation_state(begin_data: dict) -> tuple[bool, int | None]:
 
 def _delete_brain_for_token(token: str, provider: str, forwarded_for: str) -> JSONResponse:
     begin_status, begin_data = call(
-        config.ACCOUNTS_URL,
+        config.ACCOUNT_URL,
         "POST",
         "/v1/brains/revoke-begin",
         {"token": token, "provider": provider},
@@ -130,7 +130,7 @@ def _delete_brain_for_token(token: str, provider: str, forwarded_for: str) -> JS
             status_code=502,
         )
     status, data = call(
-        config.ACCOUNTS_URL,
+        config.ACCOUNT_URL,
         "POST",
         "/v1/internal/brains/revoke-finalize",
         {"token": token, "provider": provider, "generation": generation},

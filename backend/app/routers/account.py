@@ -23,7 +23,7 @@ async def _bounded_call(*args, **kwargs) -> tuple[int, dict]:
 async def _credential_route(request: Request, path: str) -> JSONResponse:
     payload = await read_bounded_json(request, MAX_AUTH_BODY_BYTES)
     status, data = await _bounded_call(
-        authn.ACCOUNTS_URL,
+        authn.ACCOUNT_URL,
         "POST",
         path,
         {"username": payload.get("username"), "password": payload.get("password")},
