@@ -38,10 +38,10 @@
   </section>
 
   <section>
-    <h2>4. Connected accounts</h2>
+    <h2>4. Connected Integrations</h2>
     <p>
-      You may connect a third-party account through OAuth or another reviewed authorization method. You may
-      connect only accounts and resources you are authorized to use. You authorize Shimpz to request the
+      You may connect a third-party Integration through OAuth or another reviewed authorization method. You may
+      connect only providers and resources you are authorized to use. You authorize Shimpz to request the
       displayed scopes and to perform operations you explicitly request or approve within those scopes.
     </p>
     <p>
