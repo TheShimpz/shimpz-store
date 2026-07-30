@@ -30,11 +30,6 @@
 
   let createOpen = $state(false); // the "Create Team" modal (creation is no longer inline on the page)
   let destroyTarget = $state<any>(null);
-  let appsByTeam = $state<Record<string, any[]>>({}); // installed apps per Team
-  let appsLoaded = $state<Record<string, boolean>>({});
-  let appsLoading = $state<Record<string, boolean>>({});
-  let appsError = $state<Record<string, string>>({});
-  let openApps = $state(""); // which Team's Apps menu is expanded
 
   let createTrigger = $state<HTMLButtonElement>();
   let destroyDialog = $state<HTMLDialogElement>();
@@ -48,47 +43,12 @@
     model = defaultModelFor(provider);
   }
 
-  async function loadApps(teamId: string) {
-    appsLoading[teamId] = true;
-    appsError[teamId] = "";
-    try {
-      const r = await fetch(`/api/teams/${teamId}/apps`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      appsByTeam[teamId] = (await r.json()).apps ?? [];
-      appsLoaded[teamId] = true;
-    } catch {
-      appsError[teamId] = tr("team_apps_load_failed", lang);
-    } finally {
-      appsLoading[teamId] = false;
-    }
-  }
-
   async function refresh() {
     const r = await fetch("/api/teams");
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     teams = (await r.json()).teams ?? [];
     if (!teams.some((team) => team.team_id === selected)) {
       select(teams[0]?.team_id ?? "");
-    }
-  }
-
-  async function toggleApps(id: string) {
-    if (openApps === id) {
-      openApps = "";
-      return;
-    }
-    openApps = id;
-    if (!appsLoaded[id] && !appsLoading[id]) await loadApps(id);
-  }
-
-  async function uninstallApp(teamId: string, appId: string) {
-    if (busy) return;
-    busy = true;
-    try {
-      await fetch(`/api/teams/${teamId}/apps/${appId}`, { method: "DELETE" });
-      await loadApps(teamId);
-    } finally {
-      busy = false;
     }
   }
 
@@ -189,7 +149,7 @@
     if (teamId) {
       localStorage.setItem(SEL_KEY, teamId);
       const teamName = teams.find((team) => team.team_id === teamId)?.team_name ?? teamId;
-      localStorage.setItem(SEL_KEY + "_name", teamName); // the app page shows WHERE Install will land
+      localStorage.setItem(SEL_KEY + "_name", teamName); // the Assistant page shows where Install will land
     } else {
       localStorage.removeItem(SEL_KEY);
       localStorage.removeItem(SEL_KEY + "_name");
@@ -257,12 +217,6 @@
           </button>
 
           <div class="team-actions" role="group" aria-label={`${tr("team_actions", lang)}: ${team.team_name}`}>
-            <button class="team-action" type="button" aria-expanded={openApps === team.team_id} onclick={() => toggleApps(team.team_id)}>
-              <HudIcon name="assistants" size={18} />
-              <span>{tr("apps_menu", lang)}</span>
-              {#if appsLoaded[team.team_id]}<span class="action-count">{appsByTeam[team.team_id]?.length ?? 0}</span>{/if}
-              <span class:expanded={openApps === team.team_id} class="chevron"><HudIcon name="chevron" size={16} /></span>
-            </button>
             <a class="team-action" href={u.chat(lang, team.team_id)} onclick={() => select(team.team_id)}>
               <HudIcon name="chat" size={18} />
               <span>{tr("nav_chat", lang)}</span>
@@ -276,41 +230,6 @@
               <span>{tr("destroy", lang)}</span>
             </button>
           </div>
-
-          {#if openApps === team.team_id}
-            <div class="assistant-drawer">
-              <div class="drawer-heading">
-                <span class="kicker">{tr("installed_apps", lang)}</span>
-                <span class="mono drawer-team">{team.team_name}</span>
-              </div>
-              {#if appsLoading[team.team_id]}
-                <p class="drawer-state dim">{tr("loading", lang)}</p>
-              {:else if appsError[team.team_id]}
-                <div class="drawer-state drawer-error">
-                  <span>{appsError[team.team_id]}</span>
-                  <button class="btn-ghost" type="button" onclick={() => loadApps(team.team_id)}>
-                    <HudIcon name="retry" size={16} /> {tr("retry", lang)}
-                  </button>
-                </div>
-              {:else}
-                <div class="assistant-list">
-                  {#each (appsByTeam[team.team_id] ?? []) as a (a.app)}
-                    <div class="assistant-row">
-                      <span class="assistant-row-icon" aria-hidden="true"><HudIcon name="assistants" size={17} /></span>
-                      <span class="mono assistant-name">{a.app}</span>
-                      <span class="badge">{a.status}</span>
-                      <button class="btn-ghost assistant-uninstall" type="button" disabled={busy} onclick={() => uninstallApp(team.team_id, a.app)}>
-                        <HudIcon name="uninstall" size={16} /> {tr("uninstall", lang)}
-                      </button>
-                    </div>
-                  {/each}
-                  {#if (appsByTeam[team.team_id] ?? []).length === 0}
-                    <p class="drawer-state dim">{tr("no_apps", lang)}</p>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {/if}
         </article>
       {/each}
       {#if teams.length === 0}<div class="panel empty-state"><HudIcon name="team" size={32} /><p>{tr("no_teams", lang)}</p></div>{/if}
@@ -431,8 +350,7 @@
     outline-offset: -2px;
   }
 
-  .team-mark,
-  .assistant-row-icon {
+  .team-mark {
     display: grid;
     place-items: center;
     color: var(--color-cyan);
@@ -467,7 +385,7 @@
 
   .team-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     border-top: 1px solid var(--color-border);
   }
 
@@ -497,36 +415,6 @@
   .team-action-danger:hover { background: color-mix(in oklab, var(--color-magenta) 8%, var(--color-card-2)); color: var(--color-magenta); }
   .team-action:disabled { cursor: not-allowed; opacity: 0.5; }
 
-  .action-count {
-    min-width: 1.35rem;
-    padding: 0.12rem 0.3rem;
-    background: var(--color-bg);
-    color: var(--color-fg);
-    text-align: center;
-  }
-
-  .chevron { margin-left: 0.15rem; transition: transform 150ms ease; }
-  .chevron.expanded { transform: rotate(180deg); }
-
-  .assistant-drawer {
-    margin-top: -1rem;
-    padding: 1rem 1.2rem 1.2rem;
-    border-top: 1px solid var(--color-border);
-    background: color-mix(in oklab, var(--color-bg) 40%, transparent);
-  }
-
-  .drawer-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
-  .drawer-heading .kicker { margin: 0; }
-  .drawer-team { color: var(--color-muted-2); font-size: 0.65rem; }
-  .drawer-state { margin: 0.85rem 0 0; font-size: 0.85rem; }
-  .drawer-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.7rem; color: var(--color-magenta); }
-
-  .assistant-list { display: grid; gap: 0.55rem; margin-top: 0.85rem; }
-  .assistant-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 0.65rem; }
-  .assistant-row-icon { width: 2rem; height: 2rem; }
-  .assistant-name { overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
-  .assistant-uninstall { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.65rem; font-size: 0.65rem; }
-
   .empty-state {
     display: flex;
     align-items: center;
@@ -543,8 +431,6 @@
     .team-actions { grid-template-columns: 1fr; }
     .team-action { justify-content: flex-start; border-right: 0; border-bottom: 1px solid var(--color-border); }
     .team-action:last-child { border-bottom: 0; }
-    .assistant-row { grid-template-columns: auto minmax(0, 1fr) auto; }
-    .assistant-uninstall { grid-column: 2 / -1; justify-self: start; }
   }
 
   .create-backdrop {

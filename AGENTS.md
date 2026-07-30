@@ -25,6 +25,8 @@
 ## Validation
 
 - Run `ruff check --config ruff.toml .`.
-- Run backend tests with
-  `uv run --project backend --frozen --python 3.14 python -m unittest discover -s backend/tests`.
+- Run backend tests from `backend/` with
+  `DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:9/ci SECRET_KEY=ci-only-not-a-secret uv run --python 3.14
+  --locked --with httpx2==2.5.0 --with python-multipart==0.0.32 --with coverage==7.15.2 sh -c "coverage run
+  --branch --source=app -m pytest -q tests && coverage report --skip-empty --fail-under=79"`.
 - Run frontend tests/check/build from `frontend/` with the pinned pnpm release.

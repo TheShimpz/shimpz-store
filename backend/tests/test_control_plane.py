@@ -293,7 +293,11 @@ def test_team_ids_bind_the_complete_account_and_normalized_name():
 def test_control_mutations_reject_oversize_bodies_before_control_plane_forwarding():
     create_body = json.dumps({"team_name": "Astra", "padding": "x" * config.MAX_TEAM_CREATE_BODY_BYTES}).encode()
     install_body = json.dumps(
-        {"app": "notification-center", "padding": "x" * config.MAX_TEAM_INSTALL_BODY_BYTES}
+        {
+            "assistant_id": "example-assistant",
+            "source_digest": f"sha256:{'a' * 64}",
+            "padding": "x" * config.MAX_ASSISTANT_INSTALL_BODY_BYTES,
+        }
     ).encode()
     inference_body = json.dumps(
         {"provider": "openai", "model": "gpt-5.5", "padding": "x" * config.MAX_INFERENCE_BODY_BYTES}
@@ -305,7 +309,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         create = client.post("/api/teams", content=create_body, headers={"Content-Type": "application/json"})
         install = client.post(
-            "/api/teams/team_openai/install",
+            "/api/teams/team_openai/assistants",
             content=install_body,
             headers={"Content-Type": "application/json", "Origin": "https://shimpz.com"},
         )
@@ -322,7 +326,11 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
     assert create.status_code == install.status_code == inference.status_code == credential.status_code == 413
     for private_response in (inference, credential):
         assert private_response.headers["cache-control"] == "private, no-store"
-    assert [path for method, path, _body in calls if method == "POST" and path.endswith(("/create", "/apps"))] == []
+    assert [
+        path
+        for method, path, _body in calls
+        if method == "POST" and path.endswith(("/create", "/assistants"))
+    ] == []
     assert not any(
         path == "/v1/brains/upsert" or (method == "PUT" and path.endswith("/inference"))
         for method, path, _body in calls

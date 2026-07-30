@@ -96,10 +96,6 @@ const D: Dict = {
     en: "We could not load your Teams. Try again in a moment.",
     pt: "Não foi possível carregar seus Times. Tente novamente em instantes.",
   },
-  team_apps_load_failed: {
-    en: "We could not load this Team's Assistants.",
-    pt: "Não foi possível carregar os Assistants deste Time.",
-  },
   retry: { en: "Try again", pt: "Tentar novamente" },
   team_lead: {
     en: "A Team is your own sealed, isolated environment — its own Brain, Assistants, data and network. Name it, and we spin one up from scratch.",
@@ -204,11 +200,7 @@ const D: Dict = {
   current: { en: "Current", pt: "Atual" },
   destroy: { en: "Destroy", pt: "Destruir" },
   destroy_confirm: { en: 'Destroy this Team? This permanently wipes its data, database and network.', pt: 'Destruir este Time? Isso apaga permanentemente seus dados, banco e rede.' },
-  apps_menu: { en: "Assistants", pt: "Assistants" },
   no_teams: { en: "No Teams yet. Create one above.", pt: "Nenhum Time ainda. Crie um acima." },
-  installed_apps: { en: "Installed Assistants", pt: "Assistants instalados" },
-  no_apps: { en: "No Assistants are installed in this Team.", pt: "Nenhum Assistant está instalado neste Time." },
-  uninstall: { en: "Uninstall", pt: "Desinstalar" },
   services_title: { en: "Services", pt: "Services" },
   services_lead: {
     en: "Services expose shared Space capabilities through explicit operations and access boundaries. A listing is not an Assistant permission; access exists only where its manifest and runtime grant it.",

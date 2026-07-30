@@ -737,6 +737,9 @@ def test_retired_public_marketplace_routes_are_absent():
     registered_paths = {getattr(route, "path", None) for route in app.routes}
     assert "/api/accounts/v1/verify" not in registered_paths
     assert "/api/apps/{app_id}/reviews" not in registered_paths
+    assert "/api/teams/{team_id}/install" not in registered_paths
+    assert "/api/teams/{team_id}/apps" not in registered_paths
+    assert "/api/teams/{team_id}/apps/{app_id}" not in registered_paths
 
     with TestClient(app) as client:
         responses = (

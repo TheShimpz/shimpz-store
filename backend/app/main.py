@@ -13,7 +13,7 @@ from app.config import ACCOUNT_COOKIE as ACCOUNT_COOKIE
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.payloads import ClientPayloadError
-from app.routers import account, apps, assistants, brains, files, inference, oauth, public, static, teams
+from app.routers import account, assistants, brains, files, inference, oauth, public, static, teams
 
 setup("shimpz-store")
 log = structlog.get_logger()
@@ -45,7 +45,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
 
 
 app.include_router(account.router)
-app.include_router(apps.router)
 app.include_router(assistants.router)
 app.include_router(brains.router)
 app.include_router(files.router)

@@ -26,22 +26,21 @@ export interface Service {
 export const SERVICES: Service[] = [
   {
     id: "postgres", name: "Postgres", category: "Data", icon: "database", brand: "#336791",
-    summary: { en: "Provision an isolated database for one admitted workload.", pt: "Provisiona um banco isolado para um workload admitido." },
+    summary: { en: "Provision one isolated database for each Hosted Team.", pt: "Provisiona um banco isolado para cada Time Hosted." },
     blurb: {
-      en: "The current internal lifecycle can provision one least-privilege Postgres database (proj_<name>) per admitted workload. Assistant Spec v1 can request the Service operation, but the generic runtime binding is not released yet.",
-      pt: "O lifecycle interno atual pode provisionar um banco Postgres de menor privilégio (proj_<name>) por workload admitido. A Assistant Spec v1 pode solicitar a operação do Service, mas o binding genérico de runtime ainda não foi lançado.",
+      en: "The Hosted Team lifecycle provisions one least-privilege Postgres database (proj_team_<id>) for Team-owned state. Assistants cannot declare or receive a PostgreSQL Service binding.",
+      pt: "O lifecycle de Time Hosted provisiona um banco Postgres de menor privilégio (proj_team_<id>) para o estado do Time. Assistants não podem declarar nem receber binding do Service PostgreSQL.",
     },
     features: [
-      { en: "A dedicated database (proj_<name>), provisioned on install", pt: "Um banco dedicado (proj_<name>), provisionado na instalação" },
+      { en: "A dedicated database (proj_team_<id>), provisioned with the Hosted Team", pt: "Um banco dedicado (proj_team_<id>), provisionado com o Time Hosted" },
       { en: "A least-privilege role scoped to that database only", pt: "Um papel de menor privilégio restrito só àquele banco" },
-      { en: "Full read/write, schema and migrations within its own database", pt: "Leitura/escrita completa, schema e migrações no próprio banco" },
-      { en: "A scoped connection for the admitted workload — never an administrator credential", pt: "Uma conexão restrita ao workload admitido — nunca uma credencial de administrador" },
-      { en: "Fully isolated from another workload's data and from platform data", pt: "Totalmente isolado dos dados de outro workload e dos dados da plataforma" },
-      { en: "Dropped cleanly on uninstall", pt: "Removido de forma limpa ao desinstalar" },
+      { en: "A scoped connection for the Team — never an administrator credential", pt: "Uma conexão restrita ao Time — nunca uma credencial de administrador" },
+      { en: "Isolation from every other Team database and from platform data", pt: "Isolamento de todos os outros bancos de Times e dos dados da plataforma" },
+      { en: "Idempotent retirement and final removal with Team teardown", pt: "Aposentadoria idempotente e remoção final com o teardown do Time" },
     ],
     boundaries: [
-      { en: "Available through the current internal App lifecycle; Assistant binding is not released", pt: "Disponível pelo lifecycle interno atual de Apps; o binding para Assistant não foi lançado" },
-      { en: "No platform or Postgres administrator credential enters a tenant workload", pt: "Nenhuma credencial da plataforma ou de administrador Postgres entra em um workload do tenant" },
+      { en: "Available only to the Hosted Team lifecycle; no Assistant Service binding exists", pt: "Disponível apenas para o lifecycle de Time Hosted; não existe binding de Service para Assistant" },
+      { en: "No platform or Postgres administrator credential enters a Team", pt: "Nenhuma credencial da plataforma ou de administrador Postgres entra em um Time" },
     ],
   },
 ];

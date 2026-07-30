@@ -10,7 +10,7 @@ from app import authn, config, team_contract
 from app.access import private_json
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.projections import assistant_inventory, running_assistant_inventory
-from app.routers import app_lifecycle
+from app.routers import assistant_lifecycle
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
 log = structlog.get_logger()
@@ -75,22 +75,22 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
 
 @router.post("/api/teams/{team_id}/assistants")
 async def cloud_assistant_install(request: Request, team_id: str) -> JSONResponse:
-    result = await app_lifecycle.install_assistant_publication(request, team_id)
+    result = await assistant_lifecycle.install_assistant_publication(request, team_id)
     log.info(
         "assistant_install",
         account=result.account_id,
         team_id=result.team_id,
-        assistant=result.app_id,
+        assistant=result.assistant_id,
         status=result.status,
     )
     if not 200 <= result.status < 300:
         return private_json(result.data, result.status)
-    return private_json({"assistant": result.app_id, "accepted": True})
+    return private_json({"assistant": result.assistant_id, "accepted": True})
 
 
 @router.delete("/api/teams/{team_id}/assistants/{assistant}")
 async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: str) -> JSONResponse:
-    result = await app_lifecycle.uninstall_assistant(
+    result = await assistant_lifecycle.uninstall_assistant(
         request,
         team_id,
         assistant,
@@ -99,9 +99,9 @@ async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: s
         "assistant_uninstall",
         account=result.account_id,
         team_id=result.team_id,
-        assistant=result.app_id,
+        assistant=result.assistant_id,
         status=result.status,
     )
     if not 200 <= result.status < 300:
         return private_json(result.data, result.status)
-    return private_json({"assistant": result.app_id, "accepted": True})
+    return private_json({"assistant": result.assistant_id, "accepted": True})

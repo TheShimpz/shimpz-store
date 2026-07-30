@@ -118,8 +118,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
     box-shadow: inset 0 0 0 1px var(--color-border);
   }
 
-  /* octagonal neon app-icon tile (the one place duotone still lives — a product mark, not the ambient) */
-  .app-icon {
+  /* Octagonal neon Assistant tile: a product mark rather than ambient decoration. */
+  .assistant-icon-tile {
     @apply relative grid shrink-0 place-items-center overflow-hidden text-white;
     --c: 22%;
     clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
@@ -127,7 +127,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   }
-  .app-icon::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 48%); }
+  .assistant-icon-tile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 48%); }
 
   /* buttons — angular, mono, uppercase. Primary keeps the neon signature; ghost is black w/ neon edge */
   .btn-primary {
