@@ -21,10 +21,7 @@ EXPECTED_UPSTREAM = {
 def test_mirror_matches_pin_and_vectors() -> None:
     assert json.loads((ROOT / "upstream.json").read_bytes()) == EXPECTED_UPSTREAM
     manifest = (ROOT / "v1" / "contract-files.sha256").read_bytes()
-    assert (
-        hashlib.sha256(manifest).hexdigest()
-        == EXPECTED_UPSTREAM["contract_files_sha256"]
-    )
+    assert hashlib.sha256(manifest).hexdigest() == EXPECTED_UPSTREAM["contract_files_sha256"]
     protocol_root = str(ROOT / "v1")
     sys.path.insert(0, protocol_root)
     try:

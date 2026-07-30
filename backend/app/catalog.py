@@ -35,11 +35,7 @@ class CatalogError(ValueError):
 
 
 def _text(value: object, maximum: int) -> str:
-    if (
-        not isinstance(value, str)
-        or not 1 <= len(value) <= maximum
-        or any(ord(char) < 32 for char in value)
-    ):
+    if not isinstance(value, str) or not 1 <= len(value) <= maximum or any(ord(char) < 32 for char in value):
         raise CatalogError("catalog text is invalid")
     return value
 
@@ -48,9 +44,7 @@ def _closed_strings(value: object, maximum: int, item_maximum: int) -> list[str]
     if (
         not isinstance(value, list)
         or len(value) > maximum
-        or not all(
-            isinstance(item, str) and 1 <= len(item) <= item_maximum for item in value
-        )
+        or not all(isinstance(item, str) and 1 <= len(item) <= item_maximum for item in value)
         or len(set(value)) != len(value)
     ):
         raise CatalogError("catalog string collection is invalid")
@@ -142,11 +136,7 @@ def _assistant(value: object) -> dict[str, object]:
 
 def project_catalog(value: object) -> dict[str, object]:
     """Validate Developers' closed catalog and return browser-safe metadata."""
-    if (
-        not isinstance(value, dict)
-        or set(value) != {"version", "assistants"}
-        or value["version"] != 1
-    ):
+    if not isinstance(value, dict) or set(value) != {"version", "assistants"} or value["version"] != 1:
         raise CatalogError("catalog envelope is invalid")
     assistants = value["assistants"]
     if not isinstance(assistants, list) or len(assistants) > MAX_ASSISTANTS:
