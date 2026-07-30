@@ -209,8 +209,8 @@
               <span class="team-id mono">{team.team_id}</span>
               <span class="team-facts mono">
                 <span><span class="status-signal" aria-hidden="true"></span>{team.status}</span>
-                <span>{tr("brain_label", lang)}: {team.provider ?? "openai"}</span>
-                <span>{tr("model_label", lang)}: {team.model || defaultModelFor(team.provider ?? "openai")}</span>
+                <span>{tr("brain_label", lang)}: {team.provider || tr("brain_not_configured", lang)}</span>
+                <span>{tr("model_label", lang)}: {team.model || tr("brain_not_configured", lang)}</span>
               </span>
             </span>
             {#if selected === team.team_id}<span class="badge">{tr("current", lang)}</span>{/if}
