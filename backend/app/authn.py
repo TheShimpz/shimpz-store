@@ -14,8 +14,8 @@ from app.concurrency import BoundedThreadPoolExecutor
 from app.concurrency import run_bounded as run_with_executor
 from app.config import (
     ACCOUNT_COOKIE,
-    ACCOUNT_VERIFY_TOKEN_FILE,
     ACCOUNT_URL,
+    ACCOUNT_VERIFY_TOKEN_FILE,
     AUTH_QUEUE_MAX,
     AUTH_WORKER_THREADS,
     COOKIE_MAX_AGE,
