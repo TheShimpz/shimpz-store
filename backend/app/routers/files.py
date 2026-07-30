@@ -6,11 +6,12 @@ import structlog
 from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from app import authn, config, team_contract
+from app import authn, config
 from app.access import mutation_origin_allowed, private_json
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError
 from app.projections import public_file_deletion, public_file_inventory, public_file_upload
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded, call_raw_bounded
 
 log = structlog.get_logger()

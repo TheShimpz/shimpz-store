@@ -6,7 +6,6 @@ import re
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app import chat_ws_common, team_contract
 from app.config import (
     MAX_CHAT_ASSISTANTS,
     MAX_CHAT_ERROR_DETAIL_CHARS,
@@ -16,6 +15,8 @@ from app.config import (
     MAX_WS_FRAME_BYTES,
 )
 from app.payloads import ClientPayloadError
+from app.protocol.http.v1 import payload as team_contract
+from app.protocol.http.v1 import websocket as chat_ws_common
 
 
 def canonical_chat_reply(value: object) -> str | None:

@@ -5,7 +5,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
 
-from app import authn, config, main, projections, team_contract
+from app import authn, config, main, projections
+from app.protocol.http.v1 import payload as team_contract
 from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
 
@@ -241,6 +242,4 @@ def test_storage_projection_requires_the_shared_file_metadata_contract():
     assert (
         projections.public_file_metadata({key: value for key, value in metadata.items() if key != "created_at"}) is None
     )
-    assert (
-        projections.public_file_metadata({**metadata, "size": team_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None
-    )
+    assert projections.public_file_metadata({**metadata, "size": team_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None

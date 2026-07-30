@@ -6,7 +6,8 @@ import json
 import os
 from pathlib import Path
 
-from app import chat_ws_common, team_contract
+from app.protocol.http.v1 import payload as team_contract
+from app.protocol.http.v1 import websocket as chat_ws_common
 
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
 ACCOUNTS_URL = os.environ.get("SHIMPZ_ACCOUNTS_URL", "http://accounts:7079")

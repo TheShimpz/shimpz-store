@@ -6,11 +6,12 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-from app import authn, config, team_contract
+from app import authn, config
 from app.access import mutation_origin_allowed
 from app.config import MAX_ASSISTANT_INSTALL_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError, read_bounded_json
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
 

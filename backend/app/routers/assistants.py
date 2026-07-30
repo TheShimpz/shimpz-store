@@ -6,10 +6,11 @@ import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app import authn, config, team_contract
+from app import authn, config
 from app.access import private_json
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.projections import assistant_inventory, running_assistant_inventory
+from app.protocol.http.v1 import payload as team_contract
 from app.routers import assistant_lifecycle
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 

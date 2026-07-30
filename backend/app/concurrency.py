@@ -7,7 +7,7 @@ import contextlib
 import threading
 from collections import deque
 
-from app import chat_ws_common
+from app.protocol.http.v1 import websocket as chat_ws_common
 
 ExecutorSaturatedError = chat_ws_common.ExecutorSaturatedError
 BoundedThreadPoolExecutor = chat_ws_common.BoundedThreadPoolExecutor

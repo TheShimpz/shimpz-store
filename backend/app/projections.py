@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app import team_contract
 from app.config import MAX_CHAT_ASSISTANTS
+from app.protocol.http.v1 import payload as team_contract
 
 
 def public_file_metadata(value: object) -> dict | None:

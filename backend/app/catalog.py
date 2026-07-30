@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from app import team_contract
+from app.protocol.http.v1 import payload as team_contract
 
 MAX_ASSISTANTS = 1000
 _VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
