@@ -43,7 +43,7 @@ ACCESS_CLIENT_SECRET_PATH = Path(
         "/run/secrets/neuron_access_client_secret",
     )
 )
-LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run/secrets/oauth_broker_lease_key"))
+LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run/shimpz-oauth-broker/key"))
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")

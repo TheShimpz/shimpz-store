@@ -10,6 +10,7 @@ import pytest
 from app.oauth_broker import (
     HOSTED_ADMIN_CALLBACK,
     HOSTED_CALLBACK,
+    LEASE_KEY_PATH,
     LOCAL_CALLBACK,
     SCOPES,
     BrokerLeaseSigner,
@@ -20,6 +21,10 @@ from app.oauth_broker import (
     OAuthTokens,
     _pkce_challenge,
 )
+
+
+def test_default_lease_key_uses_the_initialized_private_volume() -> None:
+    assert LEASE_KEY_PATH == Path("/run/shimpz-oauth-broker/key")
 
 
 class _Transport:
