@@ -24,7 +24,7 @@ from app.oauth_broker import (
 
 
 def test_default_lease_key_uses_the_initialized_private_volume() -> None:
-    assert LEASE_KEY_PATH == Path("/run/shimpz-oauth-broker/key")
+    assert Path("/run/shimpz-oauth-broker/key") == LEASE_KEY_PATH
 
 
 class _Transport:
