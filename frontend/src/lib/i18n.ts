@@ -125,8 +125,8 @@ const D: Dict = {
   account_id_label: { en: "Account ID", pt: "ID da conta" },
   account_profile: { en: "Profile", pt: "Perfil" },
   account_session: { en: "Session", pt: "Sessão" },
-  account_brains: { en: "Model providers", pt: "Provedores de modelo" },
-  account_brains_lead: {
+  account_model_providers: { en: "Model providers", pt: "Provedores de modelo" },
+  account_model_providers_lead: {
     en: "Seal one API key per provider for your Teams.",
     pt: "Proteja uma chave de API por provedor para seus Times.",
   },
@@ -469,7 +469,7 @@ const D: Dict = {
     en: "This Team already has an active turn. Wait for it to finish or stop it before trying again.",
     pt: "Este Time já tem um turno ativo. Aguarde a conclusão ou pare-o antes de tentar novamente.",
   },
-  brain_account_cta: { en: "Open model providers", pt: "Abrir provedores de modelo" },
+  model_provider_account_cta: { en: "Open model providers", pt: "Abrir provedores de modelo" },
   footer: {
     en: "Teams stay isolated · permissions stay explicit",
     pt: "Times continuam isolados · permissões continuam explícitas",

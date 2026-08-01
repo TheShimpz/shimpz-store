@@ -28,14 +28,14 @@ async def model_providers_list(request: Request) -> JSONResponse:
         authn.EXECUTOR,
         config.ACCOUNT_URL,
         "POST",
-        "/v1/brains/list",
+        "/v1/model-providers/list",
         {"token": token},
         extra={"X-Forwarded-For": authn.client_ip(request)},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     if status != 200 or not isinstance(data, dict):
         return JSONResponse(data, status_code=status)
-    providers = data.get("brains")
+    providers = data.get("model_providers")
     if not isinstance(providers, list):
         return JSONResponse({"detail": "invalid model provider inventory"}, status_code=502)
     return JSONResponse({"providers": providers})
@@ -60,7 +60,7 @@ async def model_provider_upsert(request: Request, provider: str) -> JSONResponse
         authn.EXECUTOR,
         config.ACCOUNT_URL,
         "POST",
-        "/v1/brains/upsert",
+        "/v1/model-providers/upsert",
         {
             "token": token,
             "provider": provider_value,
@@ -103,7 +103,7 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
     begin_status, begin_data = call(
         config.ACCOUNT_URL,
         "POST",
-        "/v1/brains/revoke-begin",
+        "/v1/model-providers/revoke-begin",
         {"token": token, "provider": provider},
         extra={"X-Forwarded-For": forwarded_for},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
@@ -137,7 +137,7 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
     status, data = call(
         config.ACCOUNT_URL,
         "POST",
-        "/v1/internal/brains/revoke-finalize",
+        "/v1/internal/model-providers/revoke-finalize",
         {"token": token, "provider": provider, "generation": generation},
         extra={
             "Authorization": f"Bearer {finalize_token}",

@@ -137,7 +137,7 @@
   <header class="console-head">
     <div class="console-mark"><HudIcon name="brain" size={25} /></div>
     <div>
-      <p class="kicker">{tr("account_brains", lang)}</p>
+      <p class="kicker">{tr("account_model_providers", lang)}</p>
       <h2 id="brain-wizard-title">{tr("brain_wizard_title", lang)}</h2>
       <p>{tr("brain_wizard_lead", lang)}</p>
     </div>

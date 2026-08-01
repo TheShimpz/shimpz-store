@@ -605,7 +605,7 @@
               {:else}
                 <p class="access-copy">{tr("brain_wait", lang)}</p>
                 <div class="access-actions">
-                  <a class="btn-primary" href={u.account(lang)}>{tr("brain_account_cta", lang)}</a>
+                  <a class="btn-primary" href={u.account(lang)}>{tr("model_provider_account_cta", lang)}</a>
                 </div>
               {/if}
             </div>

@@ -127,7 +127,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                 self._json(403, {"error": "invalid or missing credentials"})
             else:
                 self._json(200, {"account_id": "account-1", "username": "account-user"})
-        elif self.path == "/v1/brains/upsert":
+        elif self.path == "/v1/model-providers/upsert":
             self._json(
                 200,
                 {
@@ -136,11 +136,11 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                     "status": "configured",
                 },
             )
-        elif self.path == "/v1/brains/list":
+        elif self.path == "/v1/model-providers/list":
             self._json(
                 200,
                 {
-                    "brains": [
+                    "model_providers": [
                         {
                             "provider": "openai",
                             "auth_type": "api_key",
@@ -149,7 +149,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                     ]
                 },
             )
-        elif self.path == "/v1/brains/revoke-begin":
+        elif self.path == "/v1/model-providers/revoke-begin":
             self.state["begin_count"] += 1
             self._json(
                 200,
@@ -161,7 +161,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
                     "already_revoking": self.state["begin_count"] > 1,
                 },
             )
-        elif self.path == "/v1/internal/brains/revoke-finalize":
+        elif self.path == "/v1/internal/model-providers/revoke-finalize":
             if self.headers.get("Authorization") != f"Bearer {self.finalize_token}":
                 self._json(403, {"error": "invalid or missing credentials"})
                 return
@@ -235,10 +235,10 @@ def test_provider_key_delete_revokes_generation_without_touching_teams():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         response = client.delete("/api/model-providers/openai")
-    begin = ("POST", "/v1/brains/revoke-begin", {"token": "valid-token", "provider": "openai"})
+    begin = ("POST", "/v1/model-providers/revoke-begin", {"token": "valid-token", "provider": "openai"})
     finalize = (
         "POST",
-        "/v1/internal/brains/revoke-finalize",
+        "/v1/internal/model-providers/revoke-finalize",
         {"token": "valid-token", "provider": "openai", "generation": 7},
     )
     assert response.status_code == 200
@@ -264,7 +264,7 @@ def test_model_provider_inventory_has_one_public_responsibility():
         ]
     }
     assert retired.status_code == 404
-    assert ("POST", "/v1/brains/list", {"token": "valid-token"}) in calls
+    assert ("POST", "/v1/model-providers/list", {"token": "valid-token"}) in calls
 
 
 def test_model_credentials_accept_only_generic_provider_api_keys():
@@ -280,10 +280,10 @@ def test_model_credentials_accept_only_generic_provider_api_keys():
     assert valid.status_code == 200
     assert valid.json() == {"provider": "anthropic", "auth_type": "api_key", "status": "configured"}
     assert oauth.status_code == retired_provider.status_code == 400
-    assert [call for call in calls if call[1] == "/v1/brains/upsert"] == [
+    assert [call for call in calls if call[1] == "/v1/model-providers/upsert"] == [
         (
             "POST",
-            "/v1/brains/upsert",
+            "/v1/model-providers/upsert",
             {
                 "token": "valid-token",
                 "provider": "anthropic",
@@ -418,7 +418,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
         path for method, path, _body in calls if method == "POST" and path.endswith(("/create", "/assistants"))
     ] == []
     assert not any(
-        path == "/v1/brains/upsert" or (method == "PUT" and path.endswith("/inference"))
+        path == "/v1/model-providers/upsert" or (method == "PUT" and path.endswith("/inference"))
         for method, path, _body in calls
     )
 
@@ -429,4 +429,4 @@ def test_provider_key_delete_fails_closed_without_the_finalizer_bearer():
         response = client.delete("/api/model-providers/openai")
     assert response.status_code == 502
     assert response.json() == {"detail": "Brain credential finalization is unavailable"}
-    assert not any(call[1] == "/v1/internal/brains/revoke-finalize" for call in calls)
+    assert not any(call[1] == "/v1/internal/model-providers/revoke-finalize" for call in calls)
