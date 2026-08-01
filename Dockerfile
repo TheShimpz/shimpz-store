@@ -3,11 +3,11 @@
 # serves the build + the tiny /api. Follows the shimpz-new fullstack shape (frontend/ + backend/).
 
 # ── stage 1: obtain the exact uv binary without retaining an installer toolchain ─────────────────
-FROM ghcr.io/astral-sh/uv:0.11.25@sha256:1e3808aa9023d0980e7c15b1fa7c1ac16ff35925780cf5c459858b2d693f01a9 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ceb1506f332c3facae5deceded AS uv
 ARG SOURCE_DATE_EPOCH=0
 
 # ── stage 2: build the prerendered frontend ─────────────────────────────────────────────────────
-FROM node:24-slim@sha256:b31e7a42fdf8b8aa5f5ed477c72d694301273f1069c5a2f71d53c6482e99a2fc AS web
+FROM node:24-slim@sha256:235600a8101ab264e117b1768e925532262668dc9b581ef1dd7d96ced463b8e7 AS web
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /w
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc ./
@@ -22,7 +22,7 @@ RUN pnpm test \
 # adapter-static writes the prerendered site to /w/build
 
 # ── stage 3: resolve target-platform Python dependencies ─────────────────────────────────────────
-FROM python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1 AS dependencies
+FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6 AS dependencies
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /app
 COPY --from=uv /uv /usr/local/bin/uv
@@ -31,7 +31,7 @@ RUN UV_PROJECT_ENVIRONMENT=/opt/venv uv sync --frozen --no-install-project --no-
  && rm -rf /root/.cache/uv
 
 # ── stage 4: minimal runtime ─────────────────────────────────────────────────────────────────────
-FROM python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1 AS serve
+FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6 AS serve
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
