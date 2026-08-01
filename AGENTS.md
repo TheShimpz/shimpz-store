@@ -4,7 +4,7 @@
 
 - This repository owns public Store discovery and authenticated Hosted web orchestration.
 - Store projects Developers data and sends exact install intent to Team. It does not own publication, catalog
-  admission, Team lifecycle, Account identity, Brain credentials, or installation authority.
+  admission, Team lifecycle, Account identity, model-provider credential custody, or installation authority.
 - Read the canonical [Shimpz architecture](https://github.com/TheShimpz/shimpz/blob/main/.context/ARCHITECTURE.md)
   before changing product vocabulary, authority, protocols, runtime topology, or source placement.
 
