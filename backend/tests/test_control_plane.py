@@ -193,7 +193,7 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
     )
 
     with tempfile.TemporaryDirectory() as temporary:
-        token_path = Path(temporary) / "brain-finalize-token"
+        token_path = Path(temporary) / "model-provider-finalize-token"
         verify_path = Path(temporary) / "account-verify-token"
         verify_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
         verify_path.chmod(0o440)
