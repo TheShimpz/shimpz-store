@@ -428,5 +428,5 @@ def test_provider_key_delete_fails_closed_without_the_finalizer_bearer():
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         response = client.delete("/api/model-providers/openai")
     assert response.status_code == 502
-    assert response.json() == {"detail": "Brain credential finalization is unavailable"}
+    assert response.json() == {"detail": "Integration secret finalization is unavailable"}
     assert not any(call[1] == "/v1/internal/model-providers/revoke-finalize" for call in calls)

@@ -131,7 +131,7 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
     if not finalize_token:
         log.warning("brain_finalize_unavailable", provider=provider)
         return JSONResponse(
-            {"detail": "Brain credential finalization is unavailable"},
+            {"detail": "Integration secret finalization is unavailable"},
             status_code=502,
         )
     status, data = call(
