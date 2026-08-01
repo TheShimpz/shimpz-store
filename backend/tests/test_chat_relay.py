@@ -181,7 +181,7 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
                     ("shimpz-cloudflare",),
                 ),
             )
-        assert started.is_set()
+        await asyncio.wait_for(started.wait(), timeout=1)
         assert len(requests) == 1
         assert json.loads(requests[0]) == {
             "message": prompt,
