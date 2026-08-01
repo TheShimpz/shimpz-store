@@ -1,7 +1,7 @@
 # THE CANONICAL project standards gate — the single source of the mandatory ruff config.
 # shimpz-new copies this file into every scaffolded project; shimpz-stdgate enforces THIS file (via
 # `ruff --config`) on any project whose own ruff.toml is absent or weakened, so a hand-made project
-# or an edited-down select can never drop the S/DTZ/ASYNC/B/BLE families silently (R89).
+# or an edited-down select can never drop the S/DTZ/ASYNC/B/BLE families silently.
 # Families (all verified real): F=pyflakes, S=security, DTZ=tz-aware datetime, ASYNC=async pitfalls,
 # B=bugbear, BLE=blind-except (no "Pokémon" catch-all), C901=cyclomatic complexity, PLR09xx=function shape.
 target-version = "py314"
