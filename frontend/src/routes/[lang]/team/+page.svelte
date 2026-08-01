@@ -209,8 +209,8 @@
               <span class="team-id mono">{team.team_id}</span>
               <span class="team-facts mono">
                 <span><span class="status-signal" aria-hidden="true"></span>{team.status}</span>
-                <span>{tr("brain_label", lang)}: {team.provider || tr("brain_not_configured", lang)}</span>
-                <span>{tr("model_label", lang)}: {team.model || tr("brain_not_configured", lang)}</span>
+                <span>{tr("model_provider_label", lang)}: {team.provider || tr("model_provider_not_configured", lang)}</span>
+                <span>{tr("model_label", lang)}: {team.model || tr("model_provider_not_configured", lang)}</span>
               </span>
             </span>
             {#if selected === team.team_id}<span class="badge">{tr("current", lang)}</span>{/if}
@@ -251,7 +251,7 @@
         <input class="field mt-2" placeholder={tr("team_name_ph", lang)} bind:value={teamNameInput} onkeydown={(e) => e.key === "Enter" && createTeam()} />
       </div>
       <label class="block text-sm dim">
-        <span class="kicker !text-[10px]">{tr("brain_label", lang)}</span>
+        <span class="kicker !text-[10px]">{tr("model_provider_label", lang)}</span>
         <select class="field mt-2" value={provider} onchange={chooseProvider}>
           {#each MODEL_PROVIDERS as option (option.id)}
             <option value={option.id}>{option.title}</option>

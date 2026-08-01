@@ -115,7 +115,7 @@
         return tr("chat_turn_active", lang);
       }
       if (normalized.includes("api key") || normalized.includes("model provider")) {
-        return tr("brain_wait", lang);
+        return tr("model_provider_required", lang);
       }
     }
     return "✗ " + (detail || "error");
@@ -343,7 +343,7 @@
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        inferenceError = result?.detail ?? result?.error ?? tr("brain_switch_failed", lang);
+        inferenceError = result?.detail ?? result?.error ?? tr("inference_save_failed", lang);
         return;
       }
       if (selected !== team_id) return;
@@ -353,9 +353,9 @@
       teams = teams.map((item) =>
         item.team_id === team_id ? { ...item, provider: payload.provider, model: payload.model } : item,
       );
-      inferenceSaved = tr("brain_switch_ok", lang);
+      inferenceSaved = tr("inference_save_ok", lang);
     } catch {
-      inferenceError = tr("brain_switch_failed", lang);
+      inferenceError = tr("inference_save_failed", lang);
     } finally {
       inferenceBusy = false;
     }
@@ -564,7 +564,7 @@
             {#if inference}
               <span class="brain-state" class:ready={providerReady} class:pending={!providerReady}>
                 <i aria-hidden="true"></i>
-                {providerReady ? tr("brain_authenticated_verified", lang) : tr("brain_not_configured", lang)}
+                {providerReady ? tr("model_provider_authenticated", lang) : tr("model_provider_not_configured", lang)}
               </span>
             {/if}
           </header>
@@ -573,7 +573,7 @@
           {#if inference}
             <div class="brain-editor">
               <label class="field-stack">
-                <span>{tr("brain_provider", lang)}</span>
+                <span>{tr("model_provider", lang)}</span>
                 <select class="field field-sm" value={providerChoice} disabled={runtimeBusy} onchange={chooseProvider}>
                   {#each MODEL_PROVIDERS as option (option.id)}
                     <option value={option.id}>{option.title}</option>
@@ -590,20 +590,20 @@
               </label>
               <button class="btn-primary brain-switch" type="button" disabled={!inferenceHasChanges || runtimeBusy} onclick={saveInference}>
                 <HudIcon name="retry" size={16} />
-                {inferenceBusy ? tr("brain_switching", lang) : tr("brain_switch", lang)}
+                {inferenceBusy ? tr("inference_saving", lang) : tr("inference_save", lang)}
               </button>
-              <p class="brain-hint"><HudIcon name="shield" size={15} />{tr("brain_switch_hint", lang)}</p>
+              <p class="brain-hint"><HudIcon name="shield" size={15} />{tr("inference_save_hint", lang)}</p>
               <p class="brain-hint"><HudIcon name="brain" size={15} />{tr("model_price_note", lang)}</p>
               {#if inferenceError}<p class="notice notice-error compact-notice" role="alert">{inferenceError}</p>{/if}
               {#if inferenceSaved}<p class="notice notice-success compact-notice" role="status">{inferenceSaved}</p>{/if}
             </div>
 
             <div class="brain-access">
-              <div class="access-heading"><HudIcon name="key" size={16} /><span>{tr("brain_auth_type", lang)}</span></div>
+              <div class="access-heading"><HudIcon name="key" size={16} /><span>{tr("model_provider_auth_type", lang)}</span></div>
               {#if providerReady}
-                <p class="access-state success"><HudIcon name="check" size={16} />{tr("brain_authenticated_verified", lang)}</p>
+                <p class="access-state success"><HudIcon name="check" size={16} />{tr("model_provider_authenticated", lang)}</p>
               {:else}
-                <p class="access-copy">{tr("brain_wait", lang)}</p>
+                <p class="access-copy">{tr("model_provider_required", lang)}</p>
                 <div class="access-actions">
                   <a class="btn-primary" href={u.account(lang)}>{tr("model_provider_account_cta", lang)}</a>
                 </div>
@@ -678,7 +678,7 @@
             <h2 id="conversation-title">{teamName}</h2>
           </div>
           <span class="conversation-status" class:online={wsReady && canChat}>
-            <i aria-hidden="true"></i>{canChat ? tr("chat_ready", lang) : tr("chat_setup_required", lang)}
+            <i aria-hidden="true"></i>{canChat ? tr("chat_ready", lang) : tr("chat_inference_required", lang)}
           </span>
         </header>
         <div

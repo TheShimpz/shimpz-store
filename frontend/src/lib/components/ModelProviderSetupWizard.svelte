@@ -39,7 +39,7 @@
   function statusLabel(id: ProviderId) {
     const record = recordFor(id);
     if (record?.status === "revoking") return lang === "pt" ? "Remoção pendente" : "Removal pending";
-    return tr(record?.status === "configured" ? "brain_configured" : "brain_not_configured", lang);
+    return tr(record?.status === "configured" ? "model_provider_configured" : "model_provider_not_configured", lang);
   }
 
   async function load({ preserveMessage = false }: { preserveMessage?: boolean } = {}) {
@@ -73,7 +73,7 @@
     if (busy) return;
     const value = secret.trim();
     if (!value) {
-      fieldError = tr("brain_secret_required", lang);
+      fieldError = tr("model_provider_secret_required", lang);
       return;
     }
     busy = true;
@@ -94,7 +94,7 @@
       secret = "";
       reveal = false;
       await load({ preserveMessage: true });
-      message = tr("brain_saved", lang);
+      message = tr("model_provider_saved", lang);
       messageTone = "success";
       step = 3;
     } finally {
@@ -119,7 +119,7 @@
         message = result?.detail ?? result?.error ?? (lang === "pt" ? "Não foi possível remover a chave." : "Could not remove the key.");
         messageTone = "error";
       } else {
-        message = tr("brain_removed", lang);
+        message = tr("model_provider_removed", lang);
         messageTone = "success";
       }
       confirmRemove = "";
@@ -133,13 +133,13 @@
   onMount(load);
 </script>
 
-<section class="brain-console panel" aria-labelledby="brain-wizard-title">
+<section class="model-provider-console panel" aria-labelledby="model-provider-wizard-title">
   <header class="console-head">
     <div class="console-mark"><HudIcon name="brain" size={25} /></div>
     <div>
       <p class="kicker">{tr("account_model_providers", lang)}</p>
-      <h2 id="brain-wizard-title">{tr("brain_wizard_title", lang)}</h2>
-      <p>{tr("brain_wizard_lead", lang)}</p>
+      <h2 id="model-provider-wizard-title">{tr("model_provider_wizard_title", lang)}</h2>
+      <p>{tr("model_provider_wizard_lead", lang)}</p>
     </div>
   </header>
 
@@ -147,14 +147,14 @@
     <p class="loading" role="status">{tr("loading", lang)}</p>
   {:else if loadState === "error"}
     <div class="notice notice-error state-notice" role="alert">
-      <span>{tr("brain_load_failed", lang)}</span>
+      <span>{tr("model_provider_load_failed", lang)}</span>
       <button class="btn-ghost compact" type="button" onclick={() => load()}>
-        <HudIcon name="retry" size={15} /> {tr("brain_retry_load", lang)}
+        <HudIcon name="retry" size={15} /> {tr("model_provider_retry_load", lang)}
       </button>
     </div>
   {:else}
-    <ol class="stepper" aria-label={tr("brain_wizard_title", lang)}>
-      {#each [tr("brain_step_provider", lang), tr("brain_step_credential", lang)] as label, index (label)}
+    <ol class="stepper" aria-label={tr("model_provider_wizard_title", lang)}>
+      {#each [tr("model_provider_step_provider", lang), tr("model_provider_step_credential", lang)] as label, index (label)}
         <li class:active={step === index + 1} class:complete={step > index + 1} aria-current={step === index + 1 ? "step" : undefined}>
           <span>{String(index + 1).padStart(2, "0")}</span>{label}
         </li>
@@ -164,8 +164,8 @@
     <div class="stage">
       {#if step === 1}
         <div class="stage-copy">
-          <h3>{tr("brain_choose_provider", lang)}</h3>
-          <p>{tr("brain_choose_provider_help", lang)}</p>
+          <h3>{tr("model_provider_choose", lang)}</h3>
+          <p>{tr("model_provider_choose_help", lang)}</p>
         </div>
         <div class="option-grid">
           {#each MODEL_PROVIDERS as option (option.id)}
@@ -178,12 +178,12 @@
         </div>
       {:else if step === 2}
         <div class="stage-copy">
-          <p class="selection">{providerTitle(provider)} // {tr("brain_api_key", lang)}</p>
-          <h3>{tr("brain_credential_title", lang)}</h3>
-          <p>{tr("brain_credential_review", lang)}</p>
+          <p class="selection">{providerTitle(provider)} // {tr("model_provider_api_key", lang)}</p>
+          <h3>{tr("model_provider_credential_title", lang)}</h3>
+          <p>{tr("model_provider_credential_review", lang)}</p>
         </div>
         <label class="credential-field">
-          <span class="kicker">{tr("brain_secret", lang)}</span>
+          <span class="kicker">{tr("model_provider_secret", lang)}</span>
           <span class="secret-input">
             <input
               class="field"
@@ -194,49 +194,49 @@
               oninput={() => (fieldError = "")} />
             <button type="button" onclick={() => (reveal = !reveal)}>{tr(reveal ? "password_hide" : "password_show", lang)}</button>
           </span>
-          <small>{tr("brain_secret_api_help", lang)}</small>
+          <small>{tr("model_provider_secret_api_help", lang)}</small>
         </label>
         {#if fieldError}<p class="field-error" role="alert">{fieldError}</p>{/if}
         {#if message}<p class="notice state-notice notice-error" role="alert">{message}</p>{/if}
         <div class="stage-actions">
-          <button class="btn-ghost compact" type="button" disabled={busy} onclick={() => (step = 1)}>{tr("brain_back", lang)}</button>
+          <button class="btn-ghost compact" type="button" disabled={busy} onclick={() => (step = 1)}>{tr("model_provider_back", lang)}</button>
           <button class="btn-primary compact" type="button" disabled={busy || !secret.trim()} onclick={save}>
-            {#if busy}{tr("brain_saving", lang)}{:else}<HudIcon name="shield" size={16} /> {tr("brain_save", lang)}{/if}
+            {#if busy}{tr("model_provider_saving", lang)}{:else}<HudIcon name="shield" size={16} /> {tr("model_provider_save", lang)}{/if}
           </button>
         </div>
       {:else}
         <div class="done-mark"><HudIcon name="check" size={30} /></div>
         <div class="stage-copy done-copy">
-          <h3>{tr("brain_done_title", lang)}</h3>
-          <p>{tr("brain_done_body", lang)}</p>
+          <h3>{tr("model_provider_done_title", lang)}</h3>
+          <p>{tr("model_provider_done_body", lang)}</p>
         </div>
         {#if message}<p class="notice state-notice notice-success" role="status">{message}</p>{/if}
         <div class="stage-actions done-actions">
-          <button class="btn-ghost compact" type="button" onclick={() => { message = ""; step = 1; }}>{tr("brain_reconfigure", lang)}</button>
+          <button class="btn-ghost compact" type="button" onclick={() => { message = ""; step = 1; }}>{tr("model_provider_reconfigure", lang)}</button>
           <a class="btn-primary compact" href={u.team(lang)}>{tr("my_teams", lang)} →</a>
         </div>
       {/if}
     </div>
 
     <div class="configured-list">
-      <h3>{tr("brain_configured_list", lang)}</h3>
+      <h3>{tr("model_provider_configured_list", lang)}</h3>
       {#if providers.length === 0}
-        <p>{tr("brain_none_configured", lang)}</p>
+        <p>{tr("model_provider_none_configured", lang)}</p>
       {:else}
         {#each providers as entry (entry.provider)}
           <div class="configured-row">
             <span class="configured-icon"><HudIcon name="brain" size={18} /></span>
-            <span class="configured-name"><strong>{providerTitle(entry.provider)}</strong><small>{tr("brain_api_key", lang)}</small></span>
+            <span class="configured-name"><strong>{providerTitle(entry.provider)}</strong><small>{tr("model_provider_api_key", lang)}</small></span>
             <span class="badge" class:ready={entry.status === "configured"}>{statusLabel(entry.provider)}</span>
-            <button class="btn-ghost row-action" type="button" disabled={busy || entry.status === "revoking"} onclick={() => chooseProvider(entry.provider)}>{tr("brain_reconfigure", lang)}</button>
+            <button class="btn-ghost row-action" type="button" disabled={busy || entry.status === "revoking"} onclick={() => chooseProvider(entry.provider)}>{tr("model_provider_reconfigure", lang)}</button>
             <button class="btn-danger row-action" type="button" disabled={busy} onclick={() => remove(entry.provider)}>
-              {entry.status === "revoking" ? (lang === "pt" ? "Tentar remoção" : "Retry removal") : tr("brain_remove", lang)}
+              {entry.status === "revoking" ? (lang === "pt" ? "Tentar remoção" : "Retry removal") : tr("model_provider_remove", lang)}
             </button>
             {#if confirmRemove === entry.provider && entry.status !== "revoking"}
               <div class="remove-confirm">
-                <span>{tr("brain_remove_confirm", lang)}</span>
-                <button class="btn-danger row-action" type="button" onclick={() => remove(entry.provider)}>{tr("brain_remove", lang)}</button>
-                <button class="btn-ghost row-action" type="button" onclick={() => (confirmRemove = "")}>{tr("brain_cancel", lang)}</button>
+                <span>{tr("model_provider_remove_confirm", lang)}</span>
+                <button class="btn-danger row-action" type="button" onclick={() => remove(entry.provider)}>{tr("model_provider_remove", lang)}</button>
+                <button class="btn-ghost row-action" type="button" onclick={() => (confirmRemove = "")}>{tr("model_provider_cancel", lang)}</button>
               </div>
             {/if}
           </div>
@@ -250,7 +250,7 @@
 </section>
 
 <style>
-  .brain-console { padding: clamp(1.1rem, 3vw, 1.6rem); }
+  .model-provider-console { padding: clamp(1.1rem, 3vw, 1.6rem); }
   .console-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; align-items: start; }
   .console-mark,
   .option-icon,
