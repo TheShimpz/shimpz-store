@@ -242,6 +242,15 @@ def test_neuron_client_rejects_world_readable_access_files() -> None:
             client.authorization(state="a" * 43, code_challenge="b" * 43)
 
 
+def test_broker_lease_signer_rejects_a_world_readable_key() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        key = _secret(Path(directory) / "lease-key", b"k" * 32)
+        key.chmod(0o444)
+
+        with pytest.raises(OAuthBrokerError, match="file contract"):
+            BrokerLeaseSigner(key_path=key).issue(OAuthTokens("access-token", "refresh-token", 3600))
+
+
 def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() -> None:
     neuron = _Neuron()
     signer = BrokerLeaseSigner(b"k" * 32, clock=lambda: 1_800_000_000)

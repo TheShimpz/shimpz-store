@@ -437,7 +437,7 @@ class BrokerLeaseSigner:
         key = self._provided_key or _read_secret(
             self._key_path,
             maximum=32,
-            modes=frozenset({0o400, 0o440, 0o444, 0o600, 0o640}),
+            modes=frozenset({0o400, 0o440, 0o600, 0o640}),
         )
         if len(key) != 32:
             raise OAuthBrokerError("OAuth broker lease key is unavailable")
