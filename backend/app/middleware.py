@@ -63,6 +63,7 @@ _NO_REFERRER_PATHS = frozenset(
         "/api/oauth/cloudflare/callback",
     }
 )
+_RESPONSE_CSP_PATHS = frozenset({"/api/oauth/cloudflare/callback"})
 
 
 def _security_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
@@ -94,11 +95,26 @@ class TraceIdMiddleware:
 
         async def send_with_id(message):
             if message["type"] == "http.response.start":
+                response_headers = message.get("headers") or []
+                response_csp = next(
+                    (
+                        value
+                        for name, value in response_headers
+                        if name.lower() == b"content-security-policy"
+                    ),
+                    None,
+                )
+                selected_headers = security_headers
+                if scope.get("path", "") in _RESPONSE_CSP_PATHS and response_csp is not None:
+                    selected_headers = tuple(
+                        (name, response_csp) if name == b"content-security-policy" else (name, value)
+                        for name, value in security_headers
+                    )
                 managed = _MANAGED_SECURITY_HEADERS | {b"x-request-id"}
                 message["headers"] = [
-                    (name, value) for name, value in message.get("headers") or [] if name.lower() not in managed
+                    (name, value) for name, value in response_headers if name.lower() not in managed
                 ]
-                message["headers"].extend(security_headers)
+                message["headers"].extend(selected_headers)
                 message["headers"].append((b"x-request-id", trace_id.encode("ascii")))  # token-only → safe
             await send(message)
 

@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import html
+import secrets
 
 import structlog
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from app.concurrency import BoundedThreadPoolExecutor
 from app.config import OAUTH_QUEUE_MAX, OAUTH_WORKER_THREADS, PRIVATE_NO_STORE_HEADERS
-from app.oauth_broker import SCOPES, OAuthBroker, OAuthBrokerError
+from app.oauth_broker import SCOPES, OAuthBroker, OAuthBrokerError, OAuthOutOfBand, OAuthRedirect
 from app.payloads import ClientPayloadError, read_bounded_json
 
 log = structlog.get_logger()
@@ -36,6 +38,70 @@ def _redirect(location: str) -> RedirectResponse:
         headers={
             "Cache-Control": "private, no-store",
             "Referrer-Policy": "no-referrer",
+        },
+    )
+
+
+def _completion_page(completion: OAuthOutOfBand) -> HTMLResponse:
+    nonce = secrets.token_urlsafe(18)
+    code = html.escape(completion.completion_code, quote=True)
+    document = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finish in Shimpz Admin</title>
+  <style nonce="{nonce}">
+    :root {{ color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }}
+    * {{ box-sizing: border-box; }}
+    body {{ min-height: 100vh; margin: 0; display: grid; place-items: center; background: #000; color: #f4f4f5; }}
+    main {{ width: min(50rem, calc(100% - 2rem)); border: 1px solid #303036; padding: clamp(1.5rem, 5vw, 3rem); }}
+    p {{ color: #a1a1aa; line-height: 1.6; }}
+    label {{ display: block; margin: 2rem 0 .6rem; color: #00e5f0; font-size: .8rem; letter-spacing: .12em; }}
+    input {{ width: 100%; padding: 1rem; border: 1px solid #3f3f46; background: #09090b; color: #fff; font: inherit; }}
+    button {{ width: 100%; margin-top: .75rem; padding: 1rem; border: 0; background: #00e5f0; color: #000;
+      font: 700 1rem inherit; cursor: pointer; }}
+    .warning {{ color: #f4f4f5; }}
+  </style>
+</head>
+<body>
+  <main>
+    <p>INTEGRATION // ONE-TIME COMPLETION</p>
+    <h1>Finish in your original Shimpz Admin tab.</h1>
+    <p>Copy this short-lived code, return to the tab that started Cloudflare authorization, and paste it there.</p>
+    <label for="completion-code">COMPLETION CODE</label>
+    <input id="completion-code" value="{code}" readonly autocomplete="off" spellcheck="false">
+    <button id="copy-code" type="button">COPY CODE</button>
+    <p class="warning">Do not paste this code into chat or another site. It contains no provider token and works
+      only with the Admin session that started this authorization.</p>
+  </main>
+  <script nonce="{nonce}">
+    const input = document.getElementById('completion-code');
+    const button = document.getElementById('copy-code');
+    button.addEventListener('click', async () => {{
+      input.select();
+      try {{
+        await navigator.clipboard.writeText(input.value);
+        button.textContent = 'COPIED';
+      }} catch (_error) {{
+        button.textContent = 'SELECTED — COPY MANUALLY';
+      }}
+    }});
+  </script>
+</body>
+</html>"""
+    return HTMLResponse(
+        document,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
+            "Content-Security-Policy": (
+                "default-src 'none'; "
+                f"style-src 'nonce-{nonce}'; script-src 'nonce-{nonce}'; "
+                "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+            ),
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "X-Content-Type-Options": "nosniff",
         },
     )
 
@@ -69,7 +135,7 @@ async def cloudflare_start(request: Request) -> Response:
         return _failure("start")
     fields = dict(pairs)
     callback_mode = fields["callback"]
-    if callback_mode not in {"loopback", "hosted"}:
+    if callback_mode not in {"loopback", "hosted", "out-of-band"}:
         return _failure("start")
     try:
         location = await _run_bounded(
@@ -95,10 +161,16 @@ async def cloudflare_callback(request: Request) -> Response:
     if tuple(fields["scope"].split(" ")) != SCOPES:
         return _failure("callback")
     try:
-        location = await _run_bounded(functools.partial(_BROKER.callback, state=fields["state"], code=fields["code"]))
+        completion = await _run_bounded(
+            functools.partial(_BROKER.callback, state=fields["state"], code=fields["code"])
+        )
     except OAuthBrokerError:
         return _failure("callback", 502)
-    return _redirect(location)
+    if isinstance(completion, OAuthRedirect):
+        return _redirect(completion.location)
+    if isinstance(completion, OAuthOutOfBand):
+        return _completion_page(completion)
+    return _failure("callback", 502)
 
 
 async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSONResponse:

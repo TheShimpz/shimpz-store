@@ -6,7 +6,7 @@ from unittest import mock
 from fastapi.testclient import TestClient
 
 from app import main
-from app.oauth_broker import SCOPES
+from app.oauth_broker import SCOPES, OAuthOutOfBand, OAuthRedirect
 from app.routers import oauth
 
 
@@ -18,9 +18,11 @@ class _Broker:
         self.calls.append(("start", values))
         return "https://dash.cloudflare.com/oauth2/auth?validated=1"
 
-    def callback(self, **values) -> str:
+    def callback(self, **values) -> OAuthRedirect:
         self.calls.append(("callback", values))
-        return "http://127.0.0.1:7777/api/oauth/cloudflare/callback?state=" + "s" * 43 + "&claim=" + "a" * 64
+        return OAuthRedirect(
+            "http://127.0.0.1:7777/api/oauth/cloudflare/callback?state=" + "s" * 43 + "&claim=" + "a" * 64
+        )
 
     def claim(self, **values) -> dict[str, object]:
         self.calls.append(("claim", values))
@@ -163,6 +165,45 @@ def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:
             },
         )
     ]
+
+
+def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
+    with _broker() as broker, mock.patch.object(
+        broker,
+        "callback",
+        return_value=OAuthOutOfBand("c1." + "s" * 43 + "." + "a" * 64),
+    ), TestClient(main.app) as client:
+        start = client.get(
+            "/api/oauth/cloudflare/start",
+            params={
+                "state": "s" * 43,
+                "code_challenge": "c" * 43,
+                "scope": " ".join(SCOPES),
+                "callback": "out-of-band",
+            },
+            follow_redirects=False,
+        )
+        callback = client.get(
+            "/api/oauth/cloudflare/callback",
+            params={
+                "state": "b" * 43,
+                "code": "authorization-code-private-123456",
+                "scope": " ".join(SCOPES),
+            },
+            follow_redirects=False,
+        )
+
+    assert start.status_code == 303
+    assert callback.status_code == 200
+    assert callback.headers["content-type"].startswith("text/html")
+    assert callback.headers["cache-control"] == "private, no-store"
+    assert callback.headers["referrer-policy"] == "no-referrer"
+    assert callback.headers["cross-origin-opener-policy"] == "same-origin"
+    assert "default-src 'none'" in callback.headers["content-security-policy"]
+    assert "c1." + "s" * 43 + "." + "a" * 64 in callback.text
+    assert "access-token" not in callback.text
+    assert "refresh-token" not in callback.text
+    assert "location" not in callback.headers
 
 
 def test_browser_start_rejects_an_arbitrary_callback_before_the_broker() -> None:

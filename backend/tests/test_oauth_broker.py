@@ -18,6 +18,8 @@ from app.oauth_broker import (
     NeuronOAuthClient,
     OAuthBroker,
     OAuthBrokerError,
+    OAuthOutOfBand,
+    OAuthRedirect,
     OAuthTokens,
     _pkce_challenge,
 )
@@ -117,7 +119,9 @@ def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() ->
     )
     assert authorization_url == "https://dash.cloudflare.com/oauth2/auth"
     broker_state = neuron.calls[0][1][0]
-    callback = broker.callback(state=broker_state, code="authorization-code-private-123456")
+    completion = broker.callback(state=broker_state, code="authorization-code-private-123456")
+    assert isinstance(completion, OAuthRedirect)
+    callback = completion.location
     parsed = urlsplit(callback)
     query = parse_qs(parsed.query, strict_parsing=True)
     assert callback.startswith(LOCAL_CALLBACK + "?")
@@ -161,9 +165,10 @@ def test_broker_returns_only_the_named_hosted_admin_callback() -> None:
     )
     state = neuron.calls[0][1][0]
 
-    callback = broker.callback(state=state, code="authorization-code-private-123456")
+    completion = broker.callback(state=state, code="authorization-code-private-123456")
 
-    assert callback.startswith(HOSTED_ADMIN_CALLBACK + "?")
+    assert isinstance(completion, OAuthRedirect)
+    assert completion.location.startswith(HOSTED_ADMIN_CALLBACK + "?")
     with pytest.raises(OAuthBrokerError):
         broker.start(
             local_state="s" * 43,
@@ -189,8 +194,9 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
         scopes=list(SCOPES),
     )
     state = neuron.calls[0][1][0]
-    callback = broker.callback(state=state, code="authorization-code-private-123456")
-    claim = parse_qs(urlsplit(callback).query)["claim"][0]
+    completion = broker.callback(state=state, code="authorization-code-private-123456")
+    assert isinstance(completion, OAuthRedirect)
+    claim = parse_qs(urlsplit(completion.location).query)["claim"][0]
     with pytest.raises(OAuthBrokerError):
         broker.claim(claim=claim, state="s" * 43, code_verifier="x" * 43)
     payload = broker.claim(claim=claim, state="s" * 43, code_verifier=verifier)
@@ -211,3 +217,31 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
     now[0] += 301
     with pytest.raises(OAuthBrokerError):
         broker.callback(state=expired_state, code="authorization-code-private-123456")
+
+
+def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract() -> None:
+    neuron = _Neuron()
+    now = [100.0]
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    verifier = "v" * 43
+    state = "s" * 43
+    broker.start(
+        local_state=state,
+        local_code_challenge=_pkce_challenge(verifier),
+        callback_mode="out-of-band",
+        scopes=list(SCOPES),
+    )
+
+    completion = broker.callback(
+        state=neuron.calls[0][1][0],
+        code="authorization-code-private-123456",
+    )
+
+    assert isinstance(completion, OAuthOutOfBand)
+    version, returned_state, claim = completion.completion_code.split(".")
+    assert version == "c1"
+    assert returned_state == state
+    assert len(claim) == 64
+    assert "access-token" not in completion.completion_code
+    now[0] += 299
+    assert broker.claim(claim=claim, state=state, code_verifier=verifier)["access_token"].startswith("access-token")

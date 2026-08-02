@@ -24,11 +24,15 @@ from app import strict_json
 NEURON_ORIGIN = "https://neuron.shimpz.com"
 LOCAL_CALLBACK = "http://127.0.0.1:7777/api/oauth/cloudflare/callback"
 HOSTED_ADMIN_CALLBACK = "https://local.shimpz.com/api/oauth/cloudflare/callback"
-CALLBACKS = {"loopback": LOCAL_CALLBACK, "hosted": HOSTED_ADMIN_CALLBACK}
+CALLBACKS = {
+    "loopback": LOCAL_CALLBACK,
+    "hosted": HOSTED_ADMIN_CALLBACK,
+    "out-of-band": None,
+}
 HOSTED_CALLBACK = "https://shimpz.com/api/oauth/cloudflare/callback"
 SCOPES = ("dns.read", "offline_access", "zone.read")
 AUTHORIZATION_TTL_SECONDS = 300
-GRANT_TTL_SECONDS = 90
+GRANT_TTL_SECONDS = 300
 LEASE_TTL_SECONDS = 366 * 24 * 60 * 60
 CAPACITY = 4096
 MAX_RESPONSE_BYTES = 32 * 1024
@@ -59,6 +63,20 @@ class OAuthTokens:
     access_token: str
     refresh_token: str
     expires_in: int
+
+
+@dataclass(frozen=True, slots=True)
+class OAuthRedirect:
+    """One exact automatic Local Admin callback."""
+
+    location: str
+
+
+@dataclass(frozen=True, slots=True)
+class OAuthOutOfBand:
+    """A versioned completion code displayed only by the hosted callback."""
+
+    completion_code: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -473,7 +491,7 @@ class OAuthBroker:
                 self._authorizations.pop(broker_state, None)
             raise
 
-    def callback(self, *, state: object, code: object) -> str:
+    def callback(self, *, state: object, code: object) -> OAuthRedirect | OAuthOutOfBand:
         broker_state = _binding(state, "state")
         authorization_code = _code(code, label="code")
         now = self._clock()
@@ -504,7 +522,10 @@ class OAuthBroker:
                 tokens,
                 now + GRANT_TTL_SECONDS,
             )
-        return CALLBACKS[pending.callback_mode] + "?" + urlencode({"state": pending.local_state, "claim": claim})
+        callback = CALLBACKS[pending.callback_mode]
+        if callback is None:
+            return OAuthOutOfBand(f"c1.{pending.local_state}.{claim}")
+        return OAuthRedirect(callback + "?" + urlencode({"state": pending.local_state, "claim": claim}))
 
     def claim(self, *, claim: object, state: object, code_verifier: object) -> dict[str, object]:
         if not isinstance(claim, str) or _CLAIM.fullmatch(claim) is None:
