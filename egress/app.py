@@ -30,6 +30,12 @@ _STATUS = {
     502: "Bad Gateway",
     503: "Service Unavailable",
 }
+_AUDIT_SUBJECTS = {
+    "allowed": "neuron.shimpz.com:443",
+    "upstream-unavailable": "neuron.shimpz.com:443",
+    "request-rejected": "rejected-target",
+    "destination-rejected": "rejected-target",
+}
 
 
 def resolve_public(host: str, port: int) -> tuple[int, tuple] | None:
@@ -76,14 +82,6 @@ def _admit(request: bytes | None) -> tuple[int, str, tuple[int, tuple] | None]:
     return 200, "allowed", resolved
 
 
-def _audit_subject(reason: str) -> str:
-    if reason == "allowed" or reason == "upstream-unavailable":
-        return "neuron.shimpz.com:443"
-    if reason in {"request-rejected", "destination-rejected"}:
-        return "rejected-target"
-    return "not-evaluated"
-
-
 class Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         client = self.request
@@ -107,7 +105,7 @@ class Handler(socketserver.BaseRequestHandler):
                 result="error" if code >= 500 else "denied",
                 code=code,
                 reason=reason,
-                subject=_audit_subject(reason),
+                subject=_AUDIT_SUBJECTS[reason],
             )
         except audit.AuditError:
             code = 503
@@ -183,21 +181,25 @@ class Server(socketserver.ThreadingTCPServer):
 
     def process_request(self, request, client_address) -> None:
         source = client_address[0]
+        saturated = False
         with self._source_guard:
             source_count = self._source_counts.get(source, 0)
             if source_count >= MAX_SOURCE_CONCURRENCY or not self._slots.acquire(blocking=False):
-                request.settimeout(CONNECT_TIMEOUT)
-                with contextlib.suppress(audit.AuditError):
-                    audit.record(
-                        result="denied",
-                        code=503,
-                        reason="capacity",
-                        subject="not-evaluated",
-                    )
-                Handler._reply(request, 503)
-                request.close()
-                return
-            self._source_counts[source] = source_count + 1
+                saturated = True
+            else:
+                self._source_counts[source] = source_count + 1
+        if saturated:
+            request.settimeout(CONNECT_TIMEOUT)
+            with contextlib.suppress(audit.AuditError):
+                audit.record(
+                    result="denied",
+                    code=503,
+                    reason="capacity",
+                    subject="not-evaluated",
+                )
+            Handler._reply(request, 503)
+            request.close()
+            return
         try:
             super().process_request(request, client_address)
         except BaseException:
