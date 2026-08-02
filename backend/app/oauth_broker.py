@@ -10,6 +10,8 @@ import json
 import os
 import re
 import secrets
+import socket
+import ssl
 import stat
 import threading
 import time
@@ -22,6 +24,9 @@ from urllib.parse import parse_qsl, urlencode, urlsplit
 from app import strict_json
 
 NEURON_ORIGIN = "https://neuron.shimpz.com"
+NEURON_HOST = "neuron.shimpz.com"
+NEURON_EGRESS_HOST = "shimpz-store-egress"
+NEURON_EGRESS_PORT = 8889
 LOCAL_CALLBACK = "http://127.0.0.1:7777/api/oauth/cloudflare/callback"
 HOSTED_ADMIN_CALLBACK = "https://local.shimpz.com/api/oauth/cloudflare/callback"
 CALLBACKS = {
@@ -38,6 +43,7 @@ CAPACITY = 4096
 MAX_RESPONSE_BYTES = 32 * 1024
 MAX_TOKEN_BYTES = 16 * 1024
 HTTP_TIMEOUT_SECONDS = 10
+MAX_PROXY_RESPONSE_BYTES = 1024
 ACCESS_CLIENT_ID_PATH = Path(
     os.environ.get("SHIMPZ_NEURON_ACCESS_CLIENT_ID_FILE", "/run/secrets/neuron_access_client_id")
 )
@@ -180,8 +186,47 @@ def _read_secret(path: Path, *, maximum: int, modes: frozenset[int]) -> bytes:
             os.close(descriptor)
 
 
+def _read_proxy_response(stream: socket.socket) -> bytes:
+    payload = bytearray()
+    while b"\r\n\r\n" not in payload:
+        try:
+            chunk = stream.recv(256)
+        except OSError as exc:
+            raise OAuthBrokerError("Neuron egress proxy is unavailable") from exc
+        if not chunk:
+            raise OAuthBrokerError("Neuron egress proxy response is invalid")
+        payload.extend(chunk)
+        if len(payload) > MAX_PROXY_RESPONSE_BYTES:
+            raise OAuthBrokerError("Neuron egress proxy response is invalid")
+    return bytes(payload)
+
+
+def _open_neuron_tunnel() -> ssl.SSLSocket:
+    raw: socket.socket | None = None
+    try:
+        raw = socket.create_connection(
+            (NEURON_EGRESS_HOST, NEURON_EGRESS_PORT),
+            timeout=HTTP_TIMEOUT_SECONDS,
+        )
+        raw.settimeout(HTTP_TIMEOUT_SECONDS)
+        raw.sendall(f"CONNECT {NEURON_HOST}:443 HTTP/1.1\r\nHost: {NEURON_HOST}:443\r\n\r\n".encode("ascii"))
+        if _read_proxy_response(raw) != b"HTTP/1.1 200 Connection established\r\n\r\n":
+            raise OAuthBrokerError("Neuron egress proxy rejected the destination")
+        secured = ssl.create_default_context().wrap_socket(raw, server_hostname=NEURON_HOST)
+    except OAuthBrokerError:
+        raise
+    except (OSError, ssl.SSLError) as exc:
+        raise OAuthBrokerError("Neuron OAuth service is unavailable") from exc
+    else:
+        raw = None
+        return secured
+    finally:
+        if raw is not None:
+            raw.close()
+
+
 class FixedNeuronTransport:
-    """Reach only the Access-protected Neuron OAuth operation API."""
+    """Reach only the Access-protected Neuron API through Store's closed egress."""
 
     def request(
         self,
@@ -193,7 +238,7 @@ class FixedNeuronTransport:
         parsed = urlsplit(url)
         if (
             parsed.scheme != "https"
-            or parsed.hostname != "neuron.shimpz.com"
+            or parsed.hostname != NEURON_HOST
             or parsed.port is not None
             or parsed.username is not None
             or parsed.password is not None
@@ -202,8 +247,9 @@ class FixedNeuronTransport:
             or not parsed.path.startswith("/api/internal/oauth/cloudflare/")
         ):
             raise OAuthBrokerError("Neuron OAuth endpoint is invalid")
-        connection = http.client.HTTPSConnection(parsed.hostname, timeout=HTTP_TIMEOUT_SECONDS)
+        connection = http.client.HTTPConnection(parsed.hostname, timeout=HTTP_TIMEOUT_SECONDS)
         try:
+            connection.sock = _open_neuron_tunnel()
             connection.request("POST", parsed.path, body=body, headers=dict(headers))
             response = connection.getresponse()
             payload = response.read(MAX_RESPONSE_BYTES + 1)

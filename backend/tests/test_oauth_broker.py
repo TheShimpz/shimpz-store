@@ -5,6 +5,8 @@ import json
 import tempfile
 import threading
 from pathlib import Path
+from typing import ClassVar
+from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 import pytest
@@ -17,6 +19,7 @@ from app.oauth_broker import (
     SCOPES,
     BrokerLeaseSigner,
     BrokerResponse,
+    FixedNeuronTransport,
     NeuronOAuthClient,
     OAuthBroker,
     OAuthBrokerError,
@@ -29,6 +32,120 @@ from app.oauth_broker import (
 
 def test_default_lease_key_uses_the_initialized_private_volume() -> None:
     assert Path("/run/shimpz-oauth-broker/key") == LEASE_KEY_PATH
+
+
+class _ProxySocket:
+    def __init__(self, response: bytes) -> None:
+        self.response = response
+        self.sent = bytearray()
+        self.closed = False
+
+    def settimeout(self, _timeout: int) -> None:
+        pass
+
+    def sendall(self, payload: bytes) -> None:
+        self.sent.extend(payload)
+
+    def recv(self, _maximum: int) -> bytes:
+        response, self.response = self.response, b""
+        return response
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class _TlsContext:
+    def __init__(self, secured: object) -> None:
+        self.secured = secured
+        self.calls: list[tuple[object, str]] = []
+
+    def wrap_socket(self, stream: object, *, server_hostname: str) -> object:
+        self.calls.append((stream, server_hostname))
+        return self.secured
+
+
+class _HttpResponse:
+    status = 200
+
+    @staticmethod
+    def getheader(name: str, default: str = "") -> str:
+        return "application/json" if name == "Content-Type" else default
+
+    @staticmethod
+    def read(_maximum: int) -> bytes:
+        return b'{"authorization_url":"https://dash.cloudflare.com/oauth2/auth"}'
+
+
+class _HttpConnection:
+    instances: ClassVar[list[_HttpConnection]] = []
+
+    def __init__(self, host: str, *, timeout: int) -> None:
+        self.host = host
+        self.timeout = timeout
+        self.sock: object | None = None
+        self.request_call: tuple[str, str, bytes, dict[str, str]] | None = None
+        self.closed = False
+        self.instances.append(self)
+
+    def request(self, method: str, path: str, *, body: bytes, headers: dict[str, str]) -> None:
+        self.request_call = (method, path, body, headers)
+
+    @staticmethod
+    def getresponse() -> _HttpResponse:
+        return _HttpResponse()
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_fixed_transport_uses_exact_connect_proxy_and_end_to_end_neuron_tls() -> None:
+    proxy = _ProxySocket(b"HTTP/1.1 200 Connection established\r\n\r\n")
+    secured = object()
+    context = _TlsContext(secured)
+    _HttpConnection.instances.clear()
+    with (
+        mock.patch("app.oauth_broker.socket.create_connection", return_value=proxy) as connect,
+        mock.patch("app.oauth_broker.ssl.create_default_context", return_value=context),
+        mock.patch("app.oauth_broker.http.client.HTTPConnection", _HttpConnection),
+    ):
+        response = FixedNeuronTransport().request(
+            url="https://neuron.shimpz.com/api/internal/oauth/cloudflare/authorization",
+            headers={"Content-Type": "application/json"},
+            body=b"{}",
+        )
+
+    assert response.status == 200
+    connect.assert_called_once_with(("shimpz-store-egress", 8889), timeout=10)
+    assert bytes(proxy.sent) == (b"CONNECT neuron.shimpz.com:443 HTTP/1.1\r\nHost: neuron.shimpz.com:443\r\n\r\n")
+    assert context.calls == [(proxy, "neuron.shimpz.com")]
+    connection = _HttpConnection.instances[0]
+    assert connection.host == "neuron.shimpz.com"
+    assert connection.sock is secured
+    assert connection.request_call is not None
+    assert connection.request_call[:2] == ("POST", "/api/internal/oauth/cloudflare/authorization")
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    "proxy_response",
+    [
+        b"HTTP/1.1 403 Forbidden\r\n\r\n",
+        b"HTTP/1.1 200 Connection established\r\nUnexpected: value\r\n\r\n",
+        b"",
+    ],
+)
+def test_fixed_transport_fails_closed_on_proxy_response(proxy_response: bytes) -> None:
+    proxy = _ProxySocket(proxy_response)
+    with (
+        mock.patch("app.oauth_broker.socket.create_connection", return_value=proxy),
+        pytest.raises(OAuthBrokerError),
+    ):
+        FixedNeuronTransport().request(
+            url="https://neuron.shimpz.com/api/internal/oauth/cloudflare/authorization",
+            headers={"Content-Type": "application/json"},
+            body=b"{}",
+        )
+    assert proxy.closed
 
 
 class _Transport:
