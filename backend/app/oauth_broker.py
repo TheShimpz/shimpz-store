@@ -65,7 +65,7 @@ class OAuthTokens:
     expires_in: int
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class OAuthRedirect:
     """One exact automatic Local Admin callback."""
 
@@ -79,7 +79,7 @@ class OAuthOutOfBand:
     completion_code: str
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class _PendingAuthorization:
     local_state: str
     local_code_challenge: str
