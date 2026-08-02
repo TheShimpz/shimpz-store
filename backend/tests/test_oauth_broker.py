@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import tempfile
+import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -245,3 +247,74 @@ def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract()
     assert "access-token" not in completion.completion_code
     now[0] += 299
     assert broker.claim(claim=claim, state=state, code_verifier=verifier)["access_token"].startswith("access-token")
+
+
+def test_broker_reserves_one_local_state_until_its_grant_is_claimed() -> None:
+    neuron = _Neuron()
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    verifier = "v" * 43
+    state = "s" * 43
+
+    def start() -> str:
+        return broker.start(
+            local_state=state,
+            local_code_challenge=_pkce_challenge(verifier),
+            callback_mode="out-of-band",
+            scopes=list(SCOPES),
+        )
+
+    start()
+    with pytest.raises(OAuthBrokerError, match="unavailable"):
+        start()
+    completion = broker.callback(
+        state=neuron.calls[0][1][0],
+        code="authorization-code-private-123456",
+    )
+    assert isinstance(completion, OAuthOutOfBand)
+    with pytest.raises(OAuthBrokerError, match="unavailable"):
+        start()
+
+    _, _, claim = completion.completion_code.split(".")
+    broker.claim(claim=claim, state=state, code_verifier=verifier)
+    assert start() == "https://dash.cloudflare.com/oauth2/auth"
+
+
+def test_broker_reserves_local_state_while_neuron_exchanges_the_code() -> None:
+    entered = threading.Event()
+    release = threading.Event()
+
+    class BlockingNeuron(_Neuron):
+        def exchange(self, *, code: str, verifier: str) -> OAuthTokens:
+            entered.set()
+            if not release.wait(1):
+                raise RuntimeError("test exchange timed out")
+            return super().exchange(code=code, verifier=verifier)
+
+    neuron = BlockingNeuron()
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    state = "s" * 43
+    broker.start(
+        local_state=state,
+        local_code_challenge="c" * 43,
+        callback_mode="out-of-band",
+        scopes=list(SCOPES),
+    )
+    broker_state = neuron.calls[0][1][0]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        exchange = executor.submit(
+            broker.callback,
+            state=broker_state,
+            code="authorization-code-private-123456",
+        )
+        assert entered.wait(1)
+        try:
+            with pytest.raises(OAuthBrokerError, match="unavailable"):
+                broker.start(
+                    local_state=state,
+                    local_code_challenge="c" * 43,
+                    callback_mode="out-of-band",
+                    scopes=list(SCOPES),
+                )
+        finally:
+            release.set()
+        assert isinstance(exchange.result(timeout=1), OAuthOutOfBand)

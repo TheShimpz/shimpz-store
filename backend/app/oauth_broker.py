@@ -72,7 +72,7 @@ class OAuthRedirect:
     location: str
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class OAuthOutOfBand:
     """A versioned completion code displayed only by the hosted callback."""
 
@@ -440,14 +440,19 @@ class OAuthBroker:
         self._clock = clock
         self._authorizations: dict[str, _PendingAuthorization] = {}
         self._grants: dict[str, _PendingGrant] = {}
+        self._active_local_states: set[str] = set()
         self._grant_reservations = 0
         self._lock = threading.Lock()
 
     def _expire(self, now: float) -> None:
         for key in tuple(key for key, value in self._authorizations.items() if value.expires_at <= now):
-            self._authorizations.pop(key, None)
+            expired = self._authorizations.pop(key, None)
+            if expired is not None:
+                self._active_local_states.discard(expired.local_state)
         for key in tuple(key for key, value in self._grants.items() if value.expires_at <= now):
-            self._grants.pop(key, None)
+            expired = self._grants.pop(key, None)
+            if expired is not None:
+                self._active_local_states.discard(expired.local_state)
 
     @staticmethod
     def _random_binding() -> str:
@@ -472,6 +477,8 @@ class OAuthBroker:
             self._expire(now)
             if len(self._authorizations) >= CAPACITY:
                 raise OAuthBrokerError("OAuth broker capacity is unavailable")
+            if state in self._active_local_states:
+                raise OAuthBrokerError("OAuth authorization is unavailable")
             while broker_state in self._authorizations:
                 broker_state = self._random_binding()
             self._authorizations[broker_state] = _PendingAuthorization(
@@ -481,6 +488,7 @@ class OAuthBroker:
                 verifier,
                 now + AUTHORIZATION_TTL_SECONDS,
             )
+            self._active_local_states.add(state)
         try:
             return self._neuron.authorization(
                 state=broker_state,
@@ -488,7 +496,9 @@ class OAuthBroker:
             )
         except OAuthBrokerError:
             with self._lock:
-                self._authorizations.pop(broker_state, None)
+                removed = self._authorizations.pop(broker_state, None)
+                if removed is not None:
+                    self._active_local_states.discard(removed.local_state)
             raise
 
     def callback(self, *, state: object, code: object) -> OAuthRedirect | OAuthOutOfBand:
@@ -509,6 +519,7 @@ class OAuthBroker:
         except BaseException:
             with self._lock:
                 self._grant_reservations -= 1
+                self._active_local_states.discard(pending.local_state)
             raise
         claim = secrets.token_hex(32)
         with self._lock:
@@ -543,6 +554,7 @@ class OAuthBroker:
             ):
                 raise OAuthBrokerError("OAuth grant is unavailable")
             self._grants.pop(claim, None)
+            self._active_local_states.discard(pending.local_state)
         return self._token_payload(pending.tokens)
 
     def _token_payload(self, tokens: OAuthTokens) -> dict[str, object]:
