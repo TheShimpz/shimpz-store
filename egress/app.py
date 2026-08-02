@@ -32,10 +32,6 @@ _STATUS = {
 }
 
 
-def permitted(host: str, port: int) -> bool:
-    return host == ALLOWED_HOST and port == ALLOWED_PORT
-
-
 def resolve_public(host: str, port: int) -> tuple[int, tuple] | None:
     """Return one already-validated public address, rejecting mixed answers."""
     try:
@@ -190,6 +186,14 @@ class Server(socketserver.ThreadingTCPServer):
         with self._source_guard:
             source_count = self._source_counts.get(source, 0)
             if source_count >= MAX_SOURCE_CONCURRENCY or not self._slots.acquire(blocking=False):
+                request.settimeout(CONNECT_TIMEOUT)
+                with contextlib.suppress(audit.AuditError):
+                    audit.record(
+                        result="denied",
+                        code=503,
+                        reason="capacity",
+                        subject="not-evaluated",
+                    )
                 Handler._reply(request, 503)
                 request.close()
                 return

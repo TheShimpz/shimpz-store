@@ -7,6 +7,7 @@ import json
 import socket
 import stat
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -29,17 +30,14 @@ with mock.patch.dict("sys.modules", {"audit": audit}):
 
 
 class StoreEgressTests(unittest.TestCase):
-    def test_only_exact_neuron_https_target_is_permitted(self) -> None:
-        self.assertTrue(app.permitted("neuron.shimpz.com", 443))
-        for host, port in (
-            ("NEURON.SHIMPZ.COM", 443),
-            ("neuron.shimpz.com.", 443),
-            ("shimpz.com", 443),
-            ("neuron.shimpz.com.evil.example", 443),
-            ("neuron.shimpz.com", 80),
-        ):
-            with self.subTest(host=host, port=port):
-                self.assertFalse(app.permitted(host, port))
+    def test_wire_contract_is_pinned_independently_of_admission(self) -> None:
+        self.assertEqual(
+            app.EXACT_REQUEST,
+            b"CONNECT neuron.shimpz.com:443 HTTP/1.1\r\nHost: neuron.shimpz.com:443\r\n\r\n",
+        )
+        stream = mock.Mock()
+        app.Handler._reply(stream, 200)
+        stream.sendall.assert_called_once_with(b"HTTP/1.1 200 Connection established\r\n\r\n")
 
     def test_admission_requires_the_exact_complete_connect_request(self) -> None:
         with mock.patch.object(app, "resolve_public", return_value=(socket.AF_INET, ("104.16.1.2", 443))):
@@ -102,6 +100,26 @@ class StoreEgressTests(unittest.TestCase):
         ):
             self.assertEqual(app.main(), 1)
         server.assert_not_called()
+
+    def test_capacity_denial_is_timed_audited_and_closed_on_accept_loop(self) -> None:
+        server = object.__new__(app.Server)
+        server._slots = threading.BoundedSemaphore(1)
+        self.assertTrue(server._slots.acquire(blocking=False))
+        server._source_guard = threading.Lock()
+        server._source_counts = {}
+        request = mock.Mock()
+        with mock.patch.object(audit, "record") as record:
+            server.process_request(request, ("172.20.0.2", 12345))
+
+        request.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT)
+        record.assert_called_once_with(
+            result="denied",
+            code=503,
+            reason="capacity",
+            subject="not-evaluated",
+        )
+        request.sendall.assert_called_once_with(b"HTTP/1.1 503 Service Unavailable\r\n\r\n")
+        request.close.assert_called_once_with()
 
 
 if __name__ == "__main__":
