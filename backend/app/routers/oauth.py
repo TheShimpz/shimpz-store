@@ -161,9 +161,7 @@ async def cloudflare_callback(request: Request) -> Response:
     if tuple(fields["scope"].split(" ")) != SCOPES:
         return _failure("callback")
     try:
-        completion = await _run_bounded(
-            functools.partial(_BROKER.callback, state=fields["state"], code=fields["code"])
-        )
+        completion = await _run_bounded(functools.partial(_BROKER.callback, state=fields["state"], code=fields["code"]))
     except OAuthBrokerError:
         return _failure("callback", 502)
     if isinstance(completion, OAuthRedirect):

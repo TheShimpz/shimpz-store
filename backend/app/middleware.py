@@ -97,11 +97,7 @@ class TraceIdMiddleware:
             if message["type"] == "http.response.start":
                 response_headers = message.get("headers") or []
                 response_csp = next(
-                    (
-                        value
-                        for name, value in response_headers
-                        if name.lower() == b"content-security-policy"
-                    ),
+                    (value for name, value in response_headers if name.lower() == b"content-security-policy"),
                     None,
                 )
                 selected_headers = security_headers
@@ -111,9 +107,7 @@ class TraceIdMiddleware:
                         for name, value in security_headers
                     )
                 managed = _MANAGED_SECURITY_HEADERS | {b"x-request-id"}
-                message["headers"] = [
-                    (name, value) for name, value in response_headers if name.lower() not in managed
-                ]
+                message["headers"] = [(name, value) for name, value in response_headers if name.lower() not in managed]
                 message["headers"].extend(selected_headers)
                 message["headers"].append((b"x-request-id", trace_id.encode("ascii")))  # token-only → safe
             await send(message)

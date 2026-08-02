@@ -168,11 +168,15 @@ def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:
 
 
 def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
-    with _broker() as broker, mock.patch.object(
-        broker,
-        "callback",
-        return_value=OAuthOutOfBand("c1." + "s" * 43 + "." + "a" * 64),
-    ), TestClient(main.app) as client:
+    with (
+        _broker() as broker,
+        mock.patch.object(
+            broker,
+            "callback",
+            return_value=OAuthOutOfBand("c1." + "s" * 43 + "." + "a" * 64),
+        ),
+        TestClient(main.app) as client,
+    ):
         start = client.get(
             "/api/oauth/cloudflare/start",
             params={
