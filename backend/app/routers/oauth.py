@@ -64,11 +64,11 @@ def _failure(operation: str, status: int = 400) -> JSONResponse:
 async def cloudflare_start(request: Request) -> Response:
     pairs = list(request.query_params.multi_items())
     keys = {key for key, _value in pairs}
-    required = {"state", "code_challenge", "scope"}
-    if len(pairs) not in {3, 4} or keys not in {frozenset(required), frozenset({*required, "callback"})}:
+    required = {"state", "code_challenge", "scope", "callback"}
+    if len(pairs) != 4 or keys != required:
         return _failure("start")
     fields = dict(pairs)
-    callback_mode = fields.get("callback", "loopback")
+    callback_mode = fields["callback"]
     if callback_mode not in {"loopback", "hosted"}:
         return _failure("start")
     try:
