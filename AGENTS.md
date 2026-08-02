@@ -5,6 +5,8 @@
 - This repository owns public Store discovery and authenticated Hosted web orchestration.
 - Store projects Developers data and sends exact install intent to Team. It does not own publication, catalog
   admission, Team lifecycle, Account identity, model-provider credential custody, or installation authority.
+- `egress/` owns only the dedicated Hosted Store-to-Neuron CONNECT enforcement and audit boundary. Store remains
+  absent from direct outbound networks, and the proxy never receives OAuth or Cloudflare Access credentials.
 - Read the canonical [Shimpz architecture](https://github.com/TheShimpz/shimpz/blob/main/.context/ARCHITECTURE.md)
   before changing product vocabulary, authority, protocols, runtime topology, or source placement.
 
