@@ -12,6 +12,8 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import pytest
 
 from app.oauth_broker import (
+    ACCESS_CLIENT_ID_PATH,
+    ACCESS_CLIENT_SECRET_PATH,
     HOSTED_ADMIN_CALLBACK,
     HOSTED_CALLBACK,
     LEASE_KEY_PATH,
@@ -31,7 +33,9 @@ from app.oauth_broker import (
 
 
 def test_default_lease_key_uses_the_initialized_private_volume() -> None:
-    assert Path("/run/shimpz-oauth-broker/key") == LEASE_KEY_PATH
+    assert Path("/run/shimpz-store-oauth/access-client-id") == ACCESS_CLIENT_ID_PATH
+    assert Path("/run/shimpz-store-oauth/access-client-secret") == ACCESS_CLIENT_SECRET_PATH
+    assert Path("/run/shimpz-store-oauth/lease-key") == LEASE_KEY_PATH
 
 
 class _ProxySocket:
@@ -221,6 +225,21 @@ def test_neuron_client_sends_access_service_identity_and_validates_fixed_authori
     assert request["headers"]["CF-Access-Client-Id"] == "c" * 32 + ".access"
     assert "CF-Access-Client-Secret" in request["headers"]
     assert "client_secret" not in request["body"].decode()
+
+
+def test_neuron_client_rejects_world_readable_access_files() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        client_id = _secret(root / "id", ("c" * 32 + ".access").encode())
+        client_id.chmod(0o444)
+        client = NeuronOAuthClient(
+            _Transport([]),
+            client_id_path=client_id,
+            client_secret_path=_secret(root / "secret", b"service-token-private-material-123456"),
+        )
+
+        with pytest.raises(OAuthBrokerError, match="file contract"):
+            client.authorization(state="a" * 43, code_challenge="b" * 43)
 
 
 def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() -> None:

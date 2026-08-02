@@ -33,6 +33,8 @@ RUN UV_PROJECT_ENVIRONMENT=/opt/venv uv sync --frozen --no-install-project --no-
 # ── stage 4: minimal runtime ─────────────────────────────────────────────────────────────────────
 FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6 AS serve
 ARG SOURCE_DATE_EPOCH=0
+RUN groupadd --gid 10008 shimpz-store \
+ && useradd --uid 10008 --gid 10008 --no-create-home --shell /usr/sbin/nologin shimpz-store
 WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
 COPY backend/app/__init__.py backend/app/authn.py backend/app/strict_json.py backend/app/concurrency.py backend/app/config.py backend/app/logconf.py backend/app/main.py backend/app/model_catalog.json \
@@ -51,6 +53,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     SHIMPZ_STORE_BUILD=/app/build
+USER 10008:10008
 EXPOSE 3200
 HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20 \
   CMD ["python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 3200), 2).close()"]

@@ -45,15 +45,15 @@ MAX_TOKEN_BYTES = 16 * 1024
 HTTP_TIMEOUT_SECONDS = 10
 MAX_PROXY_RESPONSE_BYTES = 1024
 ACCESS_CLIENT_ID_PATH = Path(
-    os.environ.get("SHIMPZ_NEURON_ACCESS_CLIENT_ID_FILE", "/run/secrets/neuron_access_client_id")
+    os.environ.get("SHIMPZ_NEURON_ACCESS_CLIENT_ID_FILE", "/run/shimpz-store-oauth/access-client-id")
 )
 ACCESS_CLIENT_SECRET_PATH = Path(
     os.environ.get(
         "SHIMPZ_NEURON_ACCESS_CLIENT_SECRET_FILE",
-        "/run/secrets/neuron_access_client_secret",
+        "/run/shimpz-store-oauth/access-client-secret",
     )
 )
-LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run/shimpz-oauth-broker/key"))
+LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run/shimpz-store-oauth/lease-key"))
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")
@@ -283,12 +283,12 @@ class NeuronOAuthClient:
             client_id = _read_secret(
                 self._client_id_path,
                 maximum=256,
-                modes=frozenset({0o400, 0o440, 0o444, 0o600, 0o640}),
+                modes=frozenset({0o400, 0o440, 0o600, 0o640}),
             ).decode("ascii")
             client_secret = _read_secret(
                 self._client_secret_path,
                 maximum=1024,
-                modes=frozenset({0o400, 0o440, 0o444, 0o600, 0o640}),
+                modes=frozenset({0o400, 0o440, 0o600, 0o640}),
             ).decode("ascii")
         except UnicodeError as exc:
             raise OAuthBrokerError("Neuron Access service credential is invalid") from exc

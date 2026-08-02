@@ -62,6 +62,14 @@ def test_static_runtime_has_a_bounded_health_probe():
     assert "HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20" in dockerfile
 
 
+def test_static_runtime_uses_the_store_identity():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    runtime = dockerfile.split(" AS serve\n", 1)[1]
+
+    assert "useradd --uid 10008 --gid 10008" in runtime
+    assert "USER 10008:10008" in runtime
+
+
 def test_static_runtime_copies_only_builder_resolved_dependencies():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     runtime = dockerfile.split(" AS serve\n", 1)[1]
