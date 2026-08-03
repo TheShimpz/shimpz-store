@@ -39,7 +39,7 @@ def _request(
         if len(raw) > max_response_bytes:
             return 502, {"detail": "the Space returned an oversized response"}
         return response.status, (json.loads(raw) if raw else {})
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, http.client.HTTPException) as exc:
         log.warning("proxy_unreachable", base=base, path=path, error=str(exc))
         return 502, {"detail": "the Space is unreachable"}
     finally:

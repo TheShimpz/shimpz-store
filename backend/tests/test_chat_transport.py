@@ -176,6 +176,26 @@ def test_websocket_requires_and_negotiates_the_v2_chat_subprotocol(monkeypatch):
         assert websocket.accepted_subprotocol == CHAT_WS_SUBPROTOCOL
 
 
+def test_websocket_rejects_malformed_team_id_before_admission(monkeypatch):
+    async def verified(_ws: WebSocket) -> tuple[str, str]:
+        return "account-token", "account-one"
+
+    monkeypatch.setattr(main, "_ws_verify", verified)
+    allowed = next(iter(WS_ALLOWED_ORIGINS))
+    with (
+        TestClient(app) as client,
+        pytest.raises(WebSocketDisconnect) as raised,
+        client.websocket_connect(
+            "/api/teams/bad%20id/chat/ws",
+            headers={"origin": allowed},
+            subprotocols=[CHAT_WS_SUBPROTOCOL],
+        ),
+    ):
+        pass
+    assert raised.value.code == 4400
+    assert main._WS_CONNECTION_ADMISSION.snapshot() == (0, {}, {})
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [

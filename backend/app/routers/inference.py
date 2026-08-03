@@ -20,6 +20,9 @@ async def team_inference(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    team_id = team_contract.canonical_team_id(team_id)
+    if team_id is None:
+        return JSONResponse({"detail": "bad team id"}, status_code=400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -36,6 +39,9 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    team_id = team_contract.canonical_team_id(team_id)
+    if team_id is None:
+        return JSONResponse({"detail": "bad team id"}, status_code=400)
     payload = await read_bounded_json(request, MAX_INFERENCE_BODY_BYTES)
     if set(payload) != {"provider", "model"}:
         return JSONResponse({"detail": "inference requires provider and model"}, status_code=400)

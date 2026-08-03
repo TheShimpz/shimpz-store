@@ -374,6 +374,22 @@ async def _ws_validate_opening(ws: WebSocket) -> bool:
     return True
 
 
+async def _ws_identity(ws: WebSocket, team_id: str) -> tuple[str, str, str] | None:
+    try:
+        token, account_id = await _ws_verify(ws)
+    except _ExecutorSaturatedError:
+        await ws.close(code=4429)
+        return None
+    if not token:
+        await ws.close(code=4401)
+        return None
+    canonical_team = team_contract.canonical_team_id(team_id)
+    if canonical_team is None:
+        await ws.close(code=4400)
+        return None
+    return token, account_id, canonical_team
+
+
 router = APIRouter()
 
 
@@ -381,14 +397,10 @@ router = APIRouter()
 async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
     if not await _ws_validate_opening(ws):
         return
-    try:
-        token, account_id = await _ws_verify(ws)
-    except _ExecutorSaturatedError:
-        await ws.close(code=4429)
+    identity = await _ws_identity(ws, team_id)
+    if identity is None:
         return
-    if not token:
-        await ws.close(code=4401)
-        return
+    token, account_id, team_id = identity
     connection = _WS_CONNECTION_ADMISSION.reserve(account_id, team_id)
     if connection is None:
         await ws.send(

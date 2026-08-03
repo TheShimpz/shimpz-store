@@ -85,6 +85,9 @@ async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    team_id = team_contract.canonical_team_id(team_id)
+    if team_id is None:
+        return JSONResponse({"detail": "bad team id"}, status_code=400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,

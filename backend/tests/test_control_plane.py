@@ -89,6 +89,37 @@ def test_verify_timeout_uses_fast_budget_and_surfaces_502(monkeypatch):
     }
 
 
+def test_invalid_upstream_path_is_a_closed_generic_failure(monkeypatch):
+    observed: dict[str, object] = {}
+
+    class InvalidPathConnection:
+        def __init__(self, hostname, port, *, timeout):
+            observed.update(hostname=hostname, port=port, timeout=timeout)
+
+        def request(self, *_args) -> None:
+            raise upstream.http.client.InvalidURL("invalid path")
+
+        def close(self) -> None:
+            observed["closed"] = True
+
+    monkeypatch.setattr(upstream.http.client, "HTTPConnection", InvalidPathConnection)
+
+    status, body = upstream.call(
+        "http://team:7077",
+        "DELETE",
+        "/v1/teams/bad id",
+        timeout=upstream.CONTROL_PLANE_TIMEOUT_SECONDS,
+    )
+
+    assert (status, body) == (502, {"detail": "the Space is unreachable"})
+    assert observed == {
+        "hostname": "team",
+        "port": 7077,
+        "timeout": upstream.CONTROL_PLANE_TIMEOUT_SECONDS,
+        "closed": True,
+    }
+
+
 class _BrainControlHandler(BaseHTTPRequestHandler):
     calls: list[tuple[str, str, dict]]
     state: dict[str, int]
@@ -104,7 +135,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
-        if self.path == "/v1/teams/team-openai/inference":
+        if self.path == "/v1/teams/team_openai/inference":
             self._json(200, {"provider": "openai", "model": "gpt-5.5"})
             return
         self._json(404, {"error": "not found"})
@@ -113,8 +144,8 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         body = json.loads(self.rfile.read(length) or b"{}")
         self.calls.append(("PUT", self.path, body))
-        if self.path == "/v1/teams/team-openai/inference":
-            self._json(200, {"team_id": "team-openai", **body})
+        if self.path == "/v1/teams/team_openai/inference":
+            self._json(200, {"team_id": "team_openai", **body})
             return
         self._json(404, {"error": "not found"})
 
@@ -321,28 +352,57 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
 def test_team_inference_is_read_and_updated_without_recreating_team():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        current = client.get("/api/teams/team-openai/inference")
+        current = client.get("/api/teams/team_openai/inference")
         updated = client.put(
-            "/api/teams/team-openai/inference",
+            "/api/teams/team_openai/inference",
             json={"provider": "anthropic", "model": "claude-sonnet-5"},
         )
-        retired_login = client.post("/api/teams/team-openai/brain/login/start")
+        retired_login = client.post("/api/teams/team_openai/brain/login/start")
 
     assert current.status_code == updated.status_code == 200
     assert current.json() == {"provider": "openai", "model": "gpt-5.5"}
     assert updated.json() == {
-        "team_id": "team-openai",
+        "team_id": "team_openai",
         "provider": "anthropic",
         "model": "claude-sonnet-5",
     }
     assert retired_login.status_code in {404, 405}
-    assert ("GET", "/v1/teams/team-openai/inference", {}) in calls
+    assert ("GET", "/v1/teams/team_openai/inference", {}) in calls
     assert (
         "PUT",
-        "/v1/teams/team-openai/inference",
+        "/v1/teams/team_openai/inference",
         {"provider": "anthropic", "model": "claude-sonnet-5"},
     ) in calls
     assert not any(call[1].endswith("/create") for call in calls)
+
+
+def test_team_routes_reject_malformed_team_ids_before_forwarding(monkeypatch):
+    forwarded: list[tuple] = []
+
+    async def authenticated(_request):
+        return "session-token", "account-1", "account-user"
+
+    async def call(*args, **kwargs):
+        forwarded.append((*args, kwargs))
+        return 200, {}
+
+    monkeypatch.setattr(authn, "authed_account_bounded", authenticated)
+    monkeypatch.setattr(main.teams, "call_bounded", call)
+    monkeypatch.setattr(main.inference, "call_bounded", call)
+
+    with TestClient(app) as client:
+        responses = (
+            client.delete("/api/teams/bad%20id"),
+            client.get("/api/teams/bad%20id/inference"),
+            client.put(
+                "/api/teams/bad%20id/inference",
+                json={"provider": "openai", "model": "gpt-5.5"},
+            ),
+        )
+
+    assert [response.status_code for response in responses] == [400, 400, 400]
+    assert [response.json() for response in responses] == [{"detail": "bad team id"}] * 3
+    assert forwarded == []
 
 
 def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
@@ -353,7 +413,7 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
             json={"team_name": "Unknown", "provider": "openai", "model": "gpt-unknown"},
         )
         switch = client.put(
-            "/api/teams/team-openai/inference",
+            "/api/teams/team_openai/inference",
             json={"provider": "anthropic", "model": "gpt-5.5"},
         )
 
