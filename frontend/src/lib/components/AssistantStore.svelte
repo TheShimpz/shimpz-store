@@ -498,6 +498,7 @@
   }
 
   onMount(() => {
+    if (embedded) document.body.classList.add("assistant-store-embedded");
     void loadAssistantCatalog();
     const mode = assistantStoreMode(embedded);
     if (mode === "cloud") {
@@ -509,6 +510,7 @@
       void bootCloudStore();
       return () => {
         cloudGeneration += 1;
+        document.body.classList.remove("assistant-store-embedded");
       };
     }
 
@@ -527,6 +529,7 @@
     });
     return () => {
       mounted = false;
+      document.body.classList.remove("assistant-store-embedded");
       window.removeEventListener("message", receiveStoreMessage);
       resizeObserver?.disconnect();
       if (frameRequest) cancelAnimationFrame(frameRequest);
@@ -634,7 +637,11 @@
           <p class="assistant-summary">{assistant.summary}</p>
         </div>
 
-        <div class="assistant-action">
+        <div
+          class:persistent={embedded
+            ? actionState(assistant.id) !== "idle"
+            : cloudActionLatch || Boolean(cloudFeedback)}
+          class="assistant-action">
           {#if embedded}
             <button
               class:btn-primary={!localAssistantInstalled(assistant.id)}
@@ -705,23 +712,20 @@
     margin-top: 1.25rem;
   }
   .assistant-card {
+    position: relative;
     display: flex;
     overflow: hidden;
     flex-direction: column;
     background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
-    box-shadow: inset 0 0 0 1px var(--color-border);
     clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-    transition: box-shadow 0.18s ease, transform 0.18s var(--ease-shimpz);
+    transition: background 0.18s ease, transform 0.18s var(--ease-shimpz);
   }
   .assistant-card:hover, .assistant-card:focus-within {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-cyan) 52%, var(--color-border));
+    background: linear-gradient(180deg, color-mix(in oklab, var(--color-cyan) 5%, var(--color-card-2)), var(--color-card));
     transform: translateY(-2px);
   }
-  .assistant-card.installed {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 52%, var(--color-border));
-  }
   .assistant-card.installed:hover, .assistant-card.installed:focus-within {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 75%, var(--color-border));
+    background: linear-gradient(180deg, color-mix(in oklab, var(--color-green) 5%, var(--color-card-2)), var(--color-card));
   }
   .assistant-card.requested { scroll-margin-top: 7rem; }
   .assistant-details { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 1rem; }
@@ -767,8 +771,24 @@
     line-clamp: 2;
   }
   .assistant-action {
-    border-top: 1px solid var(--color-border);
-    padding: 0.75rem 1rem 1rem;
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 2.5rem 1rem 1rem;
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.96) 42%);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.4rem);
+    transition: opacity 0.16s ease, transform 0.16s var(--ease-shimpz);
+  }
+  .assistant-card:hover .assistant-action,
+  .assistant-card:focus-within .assistant-action,
+  .assistant-action.persistent {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
   .install-action { width: 100%; min-height: 2.5rem; border: 0; padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.62rem; }
   .install-status { margin: 0.55rem 0 0; color: var(--color-green); font-size: 0.68rem; line-height: 1.45; }
@@ -863,8 +883,18 @@
     .assistant-grid { grid-template-columns: 1fr; }
     .context-error { align-items: stretch; flex-direction: column; }
   }
+  @media (hover: none), (pointer: coarse) {
+    .assistant-action {
+      position: static;
+      padding: 0.25rem 1rem 1rem;
+      background: transparent;
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .assistant-card { transition: none; }
+    .assistant-card, .assistant-action { transition: none; }
     .assistant-card:hover, .assistant-card:focus-within { transform: none; }
   }
 </style>
