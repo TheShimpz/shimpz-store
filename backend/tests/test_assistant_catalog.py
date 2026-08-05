@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 
 import pytest
 from app import catalog
@@ -11,6 +12,7 @@ from app.routers import public
 from fastapi.testclient import TestClient
 
 DIGEST = "sha256:" + ("a" * 64)
+ICON_DIGEST = "sha256:" + ("b" * 64)
 
 
 def _assistant(**changes) -> dict[str, object]:
@@ -22,6 +24,7 @@ def _assistant(**changes) -> dict[str, object]:
         "creators": ["@shimpz"],
         "github": "https://github.com/TheShimpz/hello-world",
         "source_digest": DIGEST,
+        "icon_digest": ICON_DIGEST,
         "platforms": ["linux/amd64", "linux/arm64"],
         "allowed_hosts": ["api.example.com"],
         "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
@@ -52,6 +55,7 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "creators": ["@shimpz"],
                 "github": "https://github.com/TheShimpz/hello-world",
                 "source_digest": DIGEST,
+                "icon_digest": ICON_DIGEST,
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
                 "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
@@ -93,6 +97,35 @@ def test_public_route_caches_only_a_valid_developers_catalog(monkeypatch) -> Non
     assert response.status_code == 200
     assert response.headers["cache-control"] == "public, max-age=60, s-maxage=300"
     assert response.json()["assistants"][0]["source_digest"] == DIGEST
+
+
+def test_public_icon_route_verifies_and_immutably_caches_exact_bytes(monkeypatch) -> None:
+    contents = b"canonical icon"
+    icon_hash = hashlib.sha256(contents).hexdigest()
+
+    async def valid_icon(*_args, **_kwargs):
+        return 200, contents
+
+    monkeypatch.setattr(public, "call_asset_bounded", valid_icon)
+    with TestClient(app) as client:
+        response = client.get(f"/api/assistant-icons/{'a' * 64}/{icon_hash}.png")
+
+    assert response.status_code == 200
+    assert response.content == contents
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
+
+
+def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
+    async def invalid_icon(*_args, **_kwargs):
+        return 200, b"wrong icon"
+
+    monkeypatch.setattr(public, "call_asset_bounded", invalid_icon)
+    with TestClient(app) as client:
+        response = client.get(f"/api/assistant-icons/{'a' * 64}/{'b' * 64}.png")
+
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "assistants": "bad"})])

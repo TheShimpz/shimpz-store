@@ -48,6 +48,7 @@
     version: string;
     creators: readonly string[];
     sourceDigest: string;
+    iconDigest: string;
   };
   type PendingAction = {
     action: ActionKind;
@@ -623,7 +624,10 @@
         class="assistant-card">
         <div class="assistant-details">
           <div class="assistant-heading">
-            <AssistantIcon size={64} />
+            <AssistantIcon
+              size={64}
+              src={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
+            />
             <div class="assistant-identity">
               <h2>{assistant.name}</h2>
               <p>{assistant.creators.join(", ")}</p>

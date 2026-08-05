@@ -5,6 +5,7 @@ import test from "node:test";
 import { parseAssistantCatalog } from "../src/lib/assistantCatalog.js";
 
 const DIGEST = `sha256:${"a".repeat(64)}`;
+const ICON_DIGEST = `sha256:${"b".repeat(64)}`;
 
 function catalog() {
   return {
@@ -18,6 +19,7 @@ function catalog() {
         creators: ["@creator"],
         github: "https://github.com/example/assistant",
         source_digest: DIGEST,
+        icon_digest: ICON_DIGEST,
         platforms: ["linux/amd64", "linux/arm64"],
         allowed_hosts: ["api.example.com"],
         integrations: [{ id: "example", provider: "example", scopes: ["read"] }],
@@ -36,6 +38,7 @@ test("projects the exact immutable publication identity needed by the Store", ()
       version: "1.2.3",
       creators: ["@creator"],
       sourceDigest: DIGEST,
+      iconDigest: ICON_DIGEST,
     },
   ]);
 });

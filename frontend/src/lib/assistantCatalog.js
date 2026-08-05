@@ -8,6 +8,7 @@ const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "assistant_version",
   "creators",
   "github",
+  "icon_digest",
   "name",
   "platforms",
   "powers",
@@ -91,6 +92,8 @@ function parseAssistant(value) {
     !boundedText(record.github, 500) ||
     typeof record.source_digest !== "string" ||
     !SOURCE_DIGEST_RE.test(record.source_digest) ||
+    typeof record.icon_digest !== "string" ||
+    !SOURCE_DIGEST_RE.test(record.icon_digest) ||
     !boundedStrings(record.creators, 16, 80) ||
     !boundedStrings(record.platforms, 2, 20, PLATFORM_RE) ||
     !boundedStrings(record.allowed_hosts, 64, 253) ||
@@ -106,6 +109,7 @@ function parseAssistant(value) {
     version: record.assistant_version,
     creators: Object.freeze([...(/** @type {string[]} */ (record.creators))]),
     sourceDigest: record.source_digest,
+    iconDigest: record.icon_digest,
   });
 }
 

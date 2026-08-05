@@ -22,6 +22,7 @@ _ASSISTANT_FIELDS = {
     "assistant_version",
     "creators",
     "github",
+    "icon_digest",
     "source_digest",
     "platforms",
     "allowed_hosts",
@@ -109,12 +110,15 @@ def _assistant(value: object) -> dict[str, object]:
         raise CatalogError("catalog Assistant identifier is invalid")
     version = value["assistant_version"]
     digest = value["source_digest"]
+    icon_digest = value["icon_digest"]
     platforms = value["platforms"]
     github = value["github"]
     if not isinstance(version, str) or _VERSION.fullmatch(version) is None:
         raise CatalogError("catalog Assistant version is invalid")
     if not isinstance(digest, str) or _DIGEST.fullmatch(digest) is None:
         raise CatalogError("catalog source digest is invalid")
+    if not isinstance(icon_digest, str) or _DIGEST.fullmatch(icon_digest) is None:
+        raise CatalogError("catalog icon digest is invalid")
     if platforms != ["linux/amd64", "linux/arm64"]:
         raise CatalogError("catalog platforms are invalid")
     if not isinstance(github, str) or _GITHUB.fullmatch(github) is None:
@@ -127,6 +131,7 @@ def _assistant(value: object) -> dict[str, object]:
         "creators": _creators(value["creators"]),
         "github": github,
         "source_digest": digest,
+        "icon_digest": icon_digest,
         "platforms": platforms,
         "allowed_hosts": _closed_strings(value["allowed_hosts"], 32, 253),
         "integrations": _integrations(value["integrations"]),
