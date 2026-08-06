@@ -13,7 +13,18 @@ from app.config import ACCOUNT_COOKIE as ACCOUNT_COOKIE
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
 from app.payloads import ClientPayloadError
-from app.routers import account, assistants, files, inference, model_providers, oauth, public, static, teams
+from app.routers import (
+    account,
+    assistants,
+    files,
+    inference,
+    model_providers,
+    oauth,
+    power_assurance,
+    public,
+    static,
+    teams,
+)
 
 setup("shimpz-store")
 log = structlog.get_logger()
@@ -50,6 +61,7 @@ app.include_router(model_providers.router)
 app.include_router(files.router)
 app.include_router(inference.router)
 app.include_router(oauth.router)
+app.include_router(power_assurance.router)
 app.include_router(public.router)
 app.include_router(teams.router)
 app.include_router(chat_ws.router)
