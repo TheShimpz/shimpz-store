@@ -2,6 +2,7 @@ const BASE64URL_RE = /^[A-Za-z0-9_-]{1,4096}$/;
 const HANDLE_RE = /^[A-Za-z0-9_-]{43}$/;
 const TEAM_ID_RE = /^[a-z0-9_]{1,40}$/;
 const CHALLENGE_ID_RE = /^[a-f0-9]{32}$/;
+const MAX_ASSURANCE_TTL_SECONDS = 300;
 
 /** @param {any} value */
 function record(value) {
@@ -99,7 +100,9 @@ export function parsePowerAssuranceHandle(value) {
     source.version !== 1 ||
     typeof source.handle !== "string" ||
     !HANDLE_RE.test(source.handle) ||
-    source.expires_in !== 120
+    !Number.isSafeInteger(source.expires_in) ||
+    source.expires_in < 1 ||
+    source.expires_in > MAX_ASSURANCE_TTL_SECONDS
   ) {
     throw new TypeError("invalid Power assurance response");
   }

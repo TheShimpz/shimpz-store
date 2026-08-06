@@ -16,15 +16,19 @@ function encoded(text) {
 }
 
 test("projects the exact Account assurance handle", () => {
-  assert.equal(
-    parsePowerAssuranceHandle({ version: 1, handle: "a".repeat(43), expires_in: 120 }),
-    "a".repeat(43),
-  );
+  for (const expires_in of [1, 120, 300]) {
+    assert.equal(
+      parsePowerAssuranceHandle({ version: 1, handle: "a".repeat(43), expires_in }),
+      "a".repeat(43),
+    );
+  }
   for (const value of [
     null,
-    { version: 1, handle: "short", expires_in: 120 },
-    { version: 1, handle: "a".repeat(43), expires_in: 121 },
-    { version: 1, handle: "a".repeat(43), expires_in: 120, token: "private" },
+    { version: 1, handle: "short", expires_in: 300 },
+    { version: 1, handle: "a".repeat(43), expires_in: 0 },
+    { version: 1, handle: "a".repeat(43), expires_in: 301 },
+    { version: 1, handle: "a".repeat(43), expires_in: true },
+    { version: 1, handle: "a".repeat(43), expires_in: 300, token: "private" },
   ]) {
     assert.throws(() => parsePowerAssuranceHandle(value));
   }

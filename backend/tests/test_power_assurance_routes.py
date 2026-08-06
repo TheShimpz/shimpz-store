@@ -55,7 +55,7 @@ def test_factor_routes_transit_only_exact_session_bound_payload(
 
     async def account_call(*args, **kwargs):
         calls.append((args, kwargs))
-        return 200, {"version": 1, "handle": HANDLE, "expires_in": 120}
+        return 200, {"version": 1, "handle": HANDLE, "expires_in": 300}
 
     monkeypatch.setattr(power_assurance, "call_bounded", account_call)
     response = client.post(
@@ -65,7 +65,7 @@ def test_factor_routes_transit_only_exact_session_bound_payload(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"version": 1, "handle": HANDLE, "expires_in": 120}
+    assert response.json() == {"version": 1, "handle": HANDLE, "expires_in": 300}
     assert response.headers["cache-control"] == "private, no-store"
     args, kwargs = calls[0]
     assert args[1:4] == (
@@ -145,6 +145,30 @@ def test_power_assurance_requires_a_current_account_session(monkeypatch):
     assert response.json() == {"detail": "not authenticated"}
 
 
+@pytest.mark.parametrize("expires_in", [1, 120, 300])
+def test_power_assurance_accepts_bounded_account_owned_handle_expiry(
+    client,
+    monkeypatch,
+    expires_in: int,
+):
+    async def account_call(*_args, **_kwargs):
+        return 200, {"version": 1, "handle": HANDLE, "expires_in": expires_in}
+
+    monkeypatch.setattr(power_assurance, "call_bounded", account_call)
+    response = client.post(
+        "/api/security/power-assurance/password",
+        headers={"origin": ORIGIN},
+        json={
+            "team_id": TEAM_ID,
+            "challenge_id": CHALLENGE_ID,
+            "password": "factor-never-reflected",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"version": 1, "handle": HANDLE, "expires_in": expires_in}
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -183,7 +207,19 @@ def test_power_assurance_rejects_noncanonical_bindings_before_factor_transit(
         (503, {"error": "private database marker"}, 503, "authentication is temporarily unavailable"),
         (
             200,
-            {"version": 1, "handle": HANDLE, "expires_in": 120, "secret": "private"},
+            {"version": 1, "handle": HANDLE, "expires_in": 300, "secret": "private"},
+            502,
+            "authentication is temporarily unavailable",
+        ),
+        (
+            200,
+            {"version": 1, "handle": HANDLE, "expires_in": 301},
+            502,
+            "authentication is temporarily unavailable",
+        ),
+        (
+            200,
+            {"version": 1, "handle": HANDLE, "expires_in": True},
             502,
             "authentication is temporarily unavailable",
         ),

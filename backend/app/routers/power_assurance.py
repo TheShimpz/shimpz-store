@@ -19,6 +19,7 @@ router = APIRouter()
 
 _BASE_FIELDS = frozenset({"team_id", "challenge_id"})
 _BASE64URL = re.compile(r"[A-Za-z0-9_-]{1,4096}\Z")
+_MAX_ASSURANCE_TTL_SECONDS = 300
 _RP_ID = re.compile(
     r"(?=.{1,253}\Z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*"
     r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z"
@@ -55,11 +56,14 @@ def _binding(payload: dict, factor_field: str | None) -> dict[str, object]:
 def _handle_response(status: int, data: dict) -> JSONResponse:
     if status != 200:
         return _public_error(status)
+    expires_in = data.get("expires_in")
     if (
         set(data) != {"version", "handle", "expires_in"}
         or data.get("version") != 1
         or team_contract.canonical_assurance_handle(data.get("handle")) is None
-        or data.get("expires_in") != 120
+        or isinstance(expires_in, bool)
+        or not isinstance(expires_in, int)
+        or not 1 <= expires_in <= _MAX_ASSURANCE_TTL_SECONDS
     ):
         return _public_error(502)
     return private_json(data)
