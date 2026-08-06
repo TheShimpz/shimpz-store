@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   CHAT_WS_SUBPROTOCOL,
+  createHumanResponse,
   createTeamChatTurn,
   parseChatEvent,
   parseTeamChatAssistantScope,
@@ -13,6 +14,28 @@ import {
   teamChatReconnectDelay,
   teamChatWebSocketPath,
 } from "../src/lib/teamChat.js";
+
+function humanRequest(kind, fields = {}) {
+  return {
+    kind,
+    ordinal: 0,
+    title: "Provide reviewed input",
+    description: "Provide only the information requested by this exact Power.",
+    fingerprint: "d".repeat(64),
+    ...fields,
+  };
+}
+
+function humanChallenge(request = humanRequest("approval")) {
+  return {
+    type: "human-required",
+    challenge_id: "c".repeat(32),
+    expires_in: 300,
+    assistant: { id: "shimpz-cloudflare", name: "Shimpz Cloudflare" },
+    power: { id: "list-zones", summary: "List reviewed Cloudflare zones." },
+    request,
+  };
+}
 
 const file = {
   id: "a".repeat(32),
@@ -122,6 +145,125 @@ test("uses the terminal event contract for browser chat", () => {
     { type: "approval-required" },
   ]) {
     assert.throws(() => parseChatEvent(retired, "marketing", "Marketing"));
+  }
+});
+
+test("accepts all and only the eleven reviewed Power human request descriptors", () => {
+  const options = [
+    { value: "one", label: "One", description: null },
+    { value: "two", label: "Two", description: "Second option" },
+  ];
+  const descriptors = [
+    humanRequest("approval"),
+    humanRequest("auth:reauth"),
+    humanRequest("auth:second-factor"),
+    humanRequest("auth:phishing-resistant"),
+    ...[
+      ["input:text", 4_096],
+      ["input:textarea", 16_000],
+      ["input:password", 1_024],
+      ["input:phone", 64],
+    ].map(([kind, maximum]) => humanRequest(kind, {
+      label: "Requested value",
+      required: true,
+      placeholder: null,
+      min_length: 1,
+      max_length: maximum,
+    })),
+    humanRequest("input:select", { label: "Select", required: true, options }),
+    humanRequest("input:choice", { label: "Choose", required: true, options }),
+    humanRequest("input:choices", {
+      label: "Choose several",
+      required: true,
+      options,
+      min_selections: 1,
+      max_selections: 2,
+    }),
+  ];
+
+  for (const descriptor of descriptors) {
+    assert.deepEqual(
+      parseChatEvent(humanChallenge(descriptor), "marketing", "Marketing"),
+      humanChallenge(descriptor),
+    );
+  }
+  for (const invalid of [
+    { ...humanChallenge(), private: "must-not-cross" },
+    humanChallenge({ ...humanRequest("approval"), secret: "must-not-cross" }),
+    humanChallenge(humanRequest("unreviewed")),
+    { ...humanChallenge(), challenge_id: "short" },
+    { ...humanChallenge(), expires_in: 301 },
+    { ...humanChallenge(), assistant: null },
+    { ...humanChallenge(), assistant: { id: "bad_id", name: "Bad" } },
+    humanChallenge({ ...humanRequest("approval"), ordinal: 8 }),
+    humanChallenge({ ...humanRequest("approval"), fingerprint: "short" }),
+    humanChallenge({ ...humanRequest("approval"), title: " spaced " }),
+    humanChallenge(humanRequest("input:text", {
+      label: "Text",
+      required: true,
+      placeholder: null,
+      min_length: 0,
+      max_length: 4_097,
+    })),
+    humanChallenge(humanRequest("input:select", {
+      label: "Select",
+      required: true,
+      options: [{ value: "one", label: "One", description: null }],
+    })),
+    humanChallenge(humanRequest("input:select", {
+      label: "Select",
+      required: true,
+      options: [
+        { value: "one", label: "One", description: null },
+        { value: "one", label: "Duplicate", description: null },
+      ],
+    })),
+    humanChallenge(humanRequest("input:choice", {
+      label: "Choice",
+      required: true,
+      options: [
+        { value: "one", label: "One", description: null },
+        { value: "two", label: "Two" },
+      ],
+    })),
+    humanChallenge(humanRequest("input:choices", {
+      label: "Choices",
+      required: true,
+      options,
+      min_selections: 2,
+      max_selections: 1,
+    })),
+  ]) {
+    assert.throws(() => parseChatEvent(invalid, "marketing", "Marketing"));
+  }
+});
+
+test("creates only exact challenge-bound human response frames", () => {
+  const challengeId = "a".repeat(32);
+  assert.deepEqual(createHumanResponse(challengeId, "deny"), {
+    type: "human-response",
+    challenge_id: challengeId,
+    decision: "deny",
+  });
+  assert.deepEqual(createHumanResponse(challengeId, "submit", "value"), {
+    type: "human-response",
+    challenge_id: challengeId,
+    decision: "submit",
+    value: "value",
+  });
+  assert.deepEqual(createHumanResponse(challengeId, "submit", ["one", "two"]), {
+    type: "human-response",
+    challenge_id: challengeId,
+    decision: "submit",
+    value: ["one", "two"],
+  });
+  for (const [id, decision, value] of [
+    ["short", "submit", true],
+    [challengeId, "submit", false],
+    [challengeId, "submit", ["one", "one"]],
+    [challengeId, "skip", true],
+  ]) {
+    assert.throws(() => createHumanResponse(id, decision, value));
   }
 });
 

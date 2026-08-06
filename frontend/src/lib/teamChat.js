@@ -2,6 +2,8 @@ const FILE_ID = /^[a-f0-9]{32}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const TEAM_ID_RE = /^[a-z0-9_]{1,40}$/;
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const CHALLENGE_ID_RE = /^[a-f0-9]{32}$/;
+const FINGERPRINT_RE = /^[a-f0-9]{64}$/;
 const MAX_FILES = 256;
 const MAX_FILES_PER_TURN = 8;
 const MAX_FILE_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -10,6 +12,17 @@ const MAX_MESSAGE_CHARS = 16_000;
 const MAX_REPLY_CHARS = 60_000;
 const MAX_ERROR_DETAIL_CHARS = 800;
 export const CHAT_WS_SUBPROTOCOL = "shimpz.chat.v4";
+const AUTH_KINDS = new Set([
+  "auth:reauth",
+  "auth:second-factor",
+  "auth:phishing-resistant",
+]);
+const TEXT_KIND_LIMITS = new Map([
+  ["input:text", 4_096],
+  ["input:textarea", 16_000],
+  ["input:password", 1_024],
+  ["input:phone", 64],
+]);
 
 /** Capped reconnect delay. Reconnection never implies replaying a chat frame. @param {any} attempt */
 export function teamChatReconnectDelay(attempt) {
@@ -34,6 +47,183 @@ function record(value) {
 function hasExactKeys(value, keys) {
   const actual = Object.keys(value);
   return actual.length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+}
+
+/** @param {any} value @param {number} maximum @returns {string} */
+function publicText(value, maximum) {
+  if (
+    typeof value !== "string" ||
+    !value ||
+    value.trim() !== value ||
+    value.length > maximum ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    throw new TypeError("invalid public text");
+  }
+  return value;
+}
+
+/** @param {any} value @param {string} label @param {number} maximum */
+function humanIdentity(value, label, maximum) {
+  const source = record(value);
+  if (!source || !hasExactKeys(source, ["id", label])) {
+    throw new TypeError("invalid human request identity");
+  }
+  const id = source.id;
+  if (typeof id !== "string" || id.length > 80 || !ASSISTANT_ID_RE.test(id)) {
+    throw new TypeError("invalid human request identity");
+  }
+  return { id, [label]: publicText(source[label], maximum) };
+}
+
+/** @param {any} value */
+function humanOptions(value) {
+  if (!Array.isArray(value) || value.length < 2 || value.length > 32) {
+    throw new TypeError("invalid human request options");
+  }
+  const options = value.map((item) => {
+    const source = record(item);
+    if (!source || !hasExactKeys(source, ["value", "label", "description"])) {
+      throw new TypeError("invalid human request option");
+    }
+    return {
+      value: publicText(source.value, 128),
+      label: publicText(source.label, 80),
+      description: source.description === null ? null : publicText(source.description, 160),
+    };
+  });
+  if (new Set(options.map(({ value: optionValue }) => optionValue)).size !== options.length) {
+    throw new TypeError("duplicate human request option");
+  }
+  return options;
+}
+
+/** @param {any} value */
+function humanRequest(value) {
+  const source = record(value);
+  if (!source) throw new TypeError("invalid human request");
+  const baseKeys = ["kind", "ordinal", "title", "description", "fingerprint"];
+  const kind = source.kind;
+  const ordinal = source.ordinal;
+  const base = {
+    kind,
+    ordinal,
+    title: publicText(source.title, 80),
+    description: publicText(source.description, 500),
+    fingerprint: source.fingerprint,
+  };
+  if (
+    typeof kind !== "string" ||
+    !Number.isSafeInteger(ordinal) ||
+    ordinal < 0 ||
+    ordinal >= 8 ||
+    typeof source.fingerprint !== "string" ||
+    !FINGERPRINT_RE.test(source.fingerprint)
+  ) {
+    throw new TypeError("invalid human request");
+  }
+  if (kind === "approval" || AUTH_KINDS.has(kind)) {
+    if (!hasExactKeys(source, baseKeys)) throw new TypeError("invalid human request");
+    return base;
+  }
+  const input = {
+    ...base,
+    label: publicText(source.label, 80),
+    required: source.required,
+  };
+  if (typeof source.required !== "boolean") throw new TypeError("invalid human request");
+  if (TEXT_KIND_LIMITS.has(kind)) {
+    const expected = [...baseKeys, "label", "required", "placeholder", "min_length", "max_length"];
+    const limit = TEXT_KIND_LIMITS.get(kind);
+    if (
+      !hasExactKeys(source, expected) ||
+      (source.placeholder !== null && publicText(source.placeholder, 120) !== source.placeholder) ||
+      !Number.isSafeInteger(source.min_length) ||
+      !Number.isSafeInteger(source.max_length) ||
+      source.min_length < 0 ||
+      source.min_length > source.max_length ||
+      source.max_length > limit
+    ) {
+      throw new TypeError("invalid human request");
+    }
+    return {
+      ...input,
+      placeholder: source.placeholder,
+      min_length: source.min_length,
+      max_length: source.max_length,
+    };
+  }
+  const multiple = kind === "input:choices";
+  if (!multiple && kind !== "input:select" && kind !== "input:choice") {
+    throw new TypeError("invalid human request kind");
+  }
+  const expected = [...baseKeys, "label", "required", "options"];
+  if (multiple) expected.push("min_selections", "max_selections");
+  if (!hasExactKeys(source, expected)) throw new TypeError("invalid human request");
+  const options = humanOptions(source.options);
+  if (!multiple) return { ...input, options };
+  if (
+    !Number.isSafeInteger(source.min_selections) ||
+    !Number.isSafeInteger(source.max_selections) ||
+    source.min_selections < 0 ||
+    source.min_selections > source.max_selections ||
+    source.max_selections > options.length
+  ) {
+    throw new TypeError("invalid human request selections");
+  }
+  return {
+    ...input,
+    options,
+    min_selections: source.min_selections,
+    max_selections: source.max_selections,
+  };
+}
+
+/** @param {Record<string, any>} source */
+function humanChallenge(source) {
+  if (!hasExactKeys(source, ["type", "challenge_id", "expires_in", "assistant", "power", "request"])) {
+    throw new TypeError("invalid human challenge event");
+  }
+  if (
+    source.type !== "human-required" ||
+    typeof source.challenge_id !== "string" ||
+    !CHALLENGE_ID_RE.test(source.challenge_id) ||
+    !Number.isSafeInteger(source.expires_in) ||
+    source.expires_in < 1 ||
+    source.expires_in > 300
+  ) {
+    throw new TypeError("invalid human challenge event");
+  }
+  return {
+    type: "human-required",
+    challenge_id: source.challenge_id,
+    expires_in: source.expires_in,
+    assistant: humanIdentity(source.assistant, "name", 80),
+    power: humanIdentity(source.power, "summary", 160),
+    request: humanRequest(source.request),
+  };
+}
+
+/** @param {any} value @returns {boolean} */
+function humanResponseValue(value) {
+  if (value === true) return true;
+  if (typeof value === "string") return value.length <= 16_000;
+  return Array.isArray(value) &&
+    value.length <= 32 &&
+    value.length === new Set(value).size &&
+    value.every((item) => typeof item === "string" && item.length <= 128);
+}
+
+/** @param {any} challengeId @param {any} decision @param {any} [value] */
+export function createHumanResponse(challengeId, decision, value) {
+  if (typeof challengeId !== "string" || !CHALLENGE_ID_RE.test(challengeId)) {
+    throw new TypeError("invalid human challenge id");
+  }
+  if (decision === "deny") return { type: "human-response", challenge_id: challengeId, decision };
+  if (decision !== "submit" || !humanResponseValue(value)) {
+    throw new TypeError("invalid human response");
+  }
+  return { type: "human-response", challenge_id: challengeId, decision, value };
 }
 
 /** @param {any} value @returns {string} */
@@ -176,11 +366,12 @@ export function createTeamChatTurn(message, files = [], assistants = []) {
  * @param {any} value
  * @param {any} expectedTeamId
  * @param {any} expectedTeamName
- * @returns {{ type: "done", team_id: string, team_name: string, reply: string } | { type: "error", status: number, detail: string } | { type: "stopped" }}
+ * @returns {Record<string, any>}
  */
 export function parseChatTerminalEvent(value, expectedTeamId, expectedTeamName) {
   const source = record(value);
   if (!source) throw new TypeError("invalid chat terminal event");
+  if (source.type === "human-required") return humanChallenge(source);
   if (source.type === "done") {
     if (!hasExactKeys(source, ["type", "team_id", "team_name", "reply"])) {
       throw new TypeError("invalid chat completion event");
