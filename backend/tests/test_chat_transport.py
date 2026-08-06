@@ -488,6 +488,187 @@ def test_websocket_rejects_retired_answer_frames():
     asyncio.run(scenario())
 
 
+def test_websocket_blocks_new_turn_until_pending_human_challenge_is_resolved():
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        await _ws_dispatch(
+            websocket,
+            TEST_TEAM_ID,
+            {},
+            {"type": "chat", "message": "next", "files": [], "assistant_ids": []},
+            {
+                "active": None,
+                "pending_human": {
+                    "challenge_id": "c" * 32,
+                    "request": _human_request("approval"),
+                },
+            },
+        )
+        assert json.loads(sent[-1]["text"]) == {
+            "type": "error",
+            "status": 409,
+            "detail": "a human challenge must be resolved before another turn",
+        }
+
+    asyncio.run(scenario())
+
+
+def test_websocket_auth_response_accepts_only_one_use_account_handle():
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        state = {
+            "active": None,
+            "pending_human": {
+                "challenge_id": "c" * 32,
+                "request": _human_request("auth:reauth"),
+            },
+        }
+        await _ws_dispatch(
+            websocket,
+            TEST_TEAM_ID,
+            {},
+            {
+                "type": "human-response",
+                "challenge_id": "c" * 32,
+                "decision": "submit",
+                "value": "raw-account-password",
+            },
+            state,
+        )
+        assert json.loads(sent[-1]["text"]) == {
+            "type": "error",
+            "status": 400,
+            "detail": "authentication response must be a one-use assurance handle",
+        }
+        assert state["pending_human"] is not None
+
+    asyncio.run(scenario())
+
+
+def test_websocket_submits_exact_human_response_without_browser_type(monkeypatch):
+    async def scenario() -> None:
+        captured = []
+
+        def start(context, response, lease):
+            captured.append((context, response))
+            task = asyncio.create_task(asyncio.sleep(0))
+            return task, asyncio.Event(), asyncio.Event(), main._RelayDelivery()
+
+        monkeypatch.setattr(main, "_start_ws_human", start)
+        websocket, _ = _websocket("{}")
+        await websocket.accept()
+        state = {
+            "active": None,
+            "pending_human": {
+                "challenge_id": "c" * 32,
+                "request": _human_request("auth:second-factor"),
+            },
+        }
+        await _ws_dispatch(
+            websocket,
+            TEST_TEAM_ID,
+            {"X-Shimpz-Account": "session"},
+            {
+                "type": "human-response",
+                "challenge_id": "c" * 32,
+                "decision": "submit",
+                "value": "a" * 43,
+            },
+            state,
+        )
+        await asyncio.sleep(0)
+        assert captured[0][1] == {
+            "challenge_id": "c" * 32,
+            "decision": "submit",
+            "value": "a" * 43,
+        }
+        assert state["pending_human"] is None
+
+    asyncio.run(scenario())
+
+
+def test_final_websocket_gate_remembers_only_public_human_challenge():
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        state = {"pending_human": None}
+        turn = main._WsTurn(
+            websocket,
+            TEST_TEAM_ID,
+            {"X-Shimpz-Account": "session"},
+            "hello",
+            asyncio.Event(),
+            asyncio.Event(),
+            state=state,
+        )
+        await main._send_relay_event(turn, _human_challenge(), main._RelayDelivery())
+        assert json.loads(sent[-1]["text"]) == _validated_terminal_event(
+            _human_challenge(),
+            TEST_TEAM_ID,
+        )
+        assert state["pending_human"] == {
+            "challenge_id": "c" * 32,
+            "request": _human_request("approval"),
+        }
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "expected"),
+    [
+        (
+            200,
+            {"team_id": TEST_TEAM_ID, "team_name": "Marketing", "reply": "done"},
+            _done("done"),
+        ),
+        (
+            200,
+            {"team_id": TEST_TEAM_ID, "status": "human-denied", "reason": "denied"},
+            {"type": "stopped"},
+        ),
+        (
+            200,
+            {
+                "team_id": TEST_TEAM_ID,
+                "status": "human-denied",
+                "reason": "authentication-failed",
+            },
+            {"type": "error", "status": 403, "detail": "authentication was not confirmed"},
+        ),
+        (
+            428,
+            {key: value for key, value in _human_challenge().items() if key != "type"},
+            _human_challenge(),
+        ),
+    ],
+)
+def test_hosted_human_resume_maps_only_current_team_terminals(
+    monkeypatch,
+    status: int,
+    body: dict,
+    expected: dict,
+):
+    monkeypatch.setattr(main, "_call", lambda *_args, **_kwargs: (status, body))
+
+    async def scenario() -> None:
+        started = asyncio.Event()
+        result = main._resume_human(
+            TEST_TEAM_ID,
+            {"X-Shimpz-Account": "session"},
+            {"challenge_id": "c" * 32, "decision": "deny"},
+            asyncio.get_running_loop(),
+            started,
+        )
+        await asyncio.sleep(0)
+        assert started.is_set()
+        assert result == expected
+
+    asyncio.run(scenario())
+
+
 def test_websocket_returns_typed_429_when_global_turn_queue_is_full():
     async def scenario() -> None:
         capacity = main._TURN_ADMISSION.active_limit + main._TURN_ADMISSION.queue_limit

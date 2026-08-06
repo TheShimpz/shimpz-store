@@ -16,7 +16,7 @@ from app.chat.events import chat_turn_payload as _chat_turn_payload
 from app.chat.events import upstream_error_event as _upstream_error_event
 from app.chat.events import validated_terminal_event as _validated_terminal_event
 from app.chat.events import ws_receive_bounded_json as _ws_receive_bounded_json
-from app.chat.relay import _stream_lines, _StreamRelay
+from app.chat.relay import CHAT_TURN_TIMEOUT_SECONDS, _stream_lines, _StreamRelay
 from app.concurrency import BoundedThreadPoolExecutor as _BoundedThreadPoolExecutor
 from app.concurrency import ExecutorSaturatedError as _ExecutorSaturatedError
 from app.concurrency import TurnAdmission as _TurnAdmission
@@ -37,6 +37,7 @@ from app.config import (
 )
 from app.payloads import ClientPayloadError
 from app.protocol.http.v1 import payload as team_contract
+from app.protocol.http.v1 import websocket as chat_ws_contract
 from app.upstream import CHAT_STOP_TIMEOUT_SECONDS, VERIFY_TIMEOUT_SECONDS
 from app.upstream import call as _call
 from app.upstream import call_bounded as _bounded_call
@@ -60,6 +61,13 @@ _WS_CONNECTION_ADMISSION = _WsConnectionAdmission(
     WS_TEAM_CONNECTION_LIMIT,
 )
 _AUTH_EXECUTOR = authn.EXECUTOR
+_HUMAN_AUTH_KINDS = frozenset(
+    {
+        "auth:reauth",
+        "auth:second-factor",
+        "auth:phishing-resistant",
+    }
+)
 
 
 async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
@@ -118,6 +126,15 @@ async def _send_relay_event(
         delivery.aborted = True
     delivery.terminal_seen = True
     await turn.ws.send_json(terminal)
+    if turn.state is not None:
+        turn.state["pending_human"] = (
+            {
+                "challenge_id": terminal["challenge_id"],
+                "request": terminal["request"],
+            }
+            if terminal["type"] == "human-required"
+            else None
+        )
 
 
 async def _team_stop(team_id: str, hdr: dict) -> tuple[int, dict]:
@@ -150,6 +167,8 @@ class _WsTurn:
     files: tuple[str, ...] = ()
     assistant_ids: tuple[str, ...] = ()
     delivery: _RelayDelivery = field(default_factory=_RelayDelivery)
+    human_response: dict[str, object] | None = None
+    state: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -194,19 +213,30 @@ async def _ws_run_admitted_turn(turn: _WsTurn, lease: _TurnLease) -> None:
     async with lease:
         loop = asyncio.get_running_loop()
         try:
-            worker = loop.run_in_executor(
-                _STREAM_EXECUTOR,
-                _stream_lines,
-                _StreamRelay(
+            operation = (
+                functools.partial(
+                    _resume_human,
                     turn.team_id,
-                    turn.text,
                     turn.headers,
+                    turn.human_response,
                     loop,
                     turn.started,
-                    turn.files,
-                    turn.assistant_ids,
-                ),
+                )
+                if turn.human_response is not None
+                else functools.partial(
+                    _stream_lines,
+                    _StreamRelay(
+                        turn.team_id,
+                        turn.text,
+                        turn.headers,
+                        loop,
+                        turn.started,
+                        turn.files,
+                        turn.assistant_ids,
+                    ),
+                )
             )
+            worker = loop.run_in_executor(_STREAM_EXECUTOR, operation)
             turn.dispatched.set()
         except _ExecutorSaturatedError:
             turn.started.set()
@@ -264,6 +294,75 @@ def _start_ws_turn(
                 files=tuple(msg["files"]),
                 assistant_ids=tuple(msg["assistant_ids"]),
                 delivery=delivery,
+                state=context.state,
+            ),
+            lease,
+        )
+    )
+    return turn, started, dispatched, delivery
+
+
+def _resume_human(
+    team_id: str,
+    headers: dict,
+    response: dict[str, object],
+    loop: asyncio.AbstractEventLoop,
+    started: asyncio.Event,
+) -> dict:
+    """BLOCKING (run in a thread): resume one exact Hosted human challenge."""
+    loop.call_soon_threadsafe(started.set)
+    status, data = _call(
+        config.TEAM_URL,
+        "POST",
+        f"/v1/teams/{team_id}/chat/human",
+        response,
+        headers,
+        timeout=CHAT_TURN_TIMEOUT_SECONDS,
+    )
+    if status == 428 and isinstance(data, dict) and data.get("status") == "human-required":
+        return {"type": "human-required", **data}
+    if status != 200 or not isinstance(data, dict):
+        return _upstream_error_event(status)
+    if data.get("status") == "human-denied":
+        expected = {"team_id", "status", "reason"}
+        if set(data) != expected or data.get("team_id") != team_id:
+            return {
+                "type": "error",
+                "status": 502,
+                "detail": TERMINAL_CONTRACT_ERROR,
+                "_relay_abort": True,
+            }
+        if data.get("reason") == "denied":
+            return {"type": "stopped"}
+        if data.get("reason") == "authentication-failed":
+            return {
+                "type": "error",
+                "status": 403,
+                "detail": "authentication was not confirmed",
+            }
+    return {"type": "done", **data}
+
+
+def _start_ws_human(
+    context: _WsContext,
+    response: dict[str, object],
+    lease: _TurnLease,
+) -> tuple[asyncio.Task, asyncio.Event, asyncio.Event, _RelayDelivery]:
+    started = asyncio.Event()
+    dispatched = asyncio.Event()
+    delivery = _RelayDelivery()
+    turn = asyncio.create_task(
+        _ws_run_admitted_turn(
+            _WsTurn(
+                ws=context.ws,
+                team_id=context.team_id,
+                headers=context.headers,
+                text="",
+                started=started,
+                dispatched=dispatched,
+                delivery=delivery,
+                human_response=response,
+                state=context.state,
             ),
             lease,
         )
@@ -314,8 +413,78 @@ def _track_ws_turn(
     turn.add_done_callback(turn_done)
 
 
+async def _ws_human_response(
+    ws: WebSocket,
+    team_id: str,
+    hdr: dict,
+    msg: dict,
+    state: dict,
+) -> None:
+    active = state.get("active")
+    if active is not None and not active.task.done():
+        await ws.send_json(
+            {
+                "type": "error",
+                "status": 409,
+                "detail": "team already has an active chat operation",
+            }
+        )
+        return
+    pending = state.get("pending_human")
+    if not isinstance(pending, dict) or pending.get("challenge_id") != msg.get("challenge_id"):
+        await ws.send_json(
+            {
+                "type": "error",
+                "status": 409,
+                "detail": "the human challenge is not pending",
+            }
+        )
+        return
+    try:
+        canonical = chat_ws_contract.canonical_human_response(msg)
+    except chat_ws_contract.FrameError as exc:
+        await ws.send_json({"type": "error", "status": exc.status, "detail": exc.detail})
+        return
+    request = pending.get("request")
+    if (
+        canonical["decision"] == "submit"
+        and isinstance(request, dict)
+        and request.get("kind") in _HUMAN_AUTH_KINDS
+        and team_contract.canonical_assurance_handle(canonical.get("value")) is None
+    ):
+        await ws.send_json(
+            {
+                "type": "error",
+                "status": 400,
+                "detail": "authentication response must be a one-use assurance handle",
+            }
+        )
+        return
+    lease = _TURN_ADMISSION.reserve()
+    if lease is None:
+        await ws.send_json(_relay_capacity_event())
+        return
+    response = {key: value for key, value in canonical.items() if key != "type"}
+    try:
+        tracked = _start_ws_human(_WsContext(ws, team_id, hdr, state), response, lease)
+    except BaseException:
+        lease.release()
+        raise
+    state["pending_human"] = None
+    _track_ws_turn(state, tracked, lease)
+
+
 async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state: dict) -> None:
     if msg.get("type") == "chat":
+        if state.get("pending_human") is not None:
+            await ws.send_json(
+                {
+                    "type": "error",
+                    "status": 409,
+                    "detail": "a human challenge must be resolved before another turn",
+                }
+            )
+            return
         try:
             if set(msg) != {"type", "message", "files", "assistant_ids"}:
                 raise ClientPayloadError(
@@ -355,6 +524,8 @@ async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state:
             lease.release()
             raise
         _track_ws_turn(state, tracked, lease)
+    elif msg.get("type") == "human-response":
+        await _ws_human_response(ws, team_id, hdr, msg, state)
     elif msg.get("type") == "stop" and set(msg) == {"type"}:
         await _ws_stop_turn(ws, team_id, hdr, state)
     else:
@@ -427,6 +598,7 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
         state: dict = {
             "active": None,
             "stop_requested": False,
+            "pending_human": None,
         }
         try:
             while True:
@@ -450,5 +622,7 @@ async def team_chat_ws(ws: WebSocket, team_id: str) -> None:
             if active is not None:
                 active.task.cancel()
                 await asyncio.gather(active.task, return_exceptions=True)
+            elif state["pending_human"] is not None:
+                await _team_stop(team_id, hdr)
     finally:
         connection.release()
