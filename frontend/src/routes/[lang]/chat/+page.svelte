@@ -4,6 +4,7 @@
   import type { Locale } from "$lib/catalog";
   import {
     CHAT_WS_SUBPROTOCOL,
+    createHumanResponse,
     createTeamChatTurn,
     parseChatEvent,
     parseTeamChatAssistantScope,
@@ -12,6 +13,12 @@
     teamChatReconnectDelay,
     teamChatWebSocketPath,
   } from "$lib/teamChat.js";
+  import {
+    createPowerAssuranceBody,
+    parsePowerAssuranceHandle,
+    parsePowerAssuranceOptions,
+    serializePowerAssuranceCredential,
+  } from "$lib/powerAssurance.js";
   import { tr } from "$lib/i18n";
   import {
     MODEL_PROVIDERS,
@@ -22,6 +29,7 @@
   } from "$lib/modelProviders.js";
   import { u } from "$lib/url";
   import HudIcon from "$lib/components/HudIcon.svelte";
+  import AssistantHumanRequestDialog from "$lib/components/AssistantHumanRequestDialog.svelte";
   import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
@@ -50,6 +58,9 @@
   let busy = $state(false);
   let stopping = $state(false);
   let status = $state("");
+  let humanChallenge = $state<any>(null);
+  let humanOpen = $state(false);
+  let humanWorking = $state(false);
   let uploading = $state(false);
   let thread = $state<HTMLElement | null>(null);
   let fileInput = $state<HTMLInputElement | null>(null);
@@ -118,6 +129,7 @@
         return tr("model_provider_required", lang);
       }
     }
+    if (Number(statusCode) === 403) return tr("human_auth_failed", lang);
     return "✗ " + (detail || "error");
   }
 
@@ -151,8 +163,11 @@
       if (ws !== sock || selected !== team_id) return;
       wsReady = false;
       ws = null;
-      if (busy) {
+      if (busy || humanChallenge) {
         busy = false;
+        humanChallenge = null;
+        humanOpen = false;
+        humanWorking = false;
         stopping = false;
         status = "";
         messages.push({ role: "system", tone: "error", text: tr("chat_disconnected", lang) });
@@ -184,14 +199,26 @@
         return;
       }
       stopping = false;
-      if (m.type === "done") {
+      if (m.type === "human-required") {
+        humanChallenge = m;
+        humanOpen = true;
+        humanWorking = false;
+        busy = false;
+        status = "";
+      } else if (m.type === "done") {
+        humanChallenge = null;
+        humanOpen = false;
         messages.push({ role: "assistant", team_name: m.team_name, text: m.reply });
         busy = false;
         status = "";
       } else if (m.type === "stopped") {
+        humanChallenge = null;
+        humanOpen = false;
         busy = false;
         status = "";
       } else if (m.type === "error") {
+        humanChallenge = null;
+        humanOpen = false;
         busy = false;
         status = "";
         messages.push({ role: "system", tone: "error", text: chatErrorText(m.status, m.detail) });
@@ -211,6 +238,80 @@
     }
   }
 
+  async function postAssurance(path: string, body: Record<string, any>) {
+    const encoded = JSON.stringify(body);
+    const response = await fetch(`/api/security/power-assurance/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: encoded,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error("authentication not confirmed");
+    return payload;
+  }
+
+  async function accountAssurance(challenge: any, supplied: any) {
+    const kind = challenge.request.kind;
+    if (kind === "auth:reauth" || kind === "auth:second-factor") {
+      const path = kind === "auth:reauth" ? "password" : "totp";
+      const field = kind === "auth:reauth" ? "password" : "code";
+      const body = createPowerAssuranceBody(selected, challenge.challenge_id, field, supplied);
+      const payload = await postAssurance(path, body);
+      body[field] = null;
+      return parsePowerAssuranceHandle(payload);
+    }
+    if (kind !== "auth:phishing-resistant") throw new TypeError("unsupported assurance kind");
+    const optionsPayload = await postAssurance(
+      "webauthn/options",
+      createPowerAssuranceBody(selected, challenge.challenge_id, null, null),
+    );
+    const publicKey = parsePowerAssuranceOptions(optionsPayload);
+    const credential = await navigator.credentials.get({ publicKey });
+    const serialized = serializePowerAssuranceCredential(credential);
+    const confirmed = await postAssurance(
+      "webauthn/confirm",
+      createPowerAssuranceBody(selected, challenge.challenge_id, "credential", serialized),
+    );
+    return parsePowerAssuranceHandle(confirmed);
+  }
+
+  async function respondToHuman(response: any) {
+    const challenge = humanChallenge;
+    if (!challenge || humanWorking || !wsReady || !ws) return;
+    humanWorking = true;
+    let supplied = response?.value;
+    if (response && Object.hasOwn(response, "value")) response.value = null;
+    try {
+      let value = supplied;
+      if (response.decision === "submit" && challenge.request.kind.startsWith("auth:")) {
+        value = await accountAssurance(challenge, supplied);
+      }
+      supplied = null;
+      const frame = createHumanResponse(challenge.challenge_id, response.decision, value);
+      value = null;
+      ws.send(JSON.stringify(frame));
+      humanChallenge = null;
+      humanOpen = false;
+      busy = true;
+      status = tr("chat_thinking", lang);
+    } catch {
+      supplied = null;
+      try {
+        ws.send(JSON.stringify(createHumanResponse(challenge.challenge_id, "deny")));
+        busy = true;
+      } catch {
+        busy = false;
+      }
+      humanChallenge = null;
+      humanOpen = false;
+      status = "";
+      messages.push({ role: "system", tone: "error", text: tr("human_auth_failed", lang) });
+      scrollDown(true);
+    } finally {
+      humanWorking = false;
+    }
+  }
+
   let providerChoice = $state("openai");
   let modelChoice = $state(defaultModelFor("openai"));
   let loadedProvider = $state("openai");
@@ -222,7 +323,7 @@
   const inferenceHasChanges = $derived(
     providerChoice !== loadedProvider || modelChoice.trim() !== loadedModel,
   );
-  const runtimeBusy = $derived(busy || inferenceBusy);
+  const runtimeBusy = $derived(busy || inferenceBusy || Boolean(humanChallenge));
 
   function chooseProvider(event: Event) {
     providerChoice = (event.currentTarget as HTMLSelectElement).value;
@@ -307,6 +408,9 @@
     busy = false;
     stopping = false;
     status = "";
+    humanChallenge = null;
+    humanOpen = false;
+    humanWorking = false;
     messages = [];
     draft = "";
     teamFiles = [];
@@ -757,6 +861,14 @@
     </div>
   {/if}
 </section>
+
+<AssistantHumanRequestDialog
+  bind:open={humanOpen}
+  challenge={humanChallenge}
+  {lang}
+  working={humanWorking}
+  onrespond={respondToHuman}
+/>
 
 <style>
   .chat-page { padding-block: 2.5rem 4rem; }
