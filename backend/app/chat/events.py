@@ -32,9 +32,7 @@ _HUMAN_LENGTH_KINDS = {
     "input:phone": 64,
 }
 _HUMAN_SINGLE_CHOICE_KINDS = frozenset({"input:select", "input:choice"})
-_HUMAN_BASE_FIELDS = frozenset(
-    {"kind", "ordinal", "title", "description", "fingerprint"}
-)
+_HUMAN_BASE_FIELDS = frozenset({"kind", "ordinal", "title", "description", "fingerprint"})
 
 
 def canonical_chat_reply(value: object) -> str | None:
@@ -233,8 +231,10 @@ def _human_options(value: object) -> list[dict[str, str | None]] | None:
         option_value = _public_text(option["value"], 128)
         label = _public_text(option["label"], 80)
         description = option["description"]
-        if option_value is None or label is None or (
-            description is not None and _public_text(description, 160) is None
+        if (
+            option_value is None
+            or label is None
+            or (description is not None and _public_text(description, 160) is None)
         ):
             return None
         options.append({"value": option_value, "label": label, "description": description})
