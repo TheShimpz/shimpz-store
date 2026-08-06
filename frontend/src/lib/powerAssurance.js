@@ -59,7 +59,7 @@ export function parsePowerAssuranceOptions(value) {
     timeout: source.timeout,
     rpId: source.rpId,
     userVerification: "required",
-    allowCredentials: source.allowCredentials.map((value) => {
+    allowCredentials: source.allowCredentials.map((/** @type {any} */ value) => {
       const descriptor = record(value);
       if (!descriptor || !hasExactKeys(descriptor, ["id", "type"]) || descriptor.type !== "public-key") {
         throw new TypeError("invalid passkey credential descriptor");
@@ -75,18 +75,19 @@ export function serializePowerAssuranceCredential(value) {
     throw new TypeError("invalid passkey credential");
   }
   const response = value.response;
-  const result = {
+  /** @type {Record<string, string>} */
+  const projectedResponse = {
+    clientDataJSON: encodeBase64url(response.clientDataJSON),
+    authenticatorData: encodeBase64url(response.authenticatorData),
+    signature: encodeBase64url(response.signature),
+  };
+  if (response.userHandle) projectedResponse.userHandle = encodeBase64url(response.userHandle);
+  return {
     id: value.id,
     rawId: encodeBase64url(value.rawId),
     type: value.type,
-    response: {
-      clientDataJSON: encodeBase64url(response.clientDataJSON),
-      authenticatorData: encodeBase64url(response.authenticatorData),
-      signature: encodeBase64url(response.signature),
-    },
+    response: projectedResponse,
   };
-  if (response.userHandle) result.response.userHandle = encodeBase64url(response.userHandle);
-  return result;
 }
 
 /** @param {any} value @returns {string} */
@@ -115,6 +116,7 @@ export function createPowerAssuranceBody(teamId, challengeId, field, value) {
   ) {
     throw new TypeError("invalid Power assurance binding");
   }
+  /** @type {Record<string, any>} */
   const body = { team_id: teamId, challenge_id: challengeId };
   if (field !== null) {
     if (!["password", "code", "credential"].includes(field)) {

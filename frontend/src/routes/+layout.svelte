@@ -1,6 +1,7 @@
 <script lang="ts">
+  import "@shimpz/frontend/theme.css";
   import "../app.css";
   let { children } = $props();
 </script>
 
-{@render children()}
+<div class="shimpz-theme">{@render children()}</div>

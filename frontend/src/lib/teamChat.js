@@ -134,7 +134,7 @@ function humanRequest(value) {
   if (typeof source.required !== "boolean") throw new TypeError("invalid human request");
   if (TEXT_KIND_LIMITS.has(kind)) {
     const expected = [...baseKeys, "label", "required", "placeholder", "min_length", "max_length"];
-    const limit = TEXT_KIND_LIMITS.get(kind);
+    const limit = TEXT_KIND_LIMITS.get(kind) ?? -1;
     if (
       !hasExactKeys(source, expected) ||
       (source.placeholder !== null && publicText(source.placeholder, 120) !== source.placeholder) ||
