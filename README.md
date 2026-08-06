@@ -3,7 +3,7 @@
 Shimpz Store is the public, account-authenticated Shimpz web application. A SvelteKit frontend and
 FastAPI backend serve signup/login, OAuth model credentials, Team creation and teardown, Assistant
 release discovery and installation, Hosted Assistant inventory, provider/model selection, Team files, and
-the strict `shimpz.chat.v3` WebSocket surface.
+the strict `shimpz.chat.v4` WebSocket surface.
 
 The Store is an unprivileged gateway, not a controller. It has no Docker socket, provider admin key, or
 Team bearer. It forwards the authenticated account token to the internal Account and Team
@@ -17,7 +17,7 @@ revoked by Account.
 - Team IDs bind the complete account ID and normalized Team name with a collision-resistant digest.
 - OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state,
   logs, or controller chat frames.
-- Chat v3 accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs, and
+- Chat v4 accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs, and
   emits only exact terminal frames. Assistant Integrations must be connected out of band through the OAuth
   routes before chat, so `integrations-required` is intentionally never browser-visible. Assistant Spec v1
   has no static-secret, in-body approval, or human-input continuation flow.

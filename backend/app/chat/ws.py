@@ -1,4 +1,4 @@
-"""Authenticated shimpz.chat.v3 WebSocket admission, dispatch, and delivery."""
+"""Authenticated shimpz.chat.v4 WebSocket admission, dispatch, and delivery."""
 
 from __future__ import annotations
 

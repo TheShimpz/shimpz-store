@@ -101,7 +101,7 @@ test("accepts only exact bounded terminal events from the authoritative Team", (
 });
 
 test("uses the single versioned Team chat WebSocket contract", () => {
-  assert.equal(CHAT_WS_SUBPROTOCOL, "shimpz.chat.v3");
+  assert.equal(CHAT_WS_SUBPROTOCOL, "shimpz.chat.v4");
   assert.equal(teamChatWebSocketPath("team_one"), "/api/teams/team_one/chat/ws");
   for (const teamId of ["", "../escape", "team-one", "A"]) {
     assert.throws(() => teamChatWebSocketPath(teamId));

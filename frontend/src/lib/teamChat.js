@@ -9,7 +9,7 @@ const MAX_ASSISTANTS_PER_TURN = 16;
 const MAX_MESSAGE_CHARS = 16_000;
 const MAX_REPLY_CHARS = 60_000;
 const MAX_ERROR_DETAIL_CHARS = 800;
-export const CHAT_WS_SUBPROTOCOL = "shimpz.chat.v3";
+export const CHAT_WS_SUBPROTOCOL = "shimpz.chat.v4";
 
 /** Capped reconnect delay. Reconnection never implies replaying a chat frame. @param {any} attempt */
 export function teamChatReconnectDelay(attempt) {
