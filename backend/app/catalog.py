@@ -15,6 +15,19 @@ _GITHUB = re.compile(
     r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$"
 )
 _POWER_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+_HUMAN_REQUEST_KINDS = {
+    "approval",
+    "input:text",
+    "input:textarea",
+    "input:password",
+    "input:phone",
+    "input:select",
+    "input:choice",
+    "input:choices",
+    "auth:reauth",
+    "auth:second-factor",
+    "auth:phishing-resistant",
+}
 _ASSISTANT_FIELDS = {
     "assistant_id",
     "name",
@@ -86,17 +99,21 @@ def _powers(value: object) -> list[dict[str, object]]:
     for item in value:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "input_schema", "output_schema", "integrations"}
+            or set(item) != {"id", "input_schema", "output_schema", "integrations", "human_requests"}
             or not isinstance(item["id"], str)
             or _POWER_ID.fullmatch(item["id"]) is None
             or not isinstance(item["input_schema"], dict)
             or not isinstance(item["output_schema"], dict)
         ):
             raise CatalogError("catalog Power is invalid")
+        human_requests = _closed_strings(item["human_requests"], 11, 25)
+        if any(kind not in _HUMAN_REQUEST_KINDS for kind in human_requests):
+            raise CatalogError("catalog Power human requests are invalid")
         projected.append(
             {
                 "id": item["id"],
                 "integrations": _closed_strings(item["integrations"], 16, 64),
+                "human_requests": human_requests,
             }
         )
     return projected

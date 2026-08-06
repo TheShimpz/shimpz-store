@@ -34,6 +34,7 @@ def _assistant(**changes) -> dict[str, object]:
                 "input_schema": {"type": "object"},
                 "output_schema": {"type": "object"},
                 "integrations": ["github"],
+                "human_requests": ["approval", "input:text"],
             }
         ],
     }
@@ -59,7 +60,13 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
                 "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
-                "powers": [{"id": "hello", "integrations": ["github"]}],
+                "powers": [
+                    {
+                        "id": "hello",
+                        "integrations": ["github"],
+                        "human_requests": ["approval", "input:text"],
+                    }
+                ],
             }
         ],
     }
@@ -76,6 +83,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(platforms=["linux/amd64"]),
         lambda value: value["assistants"].append(copy.deepcopy(value["assistants"][0])),
         lambda value: value["assistants"][0]["powers"][0].update(command="/bin/sh"),
+        lambda value: value["assistants"][0]["powers"][0].update(human_requests=["unknown"]),
+        lambda value: value["assistants"][0]["powers"][0].update(human_requests=["approval", "approval"]),
     ],
 )
 def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:
