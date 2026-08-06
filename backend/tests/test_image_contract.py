@@ -54,6 +54,7 @@ def test_static_runtime_packages_the_exact_application_import_closure():
         "COPY backend/app/chat/__init__.py backend/app/chat/events.py "
         "backend/app/chat/relay.py backend/app/chat/ws.py ./app/chat/"
     ) in dockerfile
+    assert "backend/app/routers/power_assurance.py" in runtime
 
 
 def test_static_runtime_has_a_bounded_health_probe():
