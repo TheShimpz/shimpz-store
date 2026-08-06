@@ -79,6 +79,36 @@ def _approval_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" 
     }
 
 
+def _human_request(kind: str, **fields: object) -> dict:
+    return {
+        "kind": kind,
+        "ordinal": 0,
+        "title": "Provide reviewed input",
+        "description": "Provide only the information requested by this exact Power.",
+        "fingerprint": "d" * 64,
+        **fields,
+    }
+
+
+def _human_challenge(
+    *,
+    team_id: str = TEST_TEAM_ID,
+    challenge_id: str = "c" * 32,
+    request: dict | None = None,
+) -> dict:
+    return {
+        "type": "human-required",
+        "status": "human-required",
+        "team_id": team_id,
+        "turn_id": challenge_id,
+        "challenge_id": challenge_id,
+        "expires_in": 300,
+        "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare"},
+        "power": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
+        "request": request or _human_request("approval"),
+    }
+
+
 def _websocket_disconnect_code(
     client: TestClient,
     origin: str | None,
@@ -866,10 +896,84 @@ def test_public_chat_errors_delegate_status_clamping_to_the_shared_contract(
             {"type": "error", "status": 504, "detail": "chat service timed out"},
         ),
         ({"type": "stopped"}, {"type": "stopped"}),
+        (
+            _human_challenge(),
+            {
+                "type": "human-required",
+                "challenge_id": "c" * 32,
+                "expires_in": 300,
+                "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare"},
+                "power": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
+                "request": {
+                    "kind": "approval",
+                    "ordinal": 0,
+                    "title": "Provide reviewed input",
+                    "description": "Provide only the information requested by this exact Power.",
+                    "fingerprint": "d" * 64,
+                },
+            },
+        ),
     ],
 )
 def test_terminal_event_contract_accepts_only_exact_bounded_schemas(event: dict, expected: dict):
     assert _validated_terminal_event(event, TEST_TEAM_ID) == expected
+
+
+@pytest.mark.parametrize(
+    "descriptor",
+    [
+        _human_request("approval"),
+        _human_request("auth:reauth"),
+        _human_request("auth:second-factor"),
+        _human_request("auth:phishing-resistant"),
+        *[
+            _human_request(
+                kind,
+                label="Requested value",
+                required=True,
+                placeholder=None,
+                min_length=1,
+                max_length=maximum,
+            )
+            for kind, maximum in (
+                ("input:text", 4096),
+                ("input:textarea", 16_000),
+                ("input:password", 1024),
+                ("input:phone", 64),
+            )
+        ],
+        *[
+            _human_request(
+                kind,
+                label="Requested option",
+                required=True,
+                options=[
+                    {"value": "one", "label": "One", "description": None},
+                    {"value": "two", "label": "Two", "description": "Second option"},
+                ],
+            )
+            for kind in ("input:select", "input:choice")
+        ],
+        _human_request(
+            "input:choices",
+            label="Requested options",
+            required=True,
+            options=[
+                {"value": "one", "label": "One", "description": None},
+                {"value": "two", "label": "Two", "description": "Second option"},
+            ],
+            min_selections=1,
+            max_selections=2,
+        ),
+    ],
+)
+def test_terminal_event_contract_projects_every_reviewed_human_request(descriptor: dict):
+    event = _human_challenge(request=descriptor)
+
+    projected = _validated_terminal_event(event, TEST_TEAM_ID)
+
+    assert projected is not None
+    assert projected["request"] == descriptor
 
 
 def test_terminal_event_contract_excludes_out_of_band_account_challenges():
@@ -911,6 +1015,18 @@ def test_terminal_event_contract_excludes_out_of_band_account_challenges():
             "detail": "x" * (config.MAX_CHAT_ERROR_DETAIL_CHARS + 1),
         },
         {"type": "stopped", "requested": True},
+        {**_human_challenge(), "private": "must-not-cross"},
+        _human_challenge(team_id="other_team"),
+        {**_human_challenge(), "turn_id": "e" * 32},
+        {**_human_challenge(), "expires_in": 301},
+        {
+            **_human_challenge(),
+            "request": {**_human_challenge()["request"], "kind": "unreviewed"},
+        },
+        {
+            **_human_challenge(),
+            "request": {**_human_challenge()["request"], "secret": "must-not-cross"},
+        },
     ],
 )
 def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(
