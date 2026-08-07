@@ -492,13 +492,11 @@ class OAuthBroker:
 
     def _expire(self, now: float) -> None:
         for key in tuple(key for key, value in self._authorizations.items() if value.expires_at <= now):
-            expired = self._authorizations.pop(key, None)
-            if expired is not None:
-                self._active_local_states.discard(expired.local_state)
+            expired = self._authorizations.pop(key)
+            self._active_local_states.discard(expired.local_state)
         for key in tuple(key for key, value in self._grants.items() if value.expires_at <= now):
-            expired = self._grants.pop(key, None)
-            if expired is not None:
-                self._active_local_states.discard(expired.local_state)
+            expired = self._grants.pop(key)
+            self._active_local_states.discard(expired.local_state)
 
     @staticmethod
     def _random_binding() -> str:
