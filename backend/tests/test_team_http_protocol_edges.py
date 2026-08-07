@@ -137,9 +137,10 @@ def test_storage_response_projects_all_kinds_and_team_visibility():
         "limit_bytes": 8,
         "remaining_bytes": 1,
     }
-    assert payload.project_storage_response(
-        listing, kind="list", expected_team_id=team_id, include_team_id=True
-    ) == listing
+    assert (
+        payload.project_storage_response(listing, kind="list", expected_team_id=team_id, include_team_id=True)
+        == listing
+    )
     deletion = {
         "team_id": team_id,
         "id": "a" * 32,
@@ -148,13 +149,16 @@ def test_storage_response_projects_all_kinds_and_team_visibility():
         "limit_bytes": 8,
         "remaining_bytes": 8,
     }
-    assert payload.project_storage_response(
-        deletion,
-        kind="delete",
-        expected_team_id=team_id,
-        expected_file_id="a" * 32,
-        include_team_id=True,
-    ) == deletion
+    assert (
+        payload.project_storage_response(
+            deletion,
+            kind="delete",
+            expected_team_id=team_id,
+            expected_file_id="a" * 32,
+            include_team_id=True,
+        )
+        == deletion
+    )
 
 
 @pytest.mark.parametrize(
@@ -191,9 +195,7 @@ def test_storage_response_rejects_oversized_file_list():
         "team_id": "team",
         "files": [{}] * (payload.MAX_TEAM_FILES + 1),
     }
-    assert payload.project_storage_response(
-        value, kind="list", expected_team_id="team", include_team_id=False
-    ) is None
+    assert payload.project_storage_response(value, kind="list", expected_team_id="team", include_team_id=False) is None
 
 
 @pytest.mark.parametrize(
@@ -285,7 +287,7 @@ def test_progress_line_rejects_invalid_framing(raw):
         progress.decode_line(raw)
 
 
-@pytest.mark.parametrize("raw", [b"{\"x\":1,\"x\":2}\n", b"{\"x\":NaN}\n", b"\xff\n"])
+@pytest.mark.parametrize("raw", [b'{"x":1,"x":2}\n', b'{"x":NaN}\n', b"\xff\n"])
 def test_progress_line_rejects_invalid_json(raw):
     with pytest.raises(progress.ProgressContractError, match="JSON"):
         progress.decode_line(raw)
@@ -298,7 +300,9 @@ def test_progress_line_enforces_progress_specific_limit(monkeypatch):
         progress.decode_line(raw)
 
 
-@pytest.mark.parametrize("value", [None, "null", "http://[bad", "ftp://example.com", "http://u@example.com", "http://example.com/path"])
+@pytest.mark.parametrize(
+    "value", [None, "null", "http://[bad", "ftp://example.com", "http://u@example.com", "http://example.com/path"]
+)
 def test_origin_rejects_invalid_values(value):
     assert websocket.canonical_origin(value) is None
 
@@ -327,9 +331,7 @@ def test_websocket_text_and_frame_helpers_cover_failures():
         with pytest.raises(websocket.FrameError) as exc:
             websocket.decode_bounded_json_frame(message, maximum)
         assert exc.value.status == status
-    assert websocket.decode_bounded_json_frame(
-        {"type": "websocket.receive", "text": "{}"}, 2
-    ) == {}
+    assert websocket.decode_bounded_json_frame({"type": "websocket.receive", "text": "{}"}, 2) == {}
 
 
 @pytest.mark.parametrize(("value", "expected"), [(400, 400), (True, 502), (399, 502), (600, 502)])
@@ -350,12 +352,11 @@ def test_challenge_identity_is_fail_closed():
     challenge = "a" * 32
     assert websocket.challenge_identity(None, "team") is None
     assert websocket.challenge_identity({"team_id": "other"}, "team") is None
-    assert websocket.challenge_identity(
-        {"team_id": "team", "challenge_id": "bad", "turn_id": "bad"}, "team"
-    ) is None
-    assert websocket.challenge_identity(
-        {"team_id": "team", "challenge_id": challenge, "turn_id": "b" * 32}, "team"
-    ) is None
+    assert websocket.challenge_identity({"team_id": "team", "challenge_id": "bad", "turn_id": "bad"}, "team") is None
+    assert (
+        websocket.challenge_identity({"team_id": "team", "challenge_id": challenge, "turn_id": "b" * 32}, "team")
+        is None
+    )
     assert websocket.challenge_identity(
         {"team_id": "team", "challenge_id": challenge, "turn_id": challenge}, "team"
     ) == (challenge, challenge)

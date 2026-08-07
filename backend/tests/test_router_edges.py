@@ -108,9 +108,7 @@ def test_inference_routes_reject_unauthenticated_and_invalid_configuration(monke
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
     with TestClient(app) as client:
         wrong_shape = client.put("/api/teams/team/inference", json={"provider": "openai"})
-        bad_provider = client.put(
-            "/api/teams/team/inference", json={"provider": "unknown", "model": "model"}
-        )
+        bad_provider = client.put("/api/teams/team/inference", json={"provider": "unknown", "model": "model"})
     assert wrong_shape.status_code == 400
     assert bad_provider.status_code == 400
 

@@ -41,14 +41,10 @@ class StoreEgressTests(unittest.TestCase):
         )
         stream = mock.Mock()
         app.Handler._reply(stream, 200)
-        stream.sendall.assert_called_once_with(
-            b"HTTP/1.1 200 Connection established\r\n\r\n"
-        )
+        stream.sendall.assert_called_once_with(b"HTTP/1.1 200 Connection established\r\n\r\n")
 
     def test_admission_requires_the_exact_complete_connect_request(self) -> None:
-        with mock.patch.object(
-            app, "resolve_public", return_value=(socket.AF_INET, ("104.16.1.2", 443))
-        ):
+        with mock.patch.object(app, "resolve_public", return_value=(socket.AF_INET, ("104.16.1.2", 443))):
             self.assertEqual(
                 app._admit(app.EXACT_REQUEST),
                 (200, "allowed", (socket.AF_INET, ("104.16.1.2", 443))),
@@ -58,18 +54,14 @@ class StoreEgressTests(unittest.TestCase):
             b"GET https://neuron.shimpz.com/ HTTP/1.1\r\n\r\n",
             b"CONNECT neuron.shimpz.com:443 HTTP/1.0\r\n\r\n",
             app.EXACT_REQUEST.replace(b"443", b"80"),
-            app.EXACT_REQUEST.replace(
-                b"\r\n\r\n", b"Proxy-Authorization: secret\r\n\r\n"
-            ),
+            app.EXACT_REQUEST.replace(b"\r\n\r\n", b"Proxy-Authorization: secret\r\n\r\n"),
         ):
             with self.subTest(payload=payload):
                 code, _reason, resolved = app._admit(payload)
                 self.assertNotEqual(code, 200)
                 self.assertIsNone(resolved)
         with mock.patch.object(app, "resolve_public", return_value=None):
-            self.assertEqual(
-                app._admit(app.EXACT_REQUEST), (403, "destination-rejected", None)
-            )
+            self.assertEqual(app._admit(app.EXACT_REQUEST), (403, "destination-rejected", None))
 
     def test_resolution_rejects_private_and_mixed_answers(self) -> None:
         public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.2", 443))
@@ -101,9 +93,7 @@ class StoreEgressTests(unittest.TestCase):
         for effect in (OSError("closed"), b""):
             with self.subTest(effect=effect):
                 closed = mock.Mock()
-                closed.recv.side_effect = (
-                    effect if isinstance(effect, OSError) else None
-                )
+                closed.recv.side_effect = effect if isinstance(effect, OSError) else None
                 if not isinstance(effect, OSError):
                     closed.recv.return_value = effect
                 self.assertIsNone(app._read_request(closed))
@@ -114,27 +104,19 @@ class StoreEgressTests(unittest.TestCase):
 
     def test_connect_uses_the_validated_address_without_reresolving(self) -> None:
         upstream = mock.Mock()
-        with mock.patch.object(
-            app.socket, "socket", return_value=upstream
-        ) as constructor:
-            self.assertIs(
-                app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))), upstream
-            )
+        with mock.patch.object(app.socket, "socket", return_value=upstream) as constructor:
+            self.assertIs(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))), upstream)
         constructor.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
         upstream.connect.assert_called_once_with(("104.16.1.2", 443))
 
     def test_upstream_connection_failures_close_partial_sockets(self) -> None:
         with mock.patch.object(app.socket, "socket", side_effect=OSError("closed")):
-            self.assertIsNone(
-                app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443)))
-            )
+            self.assertIsNone(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))))
 
         upstream = mock.Mock()
         upstream.connect.side_effect = OSError("closed")
         with mock.patch.object(app.socket, "socket", return_value=upstream):
-            self.assertIsNone(
-                app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443)))
-            )
+            self.assertIsNone(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))))
         upstream.close.assert_called_once_with()
 
     def test_audit_is_bounded_and_contains_no_request_material(self) -> None:
@@ -163,9 +145,7 @@ class StoreEgressTests(unittest.TestCase):
             with self.assertRaises(audit.AuditError):
                 audit.ensure_custody(root / "audit.jsonl")
         with self.assertRaises(audit.AuditError):
-            audit.record(
-                result="ok", code=200, reason="allowed", subject="attacker.example:443"
-            )
+            audit.record(result="ok", code=200, reason="allowed", subject="attacker.example:443")
 
     def test_audit_rejects_missing_custody_and_rotates_bounded_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -205,9 +185,7 @@ class StoreEgressTests(unittest.TestCase):
                 mock.patch.object(audit.os, "open", side_effect=OSError("closed")),
                 self.assertRaisesRegex(audit.AuditError, "unavailable"),
             ):
-                audit.record(
-                    result="error", code=503, reason="closed", subject="not-evaluated"
-                )
+                audit.record(result="error", code=503, reason="closed", subject="not-evaluated")
 
     def test_missing_audit_fails_startup_before_bind(self) -> None:
         with (
@@ -234,9 +212,7 @@ class StoreEgressTests(unittest.TestCase):
             reason="capacity",
             subject="not-evaluated",
         )
-        request.sendall.assert_called_once_with(
-            b"HTTP/1.1 503 Service Unavailable\r\n\r\n"
-        )
+        request.sendall.assert_called_once_with(b"HTTP/1.1 503 Service Unavailable\r\n\r\n")
         request.close.assert_called_once_with()
 
     def test_handler_routes_incomplete_denied_and_allowed_requests(self) -> None:
@@ -333,9 +309,7 @@ class StoreEgressTests(unittest.TestCase):
         server = app.Server(("127.0.0.1", 0), app.Handler, bind_and_activate=False)
         request = mock.Mock()
         try:
-            with mock.patch.object(
-                socketserver.ThreadingTCPServer, "process_request"
-            ) as process:
+            with mock.patch.object(socketserver.ThreadingTCPServer, "process_request") as process:
                 server.process_request(request, ("192.0.2.1", 1))
             process.assert_called_once_with(request, ("192.0.2.1", 1))
             self.assertEqual(server._source_counts, {"192.0.2.1": 1})
@@ -374,9 +348,7 @@ class StoreEgressTests(unittest.TestCase):
 
         server._source_counts = {"192.0.2.2": 1}
         self.assertTrue(server._slots.acquire(blocking=False))
-        with mock.patch.object(
-            socketserver.ThreadingTCPServer, "process_request_thread"
-        ) as process:
+        with mock.patch.object(socketserver.ThreadingTCPServer, "process_request_thread") as process:
             server.process_request_thread(request, ("192.0.2.2", 1))
         process.assert_called_once_with(request, ("192.0.2.2", 1))
         self.assertNotIn("192.0.2.2", server._source_counts)
@@ -401,9 +373,7 @@ class StoreEgressTests(unittest.TestCase):
 
         with (
             mock.patch.dict(sys.modules, {"audit": audit}),
-            mock.patch.object(
-                audit, "ensure_custody", side_effect=audit.AuditError("closed")
-            ),
+            mock.patch.object(audit, "ensure_custody", side_effect=audit.AuditError("closed")),
             self.assertRaises(SystemExit) as raised,
         ):
             runpy.run_path(str(ROOT / "app.py"), run_name="__main__")
@@ -411,23 +381,17 @@ class StoreEgressTests(unittest.TestCase):
 
     def test_healthcheck_reports_listener_state_and_script_status(self) -> None:
         connection = mock.MagicMock()
-        with mock.patch.object(
-            healthcheck.socket, "create_connection", return_value=connection
-        ):
+        with mock.patch.object(healthcheck.socket, "create_connection", return_value=connection):
             self.assertEqual(healthcheck.main(), 0)
         connection.__enter__.assert_called_once_with()
 
-        with mock.patch.object(
-            healthcheck.socket, "create_connection", side_effect=OSError("closed")
-        ):
+        with mock.patch.object(healthcheck.socket, "create_connection", side_effect=OSError("closed")):
             self.assertEqual(healthcheck.main(), 1)
 
         previous = sys.modules.get("store_egress_healthcheck")
         try:
             with (
-                mock.patch.object(
-                    socket, "create_connection", side_effect=OSError("closed")
-                ),
+                mock.patch.object(socket, "create_connection", side_effect=OSError("closed")),
                 self.assertRaises(SystemExit) as raised,
             ):
                 runpy.run_path(str(ROOT / "healthcheck.py"), run_name="__main__")

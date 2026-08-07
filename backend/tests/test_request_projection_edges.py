@@ -61,12 +61,14 @@ def test_public_file_projections_delegate_to_the_closed_team_contract():
     }
     usage = {"used_bytes": 7, "limit_bytes": 8, "remaining_bytes": 1}
     assert projections.public_file_metadata(metadata) == metadata
-    assert projections.public_file_upload(
-        {"team_id": "team", "file": {**metadata, **usage}}, "team"
-    ) == {"file": metadata, **usage}
-    assert projections.public_file_inventory(
-        {"team_id": "team", "files": [metadata], **usage}, "team"
-    ) == {"files": [metadata], **usage}
+    assert projections.public_file_upload({"team_id": "team", "file": {**metadata, **usage}}, "team") == {
+        "file": metadata,
+        **usage,
+    }
+    assert projections.public_file_inventory({"team_id": "team", "files": [metadata], **usage}, "team") == {
+        "files": [metadata],
+        **usage,
+    }
     assert projections.public_file_deletion(
         {"team_id": "team", "id": file_id, "deleted": True, **usage}, "team", file_id
     ) == {"id": file_id, "deleted": True, **usage}
@@ -106,8 +108,7 @@ def test_assistant_inventory_rejects_ambiguous_controller_data(value):
         {"assistants": [{"assistant": "assistant", "status": None}]},
         {
             "assistants": [
-                {"assistant": f"assistant-{index}", "status": "running"}
-                for index in range(MAX_CHAT_ASSISTANTS + 1)
+                {"assistant": f"assistant-{index}", "status": "running"} for index in range(MAX_CHAT_ASSISTANTS + 1)
             ]
         },
     ],

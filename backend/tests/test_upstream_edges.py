@@ -93,7 +93,8 @@ def test_asset_bounded_delegates_to_the_caller_executor(monkeypatch):
     monkeypatch.setattr(upstream, "run_bounded", run)
     monkeypatch.setattr(upstream, "call_asset", lambda *_args, **_kwargs: (200, b"asset"))
     executor = object()
-    assert asyncio.run(
-        upstream.call_asset_bounded(executor, "http://developers:8080", "/icon.png", timeout=1)
-    ) == (200, b"asset")
+    assert asyncio.run(upstream.call_asset_bounded(executor, "http://developers:8080", "/icon.png", timeout=1)) == (
+        200,
+        b"asset",
+    )
     assert captured == [executor]

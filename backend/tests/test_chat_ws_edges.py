@@ -238,16 +238,12 @@ def test_human_response_rejects_active_pending_payload_and_capacity(monkeypatch)
 
         pending = {"challenge_id": "a" * 32, "request": {"kind": "approval"}}
         invalid = {"type": "human-response", "challenge_id": "a" * 32, "decision": "bad"}
-        await ws._ws_human_response(
-            socket, "team", {}, invalid, {"active": None, "pending_human": pending}
-        )
+        await ws._ws_human_response(socket, "team", {}, invalid, {"active": None, "pending_human": pending})
         assert socket.json[-1]["status"] == 400
 
         valid = {"type": "human-response", "challenge_id": "a" * 32, "decision": "deny"}
         monkeypatch.setattr(ws._TURN_ADMISSION, "reserve", lambda: None)
-        await ws._ws_human_response(
-            socket, "team", {}, valid, {"active": None, "pending_human": pending}
-        )
+        await ws._ws_human_response(socket, "team", {}, valid, {"active": None, "pending_human": pending})
         assert socket.json[-1] == ws._relay_capacity_event()
 
     asyncio.run(scenario())
@@ -265,9 +261,7 @@ def test_human_response_and_chat_dispatch_release_lease_when_start_fails(monkeyp
         pending = {"challenge_id": "a" * 32, "request": {"kind": "approval"}}
         message = {"type": "human-response", "challenge_id": "a" * 32, "decision": "deny"}
         with pytest.raises(RuntimeError):
-            await ws._ws_human_response(
-                socket, "team", {}, message, {"active": None, "pending_human": pending}
-            )
+            await ws._ws_human_response(socket, "team", {}, message, {"active": None, "pending_human": pending})
         assert human_lease.released == 1
 
         chat_lease = _Lease()
@@ -344,9 +338,7 @@ def test_websocket_disconnect_cleans_active_and_pending_work(monkeypatch):
     async def run_case(*, pending):
         connection = Connection()
         monkeypatch.setattr(ws, "_ws_validate_opening", lambda _socket: _async_value(True))
-        monkeypatch.setattr(
-            ws, "_ws_identity", lambda _socket, _team: _async_value(("token", "account", "team"))
-        )
+        monkeypatch.setattr(ws, "_ws_identity", lambda _socket, _team: _async_value(("token", "account", "team")))
         monkeypatch.setattr(ws._WS_CONNECTION_ADMISSION, "reserve", lambda *_args: connection)
         receives = 0
 
