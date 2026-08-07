@@ -32,23 +32,22 @@ _CAPABILITY = re.compile(rb"[0-9a-f]{64}\Z")
 
 def verification_capability() -> str:
     """Read one exact producer-owned Store capability without caching or logging it."""
-    descriptor: int | None = None
     try:
         descriptor = os.open(
             ACCOUNT_VERIFY_TOKEN_FILE,
             os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
         )
-        with os.fdopen(descriptor, "rb", closefd=False) as stream:
-            metadata = os.fstat(stream.fileno())
-            if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o440:
-                return ""
-            raw = stream.read(65)
-    except OSError, ValueError:
-        return ""
-    finally:
-        if descriptor is not None:
+        try:
+            with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                metadata = os.fstat(stream.fileno())
+                if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o440:
+                    return ""
+                raw = stream.read(65)
+        finally:
             with suppress(OSError):
                 os.close(descriptor)
+    except OSError, ValueError:
+        return ""
     if _CAPABILITY.fullmatch(raw) is None:
         return ""
     return raw.decode("ascii")
