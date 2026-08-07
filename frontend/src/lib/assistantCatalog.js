@@ -1,6 +1,20 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
+const POWER_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const HUMAN_REQUEST_KINDS = new Set([
+  "approval",
+  "input:text",
+  "input:textarea",
+  "input:password",
+  "input:phone",
+  "input:select",
+  "input:choice",
+  "input:choices",
+  "auth:reauth",
+  "auth:second-factor",
+  "auth:phishing-resistant",
+]);
 const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "integrations",
   "allowed_hosts",
@@ -71,10 +85,13 @@ function validIntegrations(value) {
 
 /** @param {unknown} value */
 function validPowers(value) {
-  return Array.isArray(value) && value.length <= 128 && value.every((power) =>
-    hasExactKeys(power, ["integrations", "id"]) &&
-    boundedText(power.id, 80) &&
-    boundedStrings(power.integrations, 32, 80)
+  return Array.isArray(value) && value.length >= 1 && value.length <= 64 && value.every((power) =>
+    hasExactKeys(power, ["human_requests", "integrations", "id"]) &&
+    boundedText(power.id, 64) &&
+    POWER_ID_RE.test(power.id) &&
+    boundedStrings(power.integrations, 16, 64) &&
+    boundedStrings(power.human_requests, 11, 25) &&
+    (/** @type {string[]} */ (power.human_requests)).every((kind) => HUMAN_REQUEST_KINDS.has(kind))
   );
 }
 
