@@ -79,8 +79,21 @@ def test_projects_only_bounded_browser_metadata() -> None:
     "mutate",
     [
         lambda value: value.update(extra=True),
+        lambda value: value["assistants"][0].update(name="bad\nname"),
+        lambda value: value["assistants"][0].update(creators=[]),
+        lambda value: value["assistants"][0].update(integrations="invalid"),
+        lambda value: value["assistants"][0].update(integrations=[{"id": "github"}]),
+        lambda value: value["assistants"][0].update(
+            integrations=[{"id": "github", "provider": "gitlab", "scopes": []}]
+        ),
+        lambda value: value["assistants"][0].update(powers=[]),
+        lambda value: value["assistants"][0].update(extra="field"),
+        lambda value: value["assistants"][0].update(assistant_id="Invalid"),
+        lambda value: value["assistants"][0].update(assistant_version="01.0.0"),
         lambda value: value["assistants"][0].update(source_digest="sha256:bad"),
+        lambda value: value["assistants"][0].update(icon_digest="sha256:bad"),
         lambda value: value["assistants"][0].update(platforms=["linux/amd64"]),
+        lambda value: value["assistants"][0].update(github="https://example.com/repository"),
         lambda value: value["assistants"].append(copy.deepcopy(value["assistants"][0])),
         lambda value: value["assistants"][0]["powers"][0].update(command="/bin/sh"),
         lambda value: value["assistants"][0]["powers"][0].update(human_requests=["unknown"]),
