@@ -608,9 +608,9 @@
 
   {#if catalogState === "error"}
     <div class="context-error" role="alert">
-      <span>{tr("assistants_inventory_unavailable", lang)}</span>
+      <span>{tr("assistants_catalog_unavailable", lang)}</span>
       <button type="button" onclick={loadAssistantCatalog}>
-        {tr("assistants_admin_connection_retry", lang)}
+        {tr("assistants_catalog_retry", lang)}
       </button>
     </div>
   {/if}

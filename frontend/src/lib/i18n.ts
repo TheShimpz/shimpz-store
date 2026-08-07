@@ -260,6 +260,14 @@ const D: Dict = {
     en: "Local inventory unavailable",
     pt: "Inventário local indisponível",
   },
+  assistants_catalog_unavailable: {
+    en: "Assistant catalog unavailable",
+    pt: "Catálogo de Assistants indisponível",
+  },
+  assistants_catalog_retry: {
+    en: "Retry loading",
+    pt: "Tentar carregar novamente",
+  },
   assistants_admin_connecting: {
     en: "Connecting to local Admin…",
     pt: "Conectando ao Admin local…",
