@@ -321,7 +321,7 @@ def test_broker_preserves_a_read_only_scope_subset_without_refresh_widening() ->
     completion = broker.callback(
         state=neuron.calls[0][1][0],
         code="authorization-code-private-123456",
-        scopes=list(read_scopes),
+        scopes=list(reversed(read_scopes)),
     )
     assert isinstance(completion, OAuthOutOfBand)
     claim = completion.completion_code.rsplit(".", 1)[1]

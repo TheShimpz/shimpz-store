@@ -68,6 +68,25 @@ def test_scalar_contracts_reject_invalid_values(operation, value):
         operation(value)
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        ["zone.read", "dns.read"],
+        ["dns.read", "dns.read"],
+        ["dns.read", "unknown"],
+        ["dns.read", 1],
+    ],
+)
+def test_caller_scopes_are_canonical_and_provider_scopes_stay_closed(value):
+    with pytest.raises(broker.OAuthBrokerError):
+        broker._scopes(value)
+    if value != ["zone.read", "dns.read"]:
+        with pytest.raises(broker.OAuthBrokerError):
+            broker._returned_scopes(value)
+
+    assert broker._returned_scopes(["zone.read", "dns.read"]) == ("dns.read", "zone.read")
+
+
 def test_code_rejects_unencodable_text():
     with pytest.raises(broker.OAuthBrokerError):
         broker._code(_Unencodable("value"), label="code")

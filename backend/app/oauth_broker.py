@@ -152,17 +152,28 @@ def _code(value: object, *, label: str, minimum: int = 16, maximum: int = 4096) 
     return value
 
 
-def _scopes(value: object) -> tuple[str, ...]:
+def _scope_list(value: object) -> list[str]:
     if (
         not isinstance(value, list)
         or not value
         or not all(isinstance(scope, str) for scope in value)
-        or tuple(value) != tuple(sorted(value))
         or len(value) != len(set(value))
         or not set(value) <= ALLOWED_SCOPES
     ):
         raise OAuthBrokerError("OAuth scopes are invalid")
-    return tuple(value)
+    return value
+
+
+def _scopes(value: object) -> tuple[str, ...]:
+    values = _scope_list(value)
+    if tuple(values) != tuple(sorted(values)):
+        raise OAuthBrokerError("OAuth scopes are invalid")
+    return tuple(values)
+
+
+def _returned_scopes(value: object) -> tuple[str, ...]:
+    values = _scope_list(value)
+    return tuple(sorted(values))
 
 
 def _pkce_challenge(verifier: str) -> str:
@@ -576,7 +587,7 @@ class OAuthBroker:
     def callback(self, *, state: object, code: object, scopes: object) -> OAuthRedirect | OAuthOutOfBand:
         broker_state = _binding(state, "state")
         authorization_code = _code(code, label="code")
-        returned_scopes = _scopes(scopes)
+        returned_scopes = _returned_scopes(scopes)
         now = self._clock()
         with self._lock:
             self._expire(now)
