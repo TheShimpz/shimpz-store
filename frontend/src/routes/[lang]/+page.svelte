@@ -45,8 +45,8 @@
     assistantsBodyTwo: "Eu escolho quais Assistants devem trabalhar juntos em cada pedido.",
     availableNow: "Disponível agora",
     assistantName: "Shimpz Cloudflare",
-    assistantResult: "Lista suas zonas do Cloudflare e inspeciona os registros DNS por uma Integration OAuth somente de leitura.",
-    assistantSafety: "Acessa somente api.cloudflare.com com zone.read, dns.read e offline_access.",
+    assistantResult: "Lista suas zonas do Cloudflare e gerencia registros DNS A, AAAA, CNAME e TXT por uma Integration OAuth.",
+    assistantSafety: "Acessa somente api.cloudflare.com com zone.read, dns.read, dns.write e offline_access. Toda alteração pede sua aprovação e reautenticação.",
     useAssistant: "Usar este Assistant",
     addAssistant: "Adicionar ao meu Time",
     teamsLabel: "Seu espaço de trabalho",
@@ -112,8 +112,8 @@
     assistantsBodyTwo: "I choose which Assistants should work together on each request.",
     availableNow: "Available now",
     assistantName: "Shimpz Cloudflare",
-    assistantResult: "Lists your Cloudflare zones and inspects DNS records through a read-only OAuth Integration.",
-    assistantSafety: "It can reach only api.cloudflare.com with zone.read, dns.read, and offline_access.",
+    assistantResult: "Lists your Cloudflare zones and manages A, AAAA, CNAME, and TXT DNS records through an OAuth Integration.",
+    assistantSafety: "It can reach only api.cloudflare.com with zone.read, dns.read, dns.write, and offline_access. Every change requires your approval and reauthentication.",
     useAssistant: "Use this Assistant",
     addAssistant: "Add to my Team",
     teamsLabel: "Your workspace",
@@ -291,7 +291,7 @@
     <div class="approval-card">
       <span>{content.approval}</span>
       <strong>{content.approvalAction}</strong>
-      <div class="permission"><i aria-hidden="true">S</i><p><b>Shimpz Cloudflare</b><small>{lang === "pt" ? "Solicita acesso somente de leitura" : "Requests read-only access"}</small></p></div>
+      <div class="permission"><i aria-hidden="true">S</i><p><b>Shimpz Cloudflare</b><small>{lang === "pt" ? "Solicita leitura e escrita limitada de DNS" : "Requests limited DNS read and write access"}</small></p></div>
       <div class="approval-actions"><button class="btn-primary" type="button">{content.approve}</button><button class="btn-ghost" type="button">{content.reject}</button></div>
     </div>
   </div>
