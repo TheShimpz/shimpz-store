@@ -35,7 +35,7 @@ CALLBACKS = {
     "out-of-band": None,
 }
 HOSTED_CALLBACK = "https://shimpz.com/api/oauth/cloudflare/callback"
-SCOPES = ("dns.read", "offline_access", "zone.read")
+SCOPES = ("dns.read", "dns.write", "offline_access", "zone.read")
 AUTHORIZATION_TTL_SECONDS = 300
 GRANT_TTL_SECONDS = 300
 LEASE_TTL_SECONDS = 366 * 24 * 60 * 60

@@ -132,7 +132,7 @@ def test_browser_callback_requires_the_exact_cloudflare_scope_envelope() -> None
         duplicate = client.get(
             "/api/oauth/cloudflare/callback?state="
             + "b" * 43
-            + "&code=first&code=second&scope=dns.read+offline_access+zone.read",
+            + "&code=first&code=second&scope=dns.read+dns.write+offline_access+zone.read",
             follow_redirects=False,
         )
 
