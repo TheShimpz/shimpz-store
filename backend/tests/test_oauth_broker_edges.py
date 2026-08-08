@@ -209,7 +209,7 @@ def test_neuron_call_rejects_unknown_operation():
 def test_neuron_authorization_rejects_invalid_response(value):
     client = _Client(_Transport(_response(value)))
     with pytest.raises(broker.OAuthBrokerError, match="response"):
-        client.authorization(state="a" * 43, code_challenge="b" * 43)
+        client.authorization(state="a" * 43, code_challenge="b" * 43, scopes=broker.SCOPES)
 
 
 @pytest.mark.parametrize(
@@ -227,7 +227,7 @@ def test_neuron_authorization_rejects_invalid_response(value):
 )
 def test_neuron_tokens_reject_invalid_shape_scopes_and_expiry(value):
     with pytest.raises(broker.OAuthBrokerError):
-        broker.NeuronOAuthClient._tokens(value)
+        broker.NeuronOAuthClient._tokens(value, broker.SCOPES)
 
 
 def test_neuron_exchange_refresh_and_revoke_validate_results():
@@ -238,9 +238,9 @@ def test_neuron_exchange_refresh_and_revoke_validate_results():
         "expires_in": 3600,
     }
     client = _Client(_Transport(_response(tokens)))
-    assert client.exchange(code="code", verifier="verifier").expires_in == 3600
+    assert client.exchange(code="code", verifier="verifier", scopes=broker.SCOPES).expires_in == 3600
     client = _Client(_Transport(_response(tokens)))
-    assert client.refresh(refresh_token="b" * 16).expires_in == 3600
+    assert client.refresh(refresh_token="b" * 16, scopes=broker.SCOPES).expires_in == 3600
     client = _Client(_Transport(_response({"revoked": False})))
     with pytest.raises(broker.OAuthBrokerError):
         client.revoke(token="a" * 16)
@@ -251,12 +251,12 @@ def test_neuron_exchange_refresh_and_revoke_validate_results():
 def test_lease_signer_rejects_short_key_non_string_and_expired_lease():
     tokens = broker.OAuthTokens("a" * 16, "b" * 16, 3600)
     with pytest.raises(broker.OAuthBrokerError, match="key"):
-        broker.BrokerLeaseSigner(b"short").issue(tokens)
+        broker.BrokerLeaseSigner(b"short").issue(tokens, broker.SCOPES)
     now = 1_800_000_000
     signer = broker.BrokerLeaseSigner(b"k" * 32, clock=lambda: now)
     with pytest.raises(broker.OAuthBrokerError, match="lease"):
         signer.verify(None, tokens.access_token)
-    lease = signer.issue(tokens)
+    lease = signer.issue(tokens, broker.SCOPES)
     with pytest.raises(broker.OAuthBrokerError, match="lease"):
         signer.verify(lease, "c" * 16)
     expired = broker.BrokerLeaseSigner(b"k" * 32, clock=lambda: now + broker.LEASE_TTL_SECONDS + 1)
@@ -294,9 +294,9 @@ def test_broker_expires_grants_and_enforces_start_capacity(monkeypatch):
     tokens = broker.OAuthTokens("a" * 16, "b" * 16, 3600)
     for index, state in enumerate(("s" * 43, "t" * 43)):
         instance._authorizations[str(index) * 43] = broker._PendingAuthorization(
-            state, "c" * 43, "hosted", "v" * 43, 99
+            state, "c" * 43, "hosted", "v" * 43, broker.SCOPES, 99
         )
-        instance._grants[str(index) * 64] = broker._PendingGrant(state, "c" * 43, tokens, 99)
+        instance._grants[str(index) * 64] = broker._PendingGrant(state, "c" * 43, tokens, broker.SCOPES, 99)
         instance._active_local_states.add(state)
     instance._expire(100)
     assert not instance._authorizations and not instance._grants and not instance._active_local_states
@@ -312,7 +312,14 @@ def test_broker_retries_binding_and_cleans_failed_authorization(monkeypatch):
         broker.BrokerLeaseSigner(b"k" * 32),
         clock=lambda: 100,
     )
-    instance._authorizations["a" * 43] = broker._PendingAuthorization("x" * 43, "c" * 43, "hosted", "v" * 43, 200)
+    instance._authorizations["a" * 43] = broker._PendingAuthorization(
+        "x" * 43,
+        "c" * 43,
+        "hosted",
+        "v" * 43,
+        broker.SCOPES,
+        200,
+    )
     values = iter(("a" * 43, "b" * 43, "v" * 43))
     monkeypatch.setattr(instance, "_random_binding", lambda: next(values))
     with pytest.raises(broker.OAuthBrokerError):
@@ -342,7 +349,7 @@ def test_broker_callback_enforces_capacity_and_cleans_failed_exchange(monkeypatc
     state = next(iter(instance._authorizations))
     monkeypatch.setattr(broker, "CAPACITY", 0)
     with pytest.raises(broker.OAuthBrokerError, match="capacity"):
-        instance.callback(state=state, code="authorization-code")
+        instance.callback(state=state, code="authorization-code", scopes=list(broker.SCOPES))
 
     monkeypatch.setattr(broker, "CAPACITY", 4096)
     failed = broker.OAuthBroker(
@@ -353,7 +360,7 @@ def test_broker_callback_enforces_capacity_and_cleans_failed_exchange(monkeypatc
     _start(failed)
     failed_state = next(iter(failed._authorizations))
     with pytest.raises(RuntimeError, match="failed"):
-        failed.callback(state=failed_state, code="authorization-code")
+        failed.callback(state=failed_state, code="authorization-code", scopes=list(broker.SCOPES))
     assert failed._grant_reservations == 0
     assert not failed._active_local_states
 
@@ -366,11 +373,12 @@ def test_broker_callback_retries_claim_collision_and_claim_rejects_shape(monkeyp
         "x" * 43,
         "c" * 43,
         broker.OAuthTokens("a" * 16, "b" * 16, 3600),
+        broker.SCOPES,
         200,
     )
     values = iter(("a" * 64, "b" * 64))
     monkeypatch.setattr(broker.secrets, "token_hex", lambda _size: next(values))
-    completion = instance.callback(state=state, code="authorization-code")
+    completion = instance.callback(state=state, code="authorization-code", scopes=list(broker.SCOPES))
     assert completion.completion_code.endswith("b" * 64)
     with pytest.raises(broker.OAuthBrokerError, match="grant"):
         instance.claim(claim="bad", state="s" * 43, code_verifier="v" * 43)

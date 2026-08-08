@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 
 from app.concurrency import BoundedThreadPoolExecutor
 from app.config import OAUTH_QUEUE_MAX, OAUTH_WORKER_THREADS, PRIVATE_NO_STORE_HEADERS
-from app.oauth_broker import SCOPES, OAuthBroker, OAuthBrokerError, OAuthOutOfBand, OAuthRedirect
+from app.oauth_broker import OAuthBroker, OAuthBrokerError, OAuthOutOfBand, OAuthRedirect
 from app.payloads import ClientPayloadError, read_bounded_json
 
 log = structlog.get_logger()
@@ -158,10 +158,15 @@ async def cloudflare_callback(request: Request) -> Response:
     if len(pairs) != 3 or {key for key, _value in pairs} != {"state", "code", "scope"}:
         return _failure("callback")
     fields = dict(pairs)
-    if tuple(fields["scope"].split(" ")) != SCOPES:
-        return _failure("callback")
     try:
-        completion = await _run_bounded(functools.partial(_BROKER.callback, state=fields["state"], code=fields["code"]))
+        completion = await _run_bounded(
+            functools.partial(
+                _BROKER.callback,
+                state=fields["state"],
+                code=fields["code"],
+                scopes=fields["scope"].split(" "),
+            )
+        )
     except OAuthBrokerError:
         return _failure("callback", 502)
     if isinstance(completion, OAuthRedirect):

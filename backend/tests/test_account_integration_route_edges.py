@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from app import authn
 from app.main import app
-from app.oauth_broker import OAuthBrokerError
+from app.oauth_broker import SCOPES, OAuthBrokerError
 from app.routers import model_providers, oauth, power_assurance
 
 
@@ -135,7 +135,7 @@ def test_oauth_start_and_callback_translate_broker_failures(monkeypatch):
         raise OAuthBrokerError("failed")
 
     monkeypatch.setattr(oauth, "_run_bounded", fail)
-    scope = " ".join(oauth.SCOPES)
+    scope = " ".join(SCOPES)
     with TestClient(app) as client:
         start = client.get(
             "/api/oauth/cloudflare/start",
@@ -159,7 +159,7 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch):
         return object()
 
     monkeypatch.setattr(oauth, "_run_bounded", unexpected)
-    scope = " ".join(oauth.SCOPES)
+    scope = " ".join(SCOPES)
     with TestClient(app) as client:
         callback = client.get(
             "/api/oauth/cloudflare/callback",

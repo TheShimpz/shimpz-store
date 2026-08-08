@@ -105,14 +105,9 @@ def test_browser_start_requires_an_explicit_callback_mode() -> None:
     assert broker.calls == []
 
 
-def test_browser_callback_requires_the_exact_cloudflare_scope_envelope() -> None:
+def test_browser_callback_requires_the_closed_cloudflare_scope_envelope() -> None:
     invalid_queries = (
         {"state": "b" * 43, "code": "authorization-code-private-123456"},
-        {
-            "state": "b" * 43,
-            "code": "authorization-code-private-123456",
-            "scope": "dns.read zone.read",
-        },
         {
             "state": "b" * 43,
             "code": "authorization-code-private-123456",
@@ -138,6 +133,34 @@ def test_browser_callback_requires_the_exact_cloudflare_scope_envelope() -> None
 
     assert all(response.status_code == 400 for response in [*responses, duplicate])
     assert broker.calls == []
+
+
+def test_browser_routes_forward_the_canonical_read_only_scope_subset() -> None:
+    read_scopes = ("dns.read", "offline_access", "zone.read")
+    with _broker() as broker, TestClient(main.app) as client:
+        start = client.get(
+            "/api/oauth/cloudflare/start",
+            params={
+                "state": "s" * 43,
+                "code_challenge": "c" * 43,
+                "scope": " ".join(read_scopes),
+                "callback": "loopback",
+            },
+            follow_redirects=False,
+        )
+        callback = client.get(
+            "/api/oauth/cloudflare/callback",
+            params={
+                "state": "b" * 43,
+                "code": "authorization-code-private-123456",
+                "scope": " ".join(read_scopes),
+            },
+            follow_redirects=False,
+        )
+
+    assert start.status_code == callback.status_code == 303
+    assert broker.calls[0][1]["scopes"] == list(read_scopes)
+    assert broker.calls[1][1]["scopes"] == list(read_scopes)
 
 
 def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:

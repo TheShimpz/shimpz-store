@@ -166,16 +166,16 @@ class _Neuron:
     def __init__(self) -> None:
         self.calls: list[tuple[str, object]] = []
 
-    def authorization(self, *, state: str, code_challenge: str) -> str:
-        self.calls.append(("authorization", (state, code_challenge)))
+    def authorization(self, *, state: str, code_challenge: str, scopes: tuple[str, ...]) -> str:
+        self.calls.append(("authorization", (state, code_challenge, scopes)))
         return "https://dash.cloudflare.com/oauth2/auth"
 
-    def exchange(self, *, code: str, verifier: str) -> OAuthTokens:
-        self.calls.append(("exchange", (code, verifier)))
+    def exchange(self, *, code: str, verifier: str, scopes: tuple[str, ...]) -> OAuthTokens:
+        self.calls.append(("exchange", (code, verifier, scopes)))
         return OAuthTokens("access-token-private-123456", "refresh-token-private-123456", 3600)
 
-    def refresh(self, *, refresh_token: str) -> OAuthTokens:
-        self.calls.append(("refresh", refresh_token))
+    def refresh(self, *, refresh_token: str, scopes: tuple[str, ...]) -> OAuthTokens:
+        self.calls.append(("refresh", (refresh_token, scopes)))
         return OAuthTokens("rotated-access-private-123456", "rotated-refresh-private-123456", 3600)
 
     def revoke(self, *, token: str) -> None:
@@ -218,7 +218,7 @@ def test_neuron_client_sends_access_service_identity_and_validates_fixed_authori
             client_id_path=_secret(root / "id", ("c" * 32 + ".access").encode()),
             client_secret_path=_secret(root / "secret", b"service-token-private-material-123456"),
         )
-        assert client.authorization(state=state, code_challenge=challenge) == authorization_url
+        assert client.authorization(state=state, code_challenge=challenge, scopes=SCOPES) == authorization_url
 
     request = transport.requests[0]
     assert request["url"] == "https://neuron.shimpz.com/api/internal/oauth/cloudflare/authorization"
@@ -239,7 +239,7 @@ def test_neuron_client_rejects_world_readable_access_files() -> None:
         )
 
         with pytest.raises(OAuthBrokerError, match="file contract"):
-            client.authorization(state="a" * 43, code_challenge="b" * 43)
+            client.authorization(state="a" * 43, code_challenge="b" * 43, scopes=SCOPES)
 
 
 def test_broker_lease_signer_rejects_a_world_readable_key() -> None:
@@ -248,7 +248,7 @@ def test_broker_lease_signer_rejects_a_world_readable_key() -> None:
         key.chmod(0o444)
 
         with pytest.raises(OAuthBrokerError, match="file contract"):
-            BrokerLeaseSigner(key_path=key).issue(OAuthTokens("access-token", "refresh-token", 3600))
+            BrokerLeaseSigner(key_path=key).issue(OAuthTokens("access-token", "refresh-token", 3600), SCOPES)
 
 
 def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() -> None:
@@ -266,7 +266,11 @@ def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() ->
     )
     assert authorization_url == "https://dash.cloudflare.com/oauth2/auth"
     broker_state = neuron.calls[0][1][0]
-    completion = broker.callback(state=broker_state, code="authorization-code-private-123456")
+    completion = broker.callback(
+        state=broker_state,
+        code="authorization-code-private-123456",
+        scopes=list(SCOPES),
+    )
     assert isinstance(completion, OAuthRedirect)
     callback = completion.location
     parsed = urlsplit(callback)
@@ -301,6 +305,64 @@ def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() ->
     ]
 
 
+def test_broker_preserves_a_read_only_scope_subset_without_refresh_widening() -> None:
+    read_scopes = ("dns.read", "offline_access", "zone.read")
+    neuron = _Neuron()
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    verifier = "v" * 43
+    state = "s" * 43
+
+    broker.start(
+        local_state=state,
+        local_code_challenge=_pkce_challenge(verifier),
+        callback_mode="out-of-band",
+        scopes=list(read_scopes),
+    )
+    completion = broker.callback(
+        state=neuron.calls[0][1][0],
+        code="authorization-code-private-123456",
+        scopes=list(read_scopes),
+    )
+    assert isinstance(completion, OAuthOutOfBand)
+    claim = completion.completion_code.rsplit(".", 1)[1]
+    payload = broker.claim(claim=claim, state=state, code_verifier=verifier)
+
+    assert payload["scopes"] == list(read_scopes)
+    assert neuron.calls[0][1][2] == read_scopes
+    assert neuron.calls[1][1][2] == read_scopes
+    with pytest.raises(OAuthBrokerError, match="lease"):
+        broker.refresh(
+            refresh_token=payload["refresh_token"],
+            lease=payload["broker_lease"],
+            scopes=list(SCOPES),
+        )
+    assert [call[0] for call in neuron.calls] == ["authorization", "exchange"]
+
+
+def test_broker_refuses_callback_scope_drift_before_token_exchange() -> None:
+    read_scopes = ("dns.read", "offline_access", "zone.read")
+    neuron = _Neuron()
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    state = "s" * 43
+    broker.start(
+        local_state=state,
+        local_code_challenge="c" * 43,
+        callback_mode="out-of-band",
+        scopes=list(read_scopes),
+    )
+
+    with pytest.raises(OAuthBrokerError, match="unavailable"):
+        broker.callback(
+            state=neuron.calls[0][1][0],
+            code="authorization-code-private-123456",
+            scopes=list(SCOPES),
+        )
+
+    assert [call[0] for call in neuron.calls] == ["authorization"]
+    assert not broker._authorizations
+    assert not broker._active_local_states
+
+
 def test_broker_returns_only_the_named_hosted_admin_callback() -> None:
     neuron = _Neuron()
     broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
@@ -312,7 +374,7 @@ def test_broker_returns_only_the_named_hosted_admin_callback() -> None:
     )
     state = neuron.calls[0][1][0]
 
-    completion = broker.callback(state=state, code="authorization-code-private-123456")
+    completion = broker.callback(state=state, code="authorization-code-private-123456", scopes=list(SCOPES))
 
     assert isinstance(completion, OAuthRedirect)
     assert completion.location.startswith(HOSTED_ADMIN_CALLBACK + "?")
@@ -341,7 +403,7 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
         scopes=list(SCOPES),
     )
     state = neuron.calls[0][1][0]
-    completion = broker.callback(state=state, code="authorization-code-private-123456")
+    completion = broker.callback(state=state, code="authorization-code-private-123456", scopes=list(SCOPES))
     assert isinstance(completion, OAuthRedirect)
     claim = parse_qs(urlsplit(completion.location).query)["claim"][0]
     with pytest.raises(OAuthBrokerError):
@@ -363,7 +425,7 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
     expired_state = neuron.calls[-1][1][0]
     now[0] += 301
     with pytest.raises(OAuthBrokerError):
-        broker.callback(state=expired_state, code="authorization-code-private-123456")
+        broker.callback(state=expired_state, code="authorization-code-private-123456", scopes=list(SCOPES))
 
 
 def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract() -> None:
@@ -382,6 +444,7 @@ def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract()
     completion = broker.callback(
         state=neuron.calls[0][1][0],
         code="authorization-code-private-123456",
+        scopes=list(SCOPES),
     )
 
     assert isinstance(completion, OAuthOutOfBand)
@@ -414,6 +477,7 @@ def test_broker_reserves_one_local_state_until_its_grant_is_claimed() -> None:
     completion = broker.callback(
         state=neuron.calls[0][1][0],
         code="authorization-code-private-123456",
+        scopes=list(SCOPES),
     )
     assert isinstance(completion, OAuthOutOfBand)
     with pytest.raises(OAuthBrokerError, match="unavailable"):
@@ -429,11 +493,11 @@ def test_broker_reserves_local_state_while_neuron_exchanges_the_code() -> None:
     release = threading.Event()
 
     class BlockingNeuron(_Neuron):
-        def exchange(self, *, code: str, verifier: str) -> OAuthTokens:
+        def exchange(self, *, code: str, verifier: str, scopes: tuple[str, ...]) -> OAuthTokens:
             entered.set()
             if not release.wait(1):
                 raise RuntimeError("test exchange timed out")
-            return super().exchange(code=code, verifier=verifier)
+            return super().exchange(code=code, verifier=verifier, scopes=scopes)
 
     neuron = BlockingNeuron()
     broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
@@ -450,6 +514,7 @@ def test_broker_reserves_local_state_while_neuron_exchanges_the_code() -> None:
             broker.callback,
             state=broker_state,
             code="authorization-code-private-123456",
+            scopes=list(SCOPES),
         )
         assert entered.wait(1)
         try:

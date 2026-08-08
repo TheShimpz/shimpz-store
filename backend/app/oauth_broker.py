@@ -35,7 +35,8 @@ CALLBACKS = {
     "out-of-band": None,
 }
 HOSTED_CALLBACK = "https://shimpz.com/api/oauth/cloudflare/callback"
-SCOPES = ("dns.read", "dns.write", "offline_access", "zone.read")
+ALLOWED_SCOPES = frozenset({"dns.read", "dns.write", "offline_access", "zone.read"})
+SCOPES = tuple(sorted(ALLOWED_SCOPES))
 AUTHORIZATION_TTL_SECONDS = 300
 GRANT_TTL_SECONDS = 300
 LEASE_TTL_SECONDS = 366 * 24 * 60 * 60
@@ -57,7 +58,9 @@ LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")
-_LEASE = re.compile(r"l1\.(\d{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\Z")
+_LEASE = re.compile(
+    r"l2\.(\d{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\Z"
+)
 
 
 class OAuthBrokerError(RuntimeError):
@@ -91,6 +94,7 @@ class _PendingAuthorization:
     local_code_challenge: str
     callback_mode: str
     broker_verifier: str
+    scopes: tuple[str, ...]
     expires_at: float
 
 
@@ -99,6 +103,7 @@ class _PendingGrant:
     local_state: str
     local_code_challenge: str
     tokens: OAuthTokens
+    scopes: tuple[str, ...]
     expires_at: float
 
 
@@ -148,9 +153,16 @@ def _code(value: object, *, label: str, minimum: int = 16, maximum: int = 4096) 
 
 
 def _scopes(value: object) -> tuple[str, ...]:
-    if not isinstance(value, list) or tuple(sorted(value)) != SCOPES or len(value) != len(set(value)):
+    if (
+        not isinstance(value, list)
+        or not value
+        or not all(isinstance(scope, str) for scope in value)
+        or tuple(value) != tuple(sorted(value))
+        or len(value) != len(set(value))
+        or not set(value) <= ALLOWED_SCOPES
+    ):
         raise OAuthBrokerError("OAuth scopes are invalid")
-    return SCOPES
+    return tuple(value)
 
 
 def _pkce_challenge(verifier: str) -> str:
@@ -332,10 +344,11 @@ class NeuronOAuthClient:
             )
         )
 
-    def authorization(self, *, state: str, code_challenge: str) -> str:
+    def authorization(self, *, state: str, code_challenge: str, scopes: tuple[str, ...]) -> str:
+        expected_scopes = _scopes(list(scopes))
         value = self._call(
             "authorization",
-            {"state": state, "code_challenge": code_challenge, "scopes": list(SCOPES)},
+            {"state": state, "code_challenge": code_challenge, "scopes": list(expected_scopes)},
         )
         if set(value) != {"authorization_url"}:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
@@ -368,17 +381,18 @@ class NeuronOAuthClient:
             or fields.get("state") != state
             or fields.get("code_challenge") != code_challenge
             or fields.get("code_challenge_method") != "S256"
-            or fields.get("scope") != " ".join(SCOPES)
+            or fields.get("scope") != " ".join(expected_scopes)
             or not _code(fields.get("client_id"), label="client id", minimum=8, maximum=256)
         ):
             raise OAuthBrokerError("Neuron OAuth response is invalid")
         return url
 
     @staticmethod
-    def _tokens(value: dict[str, object]) -> OAuthTokens:
+    def _tokens(value: dict[str, object], expected_scopes: tuple[str, ...]) -> OAuthTokens:
         if set(value) != {"access_token", "refresh_token", "scopes", "expires_in"}:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
-        _scopes(value.get("scopes"))
+        if _scopes(value.get("scopes")) != expected_scopes:
+            raise OAuthBrokerError("Neuron OAuth response is invalid")
         expires = value.get("expires_in")
         if type(expires) is not int or not 30 <= expires <= 31_536_000:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
@@ -398,20 +412,24 @@ class NeuronOAuthClient:
             expires,
         )
 
-    def exchange(self, *, code: str, verifier: str) -> OAuthTokens:
+    def exchange(self, *, code: str, verifier: str, scopes: tuple[str, ...]) -> OAuthTokens:
+        expected_scopes = _scopes(list(scopes))
         return self._tokens(
             self._call(
                 "exchange",
-                {"code": code, "code_verifier": verifier, "scopes": list(SCOPES)},
-            )
+                {"code": code, "code_verifier": verifier, "scopes": list(expected_scopes)},
+            ),
+            expected_scopes,
         )
 
-    def refresh(self, *, refresh_token: str) -> OAuthTokens:
+    def refresh(self, *, refresh_token: str, scopes: tuple[str, ...]) -> OAuthTokens:
+        expected_scopes = _scopes(list(scopes))
         return self._tokens(
             self._call(
                 "refresh",
-                {"refresh_token": refresh_token, "scopes": list(SCOPES)},
-            )
+                {"refresh_token": refresh_token, "scopes": list(expected_scopes)},
+            ),
+            expected_scopes,
         )
 
     def revoke(self, *, token: str) -> None:
@@ -447,19 +465,23 @@ class BrokerLeaseSigner:
     def _digest(token: str) -> str:
         return _base64url(hashlib.sha256(token.encode("ascii")).digest())
 
-    def issue(self, tokens: OAuthTokens) -> str:
+    def issue(self, tokens: OAuthTokens, scopes: tuple[str, ...]) -> str:
+        expected_scopes = _scopes(list(scopes))
         expires = int(self._clock()) + LEASE_TTL_SECONDS
-        payload = f"l1.{expires}.{self._digest(tokens.access_token)}.{self._digest(tokens.refresh_token)}"
+        payload = (
+            f"l2.{expires}.{self._digest(tokens.access_token)}.{self._digest(tokens.refresh_token)}."
+            f"{self._digest(' '.join(expected_scopes))}"
+        )
         signature = _base64url(hmac.new(self._key(), payload.encode("ascii"), hashlib.sha256).digest())
         return f"{payload}.{signature}"
 
-    def verify(self, lease: object, token: str) -> None:
+    def verify(self, lease: object, token: str, scopes: tuple[str, ...] | None = None) -> None:
         if not isinstance(lease, str):
             raise OAuthBrokerError("OAuth broker lease is invalid")
         match = _LEASE.fullmatch(lease)
         if match is None:
             raise OAuthBrokerError("OAuth broker lease is invalid")
-        expires, access_digest, refresh_digest, supplied = match.groups()
+        expires, access_digest, refresh_digest, scope_digest, supplied = match.groups()
         payload = lease.rsplit(".", 1)[0]
         expected = _base64url(hmac.new(self._key(), payload.encode("ascii"), hashlib.sha256).digest())
         digest = self._digest(token)
@@ -467,6 +489,10 @@ class BrokerLeaseSigner:
             int(expires) <= int(self._clock())
             or not hmac.compare_digest(expected, supplied)
             or not any(hmac.compare_digest(digest, allowed) for allowed in (access_digest, refresh_digest))
+            or (
+                scopes is not None
+                and not hmac.compare_digest(scope_digest, self._digest(" ".join(_scopes(list(scopes)))))
+            )
         ):
             raise OAuthBrokerError("OAuth broker lease is invalid")
 
@@ -513,7 +539,7 @@ class OAuthBroker:
         state = _binding(local_state, "state")
         challenge = _binding(local_code_challenge, "challenge")
         callback = _callback_mode(callback_mode)
-        _scopes(scopes)
+        requested_scopes = _scopes(scopes)
         now = self._clock()
         broker_state = self._random_binding()
         verifier = self._random_binding()
@@ -530,6 +556,7 @@ class OAuthBroker:
                 challenge,
                 callback,
                 verifier,
+                requested_scopes,
                 now + AUTHORIZATION_TTL_SECONDS,
             )
             self._active_local_states.add(state)
@@ -537,6 +564,7 @@ class OAuthBroker:
             return self._neuron.authorization(
                 state=broker_state,
                 code_challenge=_pkce_challenge(verifier),
+                scopes=requested_scopes,
             )
         except OAuthBrokerError:
             with self._lock:
@@ -545,9 +573,10 @@ class OAuthBroker:
                     self._active_local_states.discard(removed.local_state)
             raise
 
-    def callback(self, *, state: object, code: object) -> OAuthRedirect | OAuthOutOfBand:
+    def callback(self, *, state: object, code: object, scopes: object) -> OAuthRedirect | OAuthOutOfBand:
         broker_state = _binding(state, "state")
         authorization_code = _code(code, label="code")
+        returned_scopes = _scopes(scopes)
         now = self._clock()
         with self._lock:
             self._expire(now)
@@ -558,8 +587,17 @@ class OAuthBroker:
                 self._grant_reservations += 1
         if pending is None:
             raise OAuthBrokerError("OAuth authorization is unavailable")
+        if returned_scopes != pending.scopes:
+            with self._lock:
+                self._grant_reservations -= 1
+                self._active_local_states.discard(pending.local_state)
+            raise OAuthBrokerError("OAuth authorization is unavailable")
         try:
-            tokens = self._neuron.exchange(code=authorization_code, verifier=pending.broker_verifier)
+            tokens = self._neuron.exchange(
+                code=authorization_code,
+                verifier=pending.broker_verifier,
+                scopes=pending.scopes,
+            )
         except BaseException:
             with self._lock:
                 self._grant_reservations -= 1
@@ -575,6 +613,7 @@ class OAuthBroker:
                 pending.local_state,
                 pending.local_code_challenge,
                 tokens,
+                pending.scopes,
                 now + GRANT_TTL_SECONDS,
             )
         callback = CALLBACKS[pending.callback_mode]
@@ -599,22 +638,25 @@ class OAuthBroker:
                 raise OAuthBrokerError("OAuth grant is unavailable")
             self._grants.pop(claim, None)
             self._active_local_states.discard(pending.local_state)
-        return self._token_payload(pending.tokens)
+        return self._token_payload(pending.tokens, pending.scopes)
 
-    def _token_payload(self, tokens: OAuthTokens) -> dict[str, object]:
+    def _token_payload(self, tokens: OAuthTokens, scopes: tuple[str, ...]) -> dict[str, object]:
         return {
             "access_token": tokens.access_token,
             "refresh_token": tokens.refresh_token,
             "expires_in": tokens.expires_in,
-            "scopes": list(SCOPES),
-            "broker_lease": self._signer.issue(tokens),
+            "scopes": list(scopes),
+            "broker_lease": self._signer.issue(tokens, scopes),
         }
 
     def refresh(self, *, refresh_token: object, lease: object, scopes: object) -> dict[str, object]:
-        _scopes(scopes)
+        requested_scopes = _scopes(scopes)
         token = _code(refresh_token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
-        self._signer.verify(lease, token)
-        return self._token_payload(self._neuron.refresh(refresh_token=token))
+        self._signer.verify(lease, token, requested_scopes)
+        return self._token_payload(
+            self._neuron.refresh(refresh_token=token, scopes=requested_scopes),
+            requested_scopes,
+        )
 
     def revoke(self, *, token: object, lease: object) -> None:
         value = _code(token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
