@@ -239,6 +239,12 @@ def test_neuron_authorization_rejects_invalid_response(value):
         {
             "access_token": "a" * 16,
             "refresh_token": "b" * 16,
+            "scopes": ["dns.read", "zone.read"],
+            "expires_in": 3600,
+        },
+        {
+            "access_token": "a" * 16,
+            "refresh_token": "b" * 16,
             "scopes": list(broker.SCOPES),
             "expires_in": True,
         },
