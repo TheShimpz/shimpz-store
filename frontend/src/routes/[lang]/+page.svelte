@@ -15,9 +15,20 @@
   const lang = $derived(data.lang as Locale);
   const content = $derived(institutional(lang));
 
-  const delegationSrcset = "/brand/illustrations/delegation-control-768.webp 768w, /brand/illustrations/delegation-control-1536.webp 1536w";
-  const authorizationSrcset = "/brand/illustrations/human-authorization-768.webp 768w, /brand/illustrations/human-authorization-1536.webp 1536w";
-  const profilesSrcset = "/brand/illustrations/local-hosted-768.webp 768w, /brand/illustrations/local-hosted-1536.webp 1536w";
+  const delegationSrcset = "/brand/illustrations/team-architecture-768.webp 768w, /brand/illustrations/team-architecture-1536.webp 1536w";
+  const authorizationSrcset = "/brand/illustrations/bounded-authorization-768.webp 768w, /brand/illustrations/bounded-authorization-1536.webp 1536w";
+  const profilesSrcset = "/brand/illustrations/space-profiles-768.webp 768w, /brand/illustrations/space-profiles-1536.webp 1536w";
+  const delegationStages = $derived([
+    content.steps[0].title,
+    content.steps[1].title,
+    content.steps[2].title,
+    content.controls[3].title,
+  ]);
+  const authorizationStages = $derived([
+    content.controls[0].title,
+    content.controls[1].title,
+    content.controls[3].title,
+  ]);
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -26,22 +37,31 @@
   <link
     rel="preload"
     as="image"
-    href="/brand/illustrations/delegation-control-1536.webp"
+    href="/brand/illustrations/team-architecture-1536.webp"
     imagesrcset={delegationSrcset}
     imagesizes="(max-width: 760px) calc(100vw - 2rem), 58vw"
   />
 </svelte:head>
 
 {#snippet heroMedia()}
-  <EditorialVisual
-    src="/brand/illustrations/delegation-control-1536.webp"
-    srcset={delegationSrcset}
-    sizes="(max-width: 760px) calc(100vw - 2rem), 58vw"
-    alt=""
-    width={1536}
-    height={1024}
-    priority
-  />
+  <div class="illustrated-diagram" data-diagram="delegation">
+    <EditorialVisual
+      src="/brand/illustrations/team-architecture-1536.webp"
+      srcset={delegationSrcset}
+      sizes="(max-width: 760px) calc(100vw - 2rem), 58vw"
+      alt=""
+      width={1536}
+      height={1024}
+      fit="contain"
+      treatment="unframed"
+      priority
+    />
+    <ol class="diagram-legend legend-four" data-slot="diagram-legend">
+      {#each delegationStages as stage, index (stage)}
+        <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
+      {/each}
+    </ol>
+  </div>
 {/snippet}
 
 {#snippet heroMeta()}<InstallCommand {lang} />{/snippet}
@@ -52,14 +72,23 @@
 {/snippet}
 
 {#snippet authorizationMedia()}
-  <EditorialVisual
-    src="/brand/illustrations/human-authorization-1536.webp"
-    srcset={authorizationSrcset}
-    sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
-    alt=""
-    width={1536}
-    height={1024}
-  />
+  <div class="illustrated-diagram" data-diagram="authorization">
+    <EditorialVisual
+      src="/brand/illustrations/bounded-authorization-1536.webp"
+      srcset={authorizationSrcset}
+      sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
+      alt=""
+      width={1536}
+      height={1024}
+      fit="contain"
+      treatment="unframed"
+    />
+    <ol class="diagram-legend legend-three" data-slot="diagram-legend">
+      {#each authorizationStages as stage, index (stage)}
+        <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
+      {/each}
+    </ol>
+  </div>
 {/snippet}
 
 {#snippet securityAction()}
@@ -67,14 +96,23 @@
 {/snippet}
 
 {#snippet profilesMedia()}
-  <EditorialVisual
-    src="/brand/illustrations/local-hosted-1536.webp"
-    srcset={profilesSrcset}
-    sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
-    alt=""
-    width={1536}
-    height={1024}
-  />
+  <div class="illustrated-diagram" data-diagram="profiles">
+    <EditorialVisual
+      src="/brand/illustrations/space-profiles-1536.webp"
+      srcset={profilesSrcset}
+      sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
+      alt=""
+      width={1536}
+      height={1024}
+      fit="contain"
+      treatment="unframed"
+    />
+    <ul class="diagram-legend legend-two" data-slot="diagram-legend">
+      {#each content.profiles as profile (profile.title)}
+        <li><strong>{profile.title}</strong><small>{profile.detail}</small></li>
+      {/each}
+    </ul>
+  </div>
 {/snippet}
 
 <div class="editorial-wrap hero-space">
@@ -191,6 +229,15 @@
   .problem h2, .open-source h2 { max-width: var(--shimpz-type-section-measure); margin: 0 0 1.5rem; font: 680 var(--shimpz-type-section-size)/var(--shimpz-type-section-leading) var(--shimpz-font-sans); letter-spacing: var(--shimpz-type-section-tracking); text-wrap: balance; }
   .problem > p:last-child { font-size: clamp(1rem, 1.6vw, 1.25rem); }
   .surface-band > .editorial-wrap, .section-space { padding-block: clamp(5rem, 10vw, 9rem); }
+  .illustrated-diagram { display: grid; gap: clamp(.75rem, 1.5vw, 1.25rem); width: 100%; }
+  .diagram-legend { display: grid; gap: clamp(.65rem, 1.2vw, 1rem); min-width: 0; margin: 0; padding: 0; list-style: none; }
+  .legend-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .legend-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .legend-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diagram-legend li { display: grid; align-content: start; gap: .35rem; min-width: 0; color: var(--color-text); }
+  .diagram-legend li > span { color: var(--color-green); font: 600 .62rem/1 var(--font-mono); letter-spacing: .1em; }
+  .diagram-legend strong { font: 600 clamp(.64rem, .9vw, .76rem)/1.4 var(--font-mono); overflow-wrap: anywhere; }
+  .diagram-legend small { color: var(--color-muted); font: 500 .62rem/1.45 var(--font-mono); overflow-wrap: anywhere; }
   .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
   .steps li { display: grid; min-height: 14rem; align-content: space-between; gap: 2rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   .steps li:last-child { border-inline-end: 0; }
@@ -212,5 +259,7 @@
     .steps li, .profiles-grid article { min-height: auto; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .steps li:last-child, .profiles-grid article:last-child { border-block-end: 0; }
     .profiles-grid h3 { margin-block-start: 2rem; }
+    .diagram-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .legend-three li:last-child { grid-column: 1 / -1; }
   }
 </style>
