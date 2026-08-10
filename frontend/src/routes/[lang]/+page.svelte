@@ -57,7 +57,7 @@
       priority
     />
     <ol class="diagram-legend legend-four" data-slot="diagram-legend">
-      {#each delegationStages as stage, index (stage)}
+      {#each delegationStages as stage, index (index)}
         <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
       {/each}
     </ol>
@@ -84,7 +84,7 @@
       treatment="unframed"
     />
     <ol class="diagram-legend legend-three" data-slot="diagram-legend">
-      {#each authorizationStages as stage, index (stage)}
+      {#each authorizationStages as stage, index (index)}
         <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
       {/each}
     </ol>
@@ -107,9 +107,9 @@
       fit="contain"
       treatment="unframed"
     />
-    <ul class="diagram-legend legend-two" data-slot="diagram-legend">
+    <ul class="diagram-legend legend-two" data-slot="diagram-legend" dir="ltr">
       {#each content.profiles as profile (profile.title)}
-        <li><strong>{profile.title}</strong><small>{profile.detail}</small></li>
+        <li><strong>{profile.title}</strong><small dir="auto">{profile.detail}</small></li>
       {/each}
     </ul>
   </div>
@@ -236,8 +236,8 @@
   .legend-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .diagram-legend li { display: grid; align-content: start; gap: .35rem; min-width: 0; color: var(--color-text); }
   .diagram-legend li > span { color: var(--color-green); font: 600 .62rem/1 var(--font-mono); letter-spacing: .1em; }
-  .diagram-legend strong { font: 600 clamp(.64rem, .9vw, .76rem)/1.4 var(--font-mono); overflow-wrap: anywhere; }
-  .diagram-legend small { color: var(--color-muted); font: 500 .62rem/1.45 var(--font-mono); overflow-wrap: anywhere; }
+  .diagram-legend strong { font: 650 clamp(.72rem, 1vw, .86rem)/1.4 var(--font-sans); letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .diagram-legend small { display: block; color: var(--color-muted); font: 500 .68rem/1.5 var(--font-sans); text-align: start; overflow-wrap: anywhere; }
   .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
   .steps li { display: grid; min-height: 14rem; align-content: space-between; gap: 2rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   .steps li:last-child { border-inline-end: 0; }
