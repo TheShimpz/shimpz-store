@@ -9,14 +9,12 @@ export type InstitutionalContent = {
   eyebrow: string;
   title: string;
   lead: string;
-  support: string;
   installKicker: string;
   installTitle: string;
   installBody: string;
   problemKicker: string;
   problemTitle: string;
   problemLead: string;
-  alternatives: [Concept, Concept];
   modelKicker: string;
   modelTitle: string;
   modelLead: string;
@@ -35,11 +33,7 @@ export type InstitutionalContent = {
   openBody: string;
   openLink: string;
   github: string;
-  finalKicker: string;
-  finalTitle: string;
-  finalBody: string;
   assistantsLink: string;
-  documentation: string;
 };
 
 export type InstitutionalPageContent = {
@@ -59,19 +53,14 @@ const EN: InstitutionalContent = {
   seoTitle: "Shimpz — delegate real digital work without giving up control",
   seoDescription: "Talk to a Team, install programmed Assistants, authorize sensitive actions, and run Shimpz on infrastructure you control.",
   eyebrow: "Open-source organization · human authority",
-  title: "Finally, delegate real work without giving up control.",
+  title: "Finally, delegate without losing control.",
   lead: "Talk to your Team. Install Assistants that give it programmed capabilities. Approve sensitive actions and inspect what happened.",
-  support: "AI understands and coordinates. Declared Powers execute the work instead of rebuilding the solution from scratch for every task.",
   installKicker: "Local Space // canonical installer",
   installTitle: "Start on infrastructure you control.",
   installBody: "Create a Local Space with the canonical installer. The same product language applies to the Hosted profile operated by Shimpz.",
   problemKicker: "A different boundary // less assembly, less improvisation",
   problemTitle: "Automation should not create more work.",
   problemLead: "Shimpz sits between workflow builders you must engineer and general agents you must continuously supervise.",
-  alternatives: [
-    { title: "Stop building every flow", body: "State the objective instead of wiring connectors, webhooks, credentials, and branches for every new task." },
-    { title: "Stop trusting every improvisation", body: "Assistants expose programmed Powers. The Team admits what may run and returns sensitive decisions to you." },
-  ],
   modelKicker: "Shimpz // one useful mental model",
   modelTitle: "One conversation. Capabilities you choose.",
   modelLead: "The product model becomes visible only when it helps you decide what happens next.",
@@ -102,11 +91,7 @@ const EN: InstitutionalContent = {
   openBody: "Shimpz is organized across independently versioned repositories with reviewable implementation history. Every Assistant, including Shimpz Cloudflare, uses the standard publication path.",
   openLink: "Understand what is open",
   github: "Open GitHub",
-  finalKicker: "Shimpz // Local",
-  finalTitle: "Give your first Team a place to work.",
-  finalBody: "Install a Local Space, open Shimpz Admin, configure inference, and choose the Assistants your Team can use.",
   assistantsLink: "Explore Assistants",
-  documentation: "Read the documentation",
 };
 
 const CONTENT: Record<Locale, InstitutionalContent> = {
@@ -115,19 +100,14 @@ const CONTENT: Record<Locale, InstitutionalContent> = {
     seoTitle: "Shimpz — delegue trabalho digital real sem abrir mão do controle",
     seoDescription: "Converse com um Time, instale Assistentes programados, autorize ações sensíveis e execute o Shimpz na infraestrutura que você controla.",
     eyebrow: "Organização de código aberto · autoridade humana",
-    title: "Finalmente, delegue trabalho real sem abrir mão do controle.",
+    title: "Finalmente, delegue sem perder o controle.",
     lead: "Converse com seu Time. Instale Assistentes que oferecem capacidades programadas. Autorize ações sensíveis e inspecione o que aconteceu.",
-    support: "A IA compreende e coordena. Powers declarados executam o trabalho sem reconstruir a solução do zero para cada tarefa.",
     installKicker: "Space Local // instalador canônico",
     installTitle: "Comece na infraestrutura que você controla.",
     installBody: "Crie um Space Local com o instalador canônico. A mesma linguagem de produto se aplica ao perfil Hosted operado pela Shimpz.",
     problemKicker: "Um limite diferente // menos montagem, menos improviso",
     problemTitle: "Automatizar não deveria criar mais trabalho.",
     problemLead: "O Shimpz fica entre construtores de fluxos que você precisa programar e agentes genéricos que você precisa supervisionar o tempo todo.",
-    alternatives: [
-      { title: "Pare de construir cada fluxo", body: "Declare o objetivo em vez de ligar conectores, webhooks, credenciais e desvios para cada tarefa nova." },
-      { title: "Pare de confiar em cada improviso", body: "Assistentes expõem Powers programados. O Time admite o que pode rodar e devolve as decisões sensíveis a você." },
-    ],
     modelKicker: "Shimpz // um modelo mental útil",
     modelTitle: "Uma conversa. Capacidades que você escolhe.",
     modelLead: "O modelo do produto aparece somente quando ajuda você a decidir o que acontece depois.",
@@ -158,22 +138,16 @@ const CONTENT: Record<Locale, InstitutionalContent> = {
     openBody: "O Shimpz é organizado em repositórios versionados de forma independente, com histórico de implementação revisável. Todo Assistente, inclusive o Shimpz Cloudflare, segue o caminho padrão de publicação.",
     openLink: "Entender o que é aberto",
     github: "Abrir GitHub",
-    finalKicker: "Shimpz // Local",
-    finalTitle: "Dê ao seu primeiro Time um lugar para trabalhar.",
-    finalBody: "Instale um Space Local, abra o Shimpz Admin, configure a inferência e escolha os Assistentes que seu Time pode usar.",
     assistantsLink: "Explorar Assistentes",
-    documentation: "Ler a documentação",
   },
   es: {
     seoTitle: "Shimpz — delega trabajo digital real sin perder el control",
     seoDescription: "Habla con un Team, instala Asistentes programados, autoriza acciones sensibles y ejecuta Shimpz en la infraestructura que controlas.",
     eyebrow: "Organización de código abierto · autoridad humana",
-    title: "Por fin, delega trabajo real sin renunciar al control.",
+    title: "Por fin, delega sin perder el control.",
     lead: "Habla con tu Team. Instala Asistentes que le aportan capacidades programadas. Autoriza acciones sensibles e inspecciona lo ocurrido.",
-    support: "La IA comprende y coordina. Los Powers declarados ejecutan el trabajo sin reconstruir la solución desde cero para cada tarea.",
     installKicker: "Space Local // instalador canónico", installTitle: "Empieza en la infraestructura que controlas.", installBody: "Crea un Space Local con el instalador canónico. El mismo lenguaje de producto se aplica al perfil Hosted operado por Shimpz.",
     problemKicker: "Un límite diferente // menos montaje, menos improvisación", problemTitle: "Automatizar no debería crear más trabajo.", problemLead: "Shimpz se sitúa entre los constructores de flujos que debes programar y los agentes generales que debes supervisar continuamente.",
-    alternatives: [{ title: "Deja de construir cada flujo", body: "Expresa el objetivo en lugar de conectar integraciones, webhooks, credenciales y ramas para cada tarea nueva." }, { title: "Deja de confiar en cada improvisación", body: "Los Asistentes exponen Powers programados. El Team admite lo que puede ejecutarse y te devuelve las decisiones sensibles." }],
     modelKicker: "Shimpz // un modelo mental útil", modelTitle: "Una conversación. Capacidades que tú eliges.", modelLead: "El modelo del producto aparece solo cuando te ayuda a decidir qué sucede después.",
     steps: [{ title: "Habla con un Team", body: "Un Team mantiene aislados una conversación, contexto, archivos, configuración de inferencia y límite de trabajo." }, { title: "Instala Asistentes", body: "Cada Asistente publicado de forma independiente aporta capacidades declaradas y revisables al Team." }, { title: "Autoriza lo importante", body: "Cuando un Power necesita autoridad humana, la ejecución se pausa y pregunta antes de la acción relevante." }],
     controlKicker: "Control // parte de la ejecución", controlTitle: "La confianza nace de mecanismos visibles.", controlLead: "Shimpz muestra el límite que impone en vez de pedirte que creas en un adjetivo de seguridad sin pruebas.",
@@ -181,55 +155,55 @@ const CONTENT: Record<Locale, InstitutionalContent> = {
     securityLink: "Inspeccionar el modelo de seguridad",
     profilesKicker: "Un producto // dos perfiles", profilesTitle: "Elige quién opera la infraestructura.", profilesLead: "Local y Hosted son perfiles del mismo concepto Space. El lenguaje se mantiene; la autoridad y la topología difieren cuando es necesario.", profiles: [{ title: "Local", body: "Ejecuta un Space en Linux, un Mac con Apple Silicon o Windows mediante WSL2.", detail: "Tu infraestructura · tu Supervisor" }, { title: "Hosted", body: "Usa el Space público de Shimpz.com mediante una Account atribuible.", detail: "Infraestructura Shimpz · autoridad de Account" }],
     openKicker: "Código abierto // inspecciona el trabajo", openTitle: "Construido en público. Limitado al ejecutarse.", openBody: "Shimpz se organiza en repositorios versionados de forma independiente con un historial de implementación revisable. Todo Asistente, incluido Shimpz Cloudflare, sigue la ruta estándar de publicación.", openLink: "Entender qué es abierto", github: "Abrir GitHub",
-    finalKicker: "Shimpz // Local", finalTitle: "Dale a tu primer Team un lugar para trabajar.", finalBody: "Instala un Space Local, abre Shimpz Admin, configura la inferencia y elige los Asistentes que tu Team puede usar.", assistantsLink: "Explorar Asistentes", documentation: "Leer la documentación",
+    assistantsLink: "Explorar Asistentes",
   },
   fr: {
     seoTitle: "Shimpz — déléguez du travail numérique réel sans perdre le contrôle",
     seoDescription: "Parlez à une Team, installez des Assistants programmés, autorisez les actions sensibles et exécutez Shimpz sur votre infrastructure.",
-    eyebrow: "Organisation open source · autorité humaine", title: "Enfin, déléguez du vrai travail sans renoncer au contrôle.", lead: "Parlez à votre Team. Installez des Assistants qui lui apportent des capacités programmées. Autorisez les actions sensibles et inspectez le résultat.", support: "L’IA comprend et coordonne. Des Powers déclarés exécutent le travail sans reconstruire la solution à chaque tâche.",
+    eyebrow: "Organisation open source · autorité humaine", title: "Enfin, déléguez sans perdre le contrôle.", lead: "Parlez à votre Team. Installez des Assistants qui lui apportent des capacités programmées. Autorisez les actions sensibles et inspectez le résultat.",
     installKicker: "Space Local // installateur canonique", installTitle: "Commencez sur l’infrastructure que vous contrôlez.", installBody: "Créez un Space Local avec l’installateur canonique. Le même langage produit s’applique au profil Hosted exploité par Shimpz.",
-    problemKicker: "Une autre limite // moins d’assemblage, moins d’improvisation", problemTitle: "L’automatisation ne devrait pas créer plus de travail.", problemLead: "Shimpz se place entre les outils de workflow que vous devez construire et les agents généralistes que vous devez surveiller sans cesse.", alternatives: [{ title: "Ne construisez plus chaque workflow", body: "Exprimez l’objectif au lieu d’assembler connecteurs, webhooks, identifiants et branches pour chaque tâche." }, { title: "Ne faites plus confiance à chaque improvisation", body: "Les Assistants exposent des Powers programmés. La Team admet ce qui peut s’exécuter et vous rend les décisions sensibles." }],
+    problemKicker: "Une autre limite // moins d’assemblage, moins d’improvisation", problemTitle: "L’automatisation ne devrait pas créer plus de travail.", problemLead: "Shimpz se place entre les outils de workflow que vous devez construire et les agents généralistes que vous devez surveiller sans cesse.",
     modelKicker: "Shimpz // un modèle mental utile", modelTitle: "Une conversation. Les capacités que vous choisissez.", modelLead: "Le modèle du produit apparaît seulement lorsqu’il vous aide à décider de la suite.", steps: [{ title: "Parlez à une Team", body: "Une Team isole une conversation, son contexte, ses fichiers, sa configuration d’inférence et ses workloads." }, { title: "Installez des Assistants", body: "Chaque Assistant publié indépendamment apporte à la Team des capacités déclarées et vérifiables." }, { title: "Autorisez ce qui compte", body: "Lorsqu’un Power exige une autorité humaine, l’exécution se suspend et demande avant l’action importante." }],
     controlKicker: "Contrôle // dans l’exécution", controlTitle: "La confiance vient de mécanismes visibles.", controlLead: "Shimpz montre la limite qu’il impose plutôt que de vous demander de croire un adjectif de sécurité sans preuve.", controls: [{ title: "Accès limité", body: "Les Integrations demandent des capacités et scopes déclarés, pas une clé maîtresse générique." }, { title: "Approbation humaine", body: "Une action importante peut attendre une approbation attribuable et le niveau d’assurance requis." }, { title: "Autorité isolée", body: "Une Team conserve ses propres Assistants, états, fichiers, bindings, identifiants et cycle de vie." }, { title: "Résultat visible", body: "La progression et le résultat final apparaissent sans exposer prompts, payloads ou secrets." }], securityLink: "Inspecter le modèle de sécurité",
     profilesKicker: "Un produit // deux profils", profilesTitle: "Choisissez qui exploite l’infrastructure.", profilesLead: "Local et Hosted sont deux profils du même concept Space. Le langage reste cohérent; autorité et topologie diffèrent lorsque nécessaire.", profiles: [{ title: "Local", body: "Exécutez un Space sur Linux, un Mac Apple Silicon ou Windows via WSL2.", detail: "Votre infrastructure · votre Supervisor" }, { title: "Hosted", body: "Utilisez le Space public de Shimpz.com avec une Account attribuable.", detail: "Infrastructure Shimpz · autorité Account" }],
     openKicker: "Open source // inspectez le travail", openTitle: "Construit en public. Délimité à l’exécution.", openBody: "Shimpz est organisé en dépôts versionnés indépendamment avec un historique d’implémentation vérifiable. Chaque Assistant, y compris Shimpz Cloudflare, suit le parcours de publication standard.", openLink: "Comprendre ce qui est ouvert", github: "Ouvrir GitHub",
-    finalKicker: "Shimpz // Local", finalTitle: "Donnez à votre première Team un espace de travail.", finalBody: "Installez un Space Local, ouvrez Shimpz Admin, configurez l’inférence et choisissez les Assistants de votre Team.", assistantsLink: "Explorer les Assistants", documentation: "Lire la documentation",
+    assistantsLink: "Explorer les Assistants",
   },
   de: {
-    seoTitle: "Shimpz — echte digitale Arbeit delegieren, ohne Kontrolle abzugeben", seoDescription: "Sprich mit einem Team, installiere programmierte Assistants, genehmige sensible Aktionen und betreibe Shimpz auf eigener Infrastruktur.", eyebrow: "Open-Source-Organisation · menschliche Autorität", title: "Endlich echte Arbeit delegieren, ohne die Kontrolle abzugeben.", lead: "Sprich mit deinem Team. Installiere Assistants mit programmierten Fähigkeiten. Genehmige sensible Aktionen und prüfe das Ergebnis.", support: "KI versteht und koordiniert. Deklarierte Powers führen die Arbeit aus, statt die Lösung für jede Aufgabe neu zu bauen.",
-    installKicker: "Local Space // kanonischer Installer", installTitle: "Starte auf der Infrastruktur, die du kontrollierst.", installBody: "Erstelle mit dem kanonischen Installer einen Local Space. Dieselbe Produktsprache gilt für das von Shimpz betriebene Hosted-Profil.", problemKicker: "Eine andere Grenze // weniger Aufbau, weniger Improvisation", problemTitle: "Automatisierung sollte nicht mehr Arbeit erzeugen.", problemLead: "Shimpz liegt zwischen Workflow-Tools, die du konstruieren musst, und allgemeinen Agenten, die du ständig überwachen musst.", alternatives: [{ title: "Baue nicht jeden Ablauf selbst", body: "Nenne das Ziel, statt für jede Aufgabe Konnektoren, Webhooks, Zugangsdaten und Verzweigungen zu verdrahten." }, { title: "Vertraue nicht jeder Improvisation", body: "Assistants stellen programmierte Powers bereit. Das Team lässt nur zu, was ausgeführt werden darf, und gibt dir sensible Entscheidungen zurück." }],
+    seoTitle: "Shimpz — echte digitale Arbeit delegieren, ohne Kontrolle abzugeben", seoDescription: "Sprich mit einem Team, installiere programmierte Assistants, genehmige sensible Aktionen und betreibe Shimpz auf eigener Infrastruktur.", eyebrow: "Open-Source-Organisation · menschliche Autorität", title: "Endlich delegieren. Kontrolle behalten.", lead: "Sprich mit deinem Team. Installiere Assistants mit programmierten Fähigkeiten. Genehmige sensible Aktionen und prüfe das Ergebnis.",
+    installKicker: "Local Space // kanonischer Installer", installTitle: "Starte auf der Infrastruktur, die du kontrollierst.", installBody: "Erstelle mit dem kanonischen Installer einen Local Space. Dieselbe Produktsprache gilt für das von Shimpz betriebene Hosted-Profil.", problemKicker: "Eine andere Grenze // weniger Aufbau, weniger Improvisation", problemTitle: "Automatisierung sollte nicht mehr Arbeit erzeugen.", problemLead: "Shimpz liegt zwischen Workflow-Tools, die du konstruieren musst, und allgemeinen Agenten, die du ständig überwachen musst.",
     modelKicker: "Shimpz // ein nützliches Denkmodell", modelTitle: "Ein Gespräch. Fähigkeiten deiner Wahl.", modelLead: "Das Produktmodell wird erst sichtbar, wenn es dir bei der nächsten Entscheidung hilft.", steps: [{ title: "Sprich mit einem Team", body: "Ein Team hält Gespräch, Kontext, Dateien, Inferenzkonfiguration und Workload-Grenze isoliert." }, { title: "Installiere Assistants", body: "Jeder unabhängig veröffentlichte Assistant gibt dem Team deklarierte, prüfbare Fähigkeiten." }, { title: "Genehmige, was zählt", body: "Benötigt ein Power menschliche Autorität, pausiert die Ausführung vor der folgenreichen Aktion." }],
     controlKicker: "Kontrolle // Teil der Ausführung", controlTitle: "Vertrauen entsteht durch sichtbare Mechanismen.", controlLead: "Shimpz zeigt die erzwungene Grenze, statt unbelegte Sicherheitsadjektive zu verlangen.", controls: [{ title: "Begrenzter Zugriff", body: "Integrationen verlangen deklarierte Anbieterfähigkeiten und Scopes statt eines allgemeinen Hauptschlüssels." }, { title: "Menschliche Freigabe", body: "Folgenreiche Arbeit kann für eine zuordenbare Freigabe und die erforderliche Absicherung pausieren." }, { title: "Isolierte Autorität", body: "Ein Team behält eigene Assistants, Zustände, Dateien, Bindings, Zugangsdaten und Workload-Lebenszyklen." }, { title: "Sichtbares Ergebnis", body: "Fortschritt und Endergebnis werden gezeigt, ohne Prompts, Payloads oder Geheimnisse offenzulegen." }], securityLink: "Sicherheitsmodell prüfen",
     profilesKicker: "Ein Produkt // zwei Profile", profilesTitle: "Wähle, wer die Infrastruktur betreibt.", profilesLead: "Local und Hosted sind Profile desselben Space-Konzepts. Die Produktsprache bleibt gleich; Autorität und Topologie unterscheiden sich, wo nötig.", profiles: [{ title: "Local", body: "Betreibe einen Space unter Linux, auf einem Apple-Silicon-Mac oder unter Windows mit WSL2.", detail: "Deine Infrastruktur · dein Supervisor" }, { title: "Hosted", body: "Nutze den öffentlichen Shimpz.com Space über einen zuordenbaren Account.", detail: "Shimpz-Infrastruktur · Account-Autorität" }],
     openKicker: "Open Source // prüfe die Arbeit", openTitle: "Öffentlich entwickelt. Bei der Ausführung begrenzt.", openBody: "Shimpz ist in unabhängig versionierten Repositories mit prüfbarer Implementierungshistorie organisiert. Jeder Assistant, auch Shimpz Cloudflare, nutzt den Standardweg zur Veröffentlichung.", openLink: "Verstehen, was offen ist", github: "GitHub öffnen",
-    finalKicker: "Shimpz // Local", finalTitle: "Gib deinem ersten Team einen Arbeitsplatz.", finalBody: "Installiere einen Local Space, öffne Shimpz Admin, konfiguriere Inferenz und wähle die Assistants deines Teams.", assistantsLink: "Assistants entdecken", documentation: "Dokumentation lesen",
+    assistantsLink: "Assistants entdecken",
   },
   zh: {
-    seoTitle: "Shimpz — 委派真实的数字工作，同时保留控制权", seoDescription: "与 Team 对话，安装具有既定能力的 Assistant，授权敏感操作，并在你控制的基础设施上运行 Shimpz。", eyebrow: "开源组织 · 人类授权", title: "终于，可以委派真实工作，而不必交出控制权。", lead: "与你的 Team 对话。安装为它提供既定能力的 Assistant。授权敏感操作，并检查实际发生了什么。", support: "AI 负责理解与协调。声明过的 Power 执行工作，无需为每项任务从头重建解决方案。",
-    installKicker: "Local Space // 标准安装程序", installTitle: "从你控制的基础设施开始。", installBody: "使用标准安装程序创建 Local Space。由 Shimpz 运营的 Hosted 配置使用相同的产品语言。", problemKicker: "不同的边界 // 少搭建，少即兴", problemTitle: "自动化不应制造更多工作。", problemLead: "Shimpz 位于两者之间：一边是需要你设计的工作流工具，另一边是需要你持续监督的通用 Agent。", alternatives: [{ title: "不再搭建每个流程", body: "直接说明目标，而不是为每项新任务连接组件、Webhook、凭据和分支。" }, { title: "不再信任每次即兴执行", body: "Assistant 提供编程实现的 Power。Team 决定什么可以运行，并把敏感决策交还给你。" }],
+    seoTitle: "Shimpz — 委派真实的数字工作，同时保留控制权", seoDescription: "与 Team 对话，安装具有既定能力的 Assistant，授权敏感操作，并在你控制的基础设施上运行 Shimpz。", eyebrow: "开源组织 · 人类授权", title: "终于，可以委派工作而不失去掌控。", lead: "与你的 Team 对话。安装为它提供既定能力的 Assistant。授权敏感操作，并检查实际发生了什么。",
+    installKicker: "Local Space // 标准安装程序", installTitle: "从你控制的基础设施开始。", installBody: "使用标准安装程序创建 Local Space。由 Shimpz 运营的 Hosted 配置使用相同的产品语言。", problemKicker: "不同的边界 // 少搭建，少即兴", problemTitle: "自动化不应制造更多工作。", problemLead: "Shimpz 位于两者之间：一边是需要你设计的工作流工具，另一边是需要你持续监督的通用 Agent。",
     modelKicker: "Shimpz // 一个有用的心智模型", modelTitle: "一次对话。由你选择的能力。", modelLead: "只有在帮助你决定下一步时，产品模型才会出现。", steps: [{ title: "与 Team 对话", body: "Team 隔离保存对话、上下文、文件、推理配置和工作负载边界。" }, { title: "安装 Assistant", body: "每个独立发布的 Assistant 都为 Team 提供已声明且可审查的能力。" }, { title: "授权重要操作", body: "当 Power 需要人类授权时，执行会暂停，并在关键操作前询问你。" }],
     controlKicker: "控制 // 执行的一部分", controlTitle: "信任来自可见的机制。", controlLead: "Shimpz 展示实际执行的边界，而不是要求你相信没有证据的安全形容词。", controls: [{ title: "有限访问", body: "Integration 请求已声明的提供商能力和作用域，而不是通用主密钥。" }, { title: "人类批准", body: "关键工作可以暂停，等待可追溯的批准和所需的身份保证。" }, { title: "隔离授权", body: "Team 拥有自己的 Assistant、状态、文件、绑定、凭据和工作负载生命周期。" }, { title: "可见结果", body: "系统展示执行进度和最终结果，但不暴露提示、载荷或秘密。" }], securityLink: "查看安全模型",
     profilesKicker: "一个产品 // 两种配置", profilesTitle: "选择由谁运营基础设施。", profilesLead: "Local 和 Hosted 是同一 Space 概念的配置。产品语言保持一致；授权和拓扑在必要处不同。", profiles: [{ title: "Local", body: "在 Linux、Apple Silicon Mac 或通过 WSL2 的 Windows 上运行 Space。", detail: "你的基础设施 · 你的 Supervisor" }, { title: "Hosted", body: "通过可追溯的 Account 使用 Shimpz.com 公共 Space。", detail: "Shimpz 基础设施 · Account 授权" }],
     openKicker: "开源 // 检查工作", openTitle: "公开构建。运行时有明确边界。", openBody: "Shimpz 由独立版本化的仓库组成，保留可审查的实现历史。每个 Assistant，包括 Shimpz Cloudflare，都遵循标准发布路径。", openLink: "了解哪些内容是开放的", github: "打开 GitHub",
-    finalKicker: "Shimpz // Local", finalTitle: "为你的第一个 Team 提供工作空间。", finalBody: "安装 Local Space，打开 Shimpz Admin，配置推理，并选择 Team 可以使用的 Assistant。", assistantsLink: "浏览 Assistant", documentation: "阅读文档",
+    assistantsLink: "浏览 Assistant",
   },
   ja: {
-    seoTitle: "Shimpz — 制御を手放さずに、現実のデジタル作業を任せる", seoDescription: "Team と対話し、プログラムされた Assistant を導入し、重要な操作を承認して、管理するインフラで Shimpz を実行できます。", eyebrow: "オープンソース組織 · 人の権限", title: "ついに、制御を手放さずに本当の仕事を任せられる。", lead: "Team と話し、プログラムされた能力を持つ Assistant を導入します。重要な操作を承認し、何が起きたか確認できます。", support: "AI は理解と調整を担います。宣言済みの Power が実行するため、タスクごとに解決策をゼロから作り直しません。",
-    installKicker: "Local Space // 正規インストーラー", installTitle: "自分が管理するインフラから始める。", installBody: "正規インストーラーで Local Space を作成します。Shimpz が運用する Hosted プロファイルにも同じ製品言語が適用されます。", problemKicker: "異なる境界 // 組み立ても即興も少なく", problemTitle: "自動化が仕事を増やすべきではありません。", problemLead: "Shimpz は、自分で設計するワークフローツールと、常に監視が必要な汎用 Agent の間に位置します。", alternatives: [{ title: "フローを毎回作らない", body: "新しいタスクごとにコネクタ、Webhook、認証情報、分岐を組む代わりに、目的を伝えます。" }, { title: "即興の実行を信じ切らない", body: "Assistant はプログラムされた Power を公開します。Team が実行可能なものを認め、重要な判断をあなたに返します。" }],
+    seoTitle: "Shimpz — 制御を手放さずに、現実のデジタル作業を任せる", seoDescription: "Team と対話し、プログラムされた Assistant を導入し、重要な操作を承認して、管理するインフラで Shimpz を実行できます。", eyebrow: "オープンソース組織 · 人の権限", title: "ついに、主導権を保ったまま任せられる。", lead: "Team と話し、プログラムされた能力を持つ Assistant を導入します。重要な操作を承認し、何が起きたか確認できます。",
+    installKicker: "Local Space // 正規インストーラー", installTitle: "自分が管理するインフラから始める。", installBody: "正規インストーラーで Local Space を作成します。Shimpz が運用する Hosted プロファイルにも同じ製品言語が適用されます。", problemKicker: "異なる境界 // 組み立ても即興も少なく", problemTitle: "自動化が仕事を増やすべきではありません。", problemLead: "Shimpz は、自分で設計するワークフローツールと、常に監視が必要な汎用 Agent の間に位置します。",
     modelKicker: "Shimpz // 役立つメンタルモデル", modelTitle: "一つの対話。選べる能力。", modelLead: "製品モデルは、次の判断に役立つときだけ前面に現れます。", steps: [{ title: "Team と話す", body: "Team は対話、コンテキスト、ファイル、推論設定、ワークロード境界を分離します。" }, { title: "Assistant を導入する", body: "独立して公開された各 Assistant が、宣言済みで確認可能な能力を Team に与えます。" }, { title: "重要な部分を承認する", body: "Power に人の権限が必要な場合、実行は重要な操作の前で止まり、確認を求めます。" }],
     controlKicker: "制御 // 実行の一部", controlTitle: "信頼は見える仕組みから生まれる。", controlLead: "Shimpz は、根拠のない安全性の形容詞ではなく、実際に強制する境界を示します。", controls: [{ title: "限定されたアクセス", body: "Integration は汎用のマスターキーではなく、宣言済みのプロバイダー能力とスコープを要求します。" }, { title: "人による承認", body: "重要な処理は、追跡可能な承認と必要な保証を得るまで一時停止できます。" }, { title: "分離された権限", body: "Team ごとに Assistant、状態、ファイル、binding、認証情報、ワークロードのライフサイクルを保持します。" }, { title: "見える結果", body: "プロンプト、payload、秘密を公開せずに、進行状況と最終結果を示します。" }], securityLink: "セキュリティモデルを見る",
     profilesKicker: "一つの製品 // 二つのプロファイル", profilesTitle: "インフラを誰が運用するか選ぶ。", profilesLead: "Local と Hosted は同じ Space 概念のプロファイルです。製品言語は同じで、必要な箇所だけ権限と構成が異なります。", profiles: [{ title: "Local", body: "Linux、Apple Silicon Mac、または WSL2 上の Windows で Space を実行します。", detail: "自分のインフラ · 自分の Supervisor" }, { title: "Hosted", body: "追跡可能な Account で Shimpz.com の公開 Space を利用します。", detail: "Shimpz インフラ · Account 権限" }],
     openKicker: "オープンソース // 実装を確認", openTitle: "公開で構築。実行時は明確な境界。", openBody: "Shimpz は独立してバージョン管理されたリポジトリで構成され、確認可能な実装履歴を持ちます。Shimpz Cloudflare を含む全 Assistant が標準公開経路を使います。", openLink: "公開範囲を理解する", github: "GitHub を開く",
-    finalKicker: "Shimpz // Local", finalTitle: "最初の Team に働く場所を用意する。", finalBody: "Local Space をインストールし、Shimpz Admin を開き、推論を設定して Team が使う Assistant を選びます。", assistantsLink: "Assistant を見る", documentation: "ドキュメントを読む",
+    assistantsLink: "Assistant を見る",
   },
   ar: {
-    seoTitle: "Shimpz — فوّض العمل الرقمي الحقيقي دون التخلي عن التحكم", seoDescription: "تحدث مع Team وثبّت Assistants مبرمجة ووافق على الإجراءات الحساسة وشغّل Shimpz على بنيتك التحتية.", eyebrow: "منظمة مفتوحة المصدر · سلطة بشرية", title: "أخيرًا، فوّض العمل الحقيقي دون أن تتخلى عن التحكم.", lead: "تحدث مع Team الخاصة بك. ثبّت Assistants تمنحها قدرات مبرمجة. وافق على الإجراءات الحساسة وافحص ما حدث.", support: "يفهم الذكاء الاصطناعي وينسّق. تنفذ Powers المعلنة العمل بدل إعادة بناء الحل من الصفر لكل مهمة.",
-    installKicker: "Space محلية // المثبّت المعتمد", installTitle: "ابدأ على البنية التحتية التي تتحكم بها.", installBody: "أنشئ Space محلية بالمثبّت المعتمد. تنطبق لغة المنتج نفسها على ملف Hosted الذي تديره Shimpz.", problemKicker: "حد مختلف // تركيب أقل وارتجال أقل", problemTitle: "ينبغي ألا تنشئ الأتمتة مزيدًا من العمل.", problemLead: "تقع Shimpz بين أدوات سير العمل التي يجب أن تبنيها والوكلاء العامين الذين يجب أن تراقبهم باستمرار.", alternatives: [{ title: "توقف عن بناء كل تدفق", body: "اذكر الهدف بدل توصيل الموصلات وwebhooks وبيانات الاعتماد والفروع لكل مهمة جديدة." }, { title: "لا تثق بكل ارتجال", body: "تعرض Assistants قدرات Powers مبرمجة. تقرر Team ما يمكن تشغيله وتعيد إليك القرارات الحساسة." }],
+    seoTitle: "Shimpz — فوّض العمل الرقمي الحقيقي دون التخلي عن التحكم", seoDescription: "تحدث مع Team وثبّت Assistants مبرمجة ووافق على الإجراءات الحساسة وشغّل Shimpz على بنيتك التحتية.", eyebrow: "منظمة مفتوحة المصدر · سلطة بشرية", title: "أخيرًا، فوّض العمل دون أن تفقد السيطرة.", lead: "تحدث مع Team الخاصة بك. ثبّت Assistants تمنحها قدرات مبرمجة. وافق على الإجراءات الحساسة وافحص ما حدث.",
+    installKicker: "Space محلية // المثبّت المعتمد", installTitle: "ابدأ على البنية التحتية التي تتحكم بها.", installBody: "أنشئ Space محلية بالمثبّت المعتمد. تنطبق لغة المنتج نفسها على ملف Hosted الذي تديره Shimpz.", problemKicker: "حد مختلف // تركيب أقل وارتجال أقل", problemTitle: "ينبغي ألا تنشئ الأتمتة مزيدًا من العمل.", problemLead: "تقع Shimpz بين أدوات سير العمل التي يجب أن تبنيها والوكلاء العامين الذين يجب أن تراقبهم باستمرار.",
     modelKicker: "Shimpz // نموذج ذهني مفيد", modelTitle: "محادثة واحدة. قدرات تختارها أنت.", modelLead: "لا يظهر نموذج المنتج إلا عندما يساعدك على اتخاذ القرار التالي.", steps: [{ title: "تحدث مع Team", body: "تعزل Team المحادثة والسياق والملفات وإعداد الاستدلال وحدود أعباء العمل." }, { title: "ثبّت Assistants", body: "تمنح كل Assistant منشورة بصورة مستقلة Team قدرات معلنة وقابلة للمراجعة." }, { title: "وافق على ما يهم", body: "عندما تحتاج Power إلى سلطة بشرية يتوقف التنفيذ ويسأل قبل الإجراء المؤثر." }],
     controlKicker: "التحكم // جزء من التنفيذ", controlTitle: "تأتي الثقة من آليات مرئية.", controlLead: "تعرض Shimpz الحد الذي تفرضه بدل مطالبتك بتصديق وصف أمني بلا دليل.", controls: [{ title: "وصول محدود", body: "تطلب Integrations قدرات ونطاقات معلنة من المزوّد بدل مفتاح رئيسي عام." }, { title: "موافقة بشرية", body: "يمكن أن يتوقف العمل المؤثر للحصول على موافقة منسوبة ومستوى الضمان المطلوب." }, { title: "سلطة معزولة", body: "تحتفظ Team بـ Assistants والحالة والملفات والروابط وبيانات الاعتماد ودورة حياة العمل الخاصة بها." }, { title: "نتيجة مرئية", body: "يظهر تقدم التنفيذ ونتيجته النهائية دون كشف prompts أو payloads أو الأسرار." }], securityLink: "افحص نموذج الأمان",
     profilesKicker: "منتج واحد // ملفان", profilesTitle: "اختر من يدير البنية التحتية.", profilesLead: "Local وHosted ملفان لمفهوم Space نفسه. تبقى لغة المنتج متسقة، وتختلف السلطة والبنية عند الحاجة.", profiles: [{ title: "Local", body: "شغّل Space على Linux أو Mac بمعالج Apple Silicon أو Windows عبر WSL2.", detail: "بنيتك التحتية · Supervisor الخاص بك" }, { title: "Hosted", body: "استخدم Space العامة على Shimpz.com من خلال Account منسوبة.", detail: "بنية Shimpz · سلطة Account" }],
     openKicker: "مفتوح المصدر // افحص العمل", openTitle: "يُبنى علنًا. ويعمل ضمن حدود.", openBody: "تُنظم Shimpz في مستودعات مستقلة الإصدارات مع تاريخ تنفيذ قابل للمراجعة. تستخدم كل Assistant، بما فيها Shimpz Cloudflare، مسار النشر القياسي.", openLink: "افهم ما هو مفتوح", github: "افتح GitHub",
-    finalKicker: "Shimpz // Local", finalTitle: "امنح Team الأولى مكانًا للعمل.", finalBody: "ثبّت Space محلية وافتح Shimpz Admin واضبط الاستدلال واختر Assistants التي يمكن لـ Team استخدامها.", assistantsLink: "استكشف Assistants", documentation: "اقرأ الوثائق",
+    assistantsLink: "استكشف Assistants",
   },
 };
 
