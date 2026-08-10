@@ -17,7 +17,7 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
     calls: list[tuple[str, str, dict, str]]
     assistant_status = 200
     assistants: ClassVar[list[dict[str, object]]] = [
-        {"assistant": "example-assistant", "status": "running"},
+        {"assistant": "example-assistant", "assistant_version": "1.2.3", "status": "running"},
     ]
 
     def _json(self, status: int, payload: dict) -> None:
@@ -170,7 +170,7 @@ def test_cloud_chat_scope_projects_only_running_assistants():
 
 def test_cloud_chat_scope_is_brain_only_when_the_assistant_is_not_running():
     assistants = [
-        {"assistant": "example-assistant", "status": "stopped"},
+        {"assistant": "example-assistant", "assistant_version": "1.2.3", "status": "stopped"},
     ]
     with _assistant_control_plane(assistants=assistants), TestClient(main.app) as client:
         _authenticate(client)
@@ -182,8 +182,8 @@ def test_cloud_chat_scope_is_brain_only_when_the_assistant_is_not_running():
 
 def test_cloud_chat_scope_fails_closed_on_ambiguous_running_inventory():
     assistants = [
-        {"assistant": "example-assistant", "status": "running"},
-        {"assistant": "example-assistant", "status": "running"},
+        {"assistant": "example-assistant", "assistant_version": "1.2.3", "status": "running"},
+        {"assistant": "example-assistant", "assistant_version": "1.2.3", "status": "running"},
     ]
     with _assistant_control_plane(assistants=assistants), TestClient(main.app) as client:
         _authenticate(client)

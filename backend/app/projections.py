@@ -2,8 +2,28 @@
 
 from __future__ import annotations
 
+import re
+
 from app.config import MAX_CHAT_ASSISTANTS
 from app.protocol.http.v1 import payload as team_contract
+
+_ASSISTANT_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+
+
+def _assistant_inventory_item(value: object) -> tuple[str, str] | None:
+    if not isinstance(value, dict) or set(value) != {"assistant", "assistant_version", "status"}:
+        return None
+    assistant = team_contract.canonical_assistant_id(value["assistant"])
+    version = value["assistant_version"]
+    status = value["status"]
+    if (
+        assistant is None
+        or not isinstance(version, str)
+        or _ASSISTANT_VERSION.fullmatch(version) is None
+        or not isinstance(status, str)
+    ):
+        return None
+    return assistant, status
 
 
 def public_file_metadata(value: object) -> dict | None:
@@ -44,10 +64,11 @@ def assistant_inventory(data: object) -> list[str] | None:
         return None
     installed: list[str] = []
     for item in data["assistants"]:
-        if not isinstance(item, dict) or set(item) != {"assistant", "status"}:
+        projected = _assistant_inventory_item(item)
+        if projected is None:
             return None
-        assistant = team_contract.canonical_assistant_id(item["assistant"])
-        if assistant is None or assistant in installed or not isinstance(item["status"], str):
+        assistant, _status = projected
+        if assistant in installed:
             return None
         installed.append(assistant)
     return installed
@@ -60,15 +81,13 @@ def running_assistant_inventory(data: object) -> list[str] | None:
     running: list[str] = []
     seen: set[str] = set()
     for item in data["assistants"]:
-        if not isinstance(item, dict) or set(item) != {"assistant", "status"}:
+        projected = _assistant_inventory_item(item)
+        if projected is None:
             return None
-        assistant = team_contract.canonical_assistant_id(item["assistant"])
-        if assistant is None or assistant in seen:
+        assistant, status = projected
+        if assistant in seen:
             return None
         seen.add(assistant)
-        status = item.get("status")
-        if not isinstance(status, str):
-            return None
         if status != "running":
             continue
         if len(running) >= MAX_CHAT_ASSISTANTS:
