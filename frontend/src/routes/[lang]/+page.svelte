@@ -1,13 +1,16 @@
 <script lang="ts">
   import { Card, ShimpzBrand } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
+  import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
-  import { institutional } from "$lib/institutional";
+  import { institutional, institutionalInstall, institutionalPowers } from "$lib/institutional";
   import { u } from "$lib/url";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
   const content = $derived(institutional(lang));
+  const install = $derived(institutionalInstall(lang));
+  const powers = $derived(institutionalPowers(lang));
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -48,6 +51,20 @@
   </div>
 </section>
 
+<section class="section install wrap" aria-labelledby="install-title">
+  <div class="install-grid">
+    <header class="section-heading">
+      <p class="kicker">Local Space // install</p>
+      <h2 id="install-title">{install.title}</h2>
+      <p>{install.body}</p>
+    </header>
+    <div class="install-action">
+      <InstallCommand {lang} />
+      <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{content.documentation} ↗</a>
+    </div>
+  </div>
+</section>
+
 <section class="section architecture" aria-labelledby="architecture-title">
   <div class="wrap">
     <header class="section-heading">
@@ -64,6 +81,10 @@
         </article>
       {/each}
     </div>
+    <aside class="powers-note" aria-labelledby="powers-title">
+      <span>Power // explicit contract</span>
+      <div><h3 id="powers-title">{powers.title}</h3><p>{powers.body}</p></div>
+    </aside>
   </div>
 </section>
 
@@ -144,11 +165,18 @@
   :global(.institutional-card p) { color: var(--color-muted); line-height: 1.7; }
   :global(.institutional-card small), .card-index { color: var(--color-muted-2); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
   .architecture, .open-source { border-block: 1px solid var(--color-border); background: var(--color-surface); }
+  .install-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(24rem, 1fr); align-items: end; gap: clamp(2rem, 8vw, 7rem); }
+  .install-grid .section-heading { margin-block-end: 0; }
+  .install-action > a { display: inline-flex; margin-block-start: 1rem; color: var(--color-cyan); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
   .concept-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block-start: 1px solid var(--color-border); border-inline-start: 1px solid var(--color-border); }
   .concept-grid article { min-height: 18rem; padding: 1.5rem; border-block-end: 1px solid var(--color-border); border-inline-end: 1px solid var(--color-border); }
   .concept-grid span, .publication-flow > li > span { color: var(--color-cyan); font: 600 .65rem/1 var(--font-mono); }
   .concept-grid h3, .publication-flow h3 { margin: 3rem 0 1rem; font-size: 1.15rem; }
   .concept-grid p, .publication-flow p { margin: 0; color: var(--color-muted); font-size: .9rem; line-height: 1.65; }
+  .powers-note { display: grid; grid-template-columns: minmax(10rem, .45fr) minmax(0, 1fr); gap: 2rem; padding: 1.5rem; margin-block-start: 1rem; border: 1px solid var(--color-border); }
+  .powers-note > span { color: var(--color-cyan); font: 600 .65rem/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+  .powers-note h3 { margin: 0 0 .5rem; font-size: 1.15rem; }
+  .powers-note p { max-width: 58rem; margin: 0; color: var(--color-muted); line-height: 1.65; }
   .publication-flow { display: grid; padding: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; border: 1px solid var(--color-border); }
   .publication-flow li { display: grid; min-height: 16rem; grid-template-rows: auto 1fr; padding: 1.5rem; border-inline-end: 1px solid var(--color-border); }
   .publication-flow li:last-child { border-inline-end: 0; }
@@ -160,12 +188,12 @@
   .final .actions { justify-content: center; }
   @media (max-width: 980px) { .concept-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 760px) {
-    .hero, .open-grid { grid-template-columns: 1fr; }
+    .hero, .open-grid, .install-grid { grid-template-columns: 1fr; }
     .hero { min-height: auto; }
     .hero-mark { width: min(100%, 24rem); }
     .profile-grid, .publication-flow { grid-template-columns: 1fr; }
     .publication-flow li { min-height: 12rem; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .publication-flow li:last-child { border-block-end: 0; }
   }
-  @media (max-width: 480px) { .concept-grid { grid-template-columns: 1fr; } .concept-grid article { min-height: 14rem; } }
+  @media (max-width: 480px) { .concept-grid, .powers-note { grid-template-columns: 1fr; } .concept-grid article { min-height: 14rem; } }
 </style>

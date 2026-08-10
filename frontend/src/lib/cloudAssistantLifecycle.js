@@ -1,6 +1,9 @@
+import { LOCALES } from "./locales.ts";
+
 const TEAM_ID_RE = /^[a-z0-9_]{1,40}$/;
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const LOCALES = new Set(["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]);
+/** @type {Set<string>} */
+const STORE_LOCALES = new Set(LOCALES);
 
 /** @typedef {{ team_id: string, team_name: string }} CloudTeam */
 
@@ -123,7 +126,7 @@ export function cloudRequestIsCurrent(requestGeneration, currentGeneration, requ
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantStoreHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !STORE_LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
     throw new Error("invalid Assistant Store destination");
   }
   return `/${locale}/assistants?assistant=${encodeURIComponent(assistant)}`;
@@ -131,7 +134,7 @@ export function closedAssistantStoreHref(locale, assistant) {
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantLoginHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !STORE_LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
     throw new Error("invalid Assistant login destination");
   }
   return `/${locale}/login?return=assistants&assistant=${encodeURIComponent(assistant)}`;
@@ -139,7 +142,7 @@ export function closedAssistantLoginHref(locale, assistant) {
 
 /** @param {unknown} locale @param {unknown} assistant */
 export function closedAssistantTeamHref(locale, assistant) {
-  if (typeof locale !== "string" || typeof assistant !== "string" || !LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
+  if (typeof locale !== "string" || typeof assistant !== "string" || !STORE_LOCALES.has(locale) || !ASSISTANT_ID_RE.test(assistant)) {
     throw new Error("invalid Assistant Team destination");
   }
   return `/${locale}/team?return=assistants&assistant=${encodeURIComponent(assistant)}`;
@@ -147,7 +150,7 @@ export function closedAssistantTeamHref(locale, assistant) {
 
 /** @param {unknown} locale @param {unknown} search @returns {string | null} */
 export function resolveClosedAssistantReturn(locale, search) {
-  if (typeof locale !== "string" || !LOCALES.has(locale) || typeof search !== "string") return null;
+  if (typeof locale !== "string" || !STORE_LOCALES.has(locale) || typeof search !== "string") return null;
   const params = new URLSearchParams(search);
   const keys = [...params.keys()];
   if (

@@ -8,6 +8,7 @@ test("matches the Local Admin locale contract and keeps Arabic right-to-left", (
   assert.deepEqual(LOCALES, ["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]);
   assert.deepEqual(LOCALE_OPTIONS.map(({ code }) => code), LOCALES);
   assert.equal(localeDirection("ar"), "rtl");
+  assert.equal(localeDirection("xx"), "ltr");
   for (const locale of LOCALES.filter((locale) => locale !== "ar")) {
     assert.equal(localeDirection(locale), "ltr");
   }

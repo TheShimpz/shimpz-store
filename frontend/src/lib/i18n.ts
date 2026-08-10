@@ -1,70 +1,13 @@
-// UI-chrome translations (the catalog content carries its own en/pt in catalog.ts).
+// UI chrome uses English as the explicit fallback for incomplete operational translations.
 import type { Locale } from "$lib/catalog";
 
 type Translation = { en: string } & Partial<Record<Locale, string>>;
 type Dict = Record<string, Translation>;
 
 const D: Dict = {
-  brand_tag: { en: "Shimpz for your Team", pt: "Shimpz para o seu Time" },
-  home_badge: { en: "Self-hosted AI infrastructure", pt: "Infraestrutura de IA self-hosted" },
-  home_hero_1: { en: "One Space.", pt: "Um Space." },
-  home_hero_2: { en: "Isolated Teams.", pt: "Times isolados." },
-  home_hero_3: { en: "Assistants that work together.", pt: "Assistants que trabalham juntos." },
-  home_hero_lead: {
-    en: "Run Shimpz on your own machine. Space Services provide shared capabilities while every Team keeps its Assistants, data, and execution boundaries isolated.",
-    pt: "Rode o Shimpz na sua própria máquina. Services do Space fornecem recursos compartilhados enquanto cada Time mantém Assistants, dados e execução isolados.",
-  },
-  home_install: { en: "Install your Space", pt: "Instalar seu Space" },
-  home_open_teams: { en: "Open Teams", pt: "Abrir Times" },
-  home_signal_self_hosted: { en: "Self-hosted", pt: "Self-hosted" },
-  home_signal_permissions: { en: "Explicit permissions", pt: "Permissões explícitas" },
-  home_signal_isolation: { en: "Team isolation", pt: "Isolamento por Time" },
-  home_arch_kicker: { en: "Architecture // one mental model", pt: "Arquitetura // um modelo mental" },
-  home_arch_title: { en: "Simple to understand. Strict where it matters.", pt: "Simples de entender. Rigoroso onde importa." },
-  home_arch_lead: {
-    en: "Shimpz separates infrastructure from workloads so you can add capabilities without turning every Team into another full server.",
-    pt: "O Shimpz separa infraestrutura de workloads para você adicionar recursos sem transformar cada Time em outro servidor completo.",
-  },
-  home_space_title: { en: "Space", pt: "Space" },
-  home_space_body: { en: "The server and control plane you own.", pt: "O servidor e control plane que você controla." },
-  home_services_title: { en: "Services", pt: "Services" },
-  home_services_body: { en: "Shared services exposed through explicit contracts.", pt: "Serviços compartilhados expostos por contratos explícitos." },
-  home_teams_title: { en: "Teams", pt: "Times" },
-  home_teams_body: { en: "Isolated environments with their own data and Assistants.", pt: "Ambientes isolados com seus próprios dados e Assistants." },
-  home_apps_title: { en: "Assistants", pt: "Assistants" },
-  home_apps_body: { en: "Work together only inside the Team that owns them.", pt: "Trabalham juntos apenas dentro do Time que os possui." },
-  home_control_kicker: { en: "Engineering principles", pt: "Princípios de engenharia" },
-  home_control_title: { en: "Your system should remain yours.", pt: "Seu sistema deve continuar sendo seu." },
-  home_control_lead: {
-    en: "The experience is polished, but the boundaries stay visible. You know what runs, where it runs, and what it can access.",
-    pt: "A experiência é polida, mas os limites continuam visíveis. Você sabe o que roda, onde roda e o que pode acessar.",
-  },
-  home_self_title: { en: "Own the control plane", pt: "Controle o seu control plane" },
-  home_self_body: {
-    en: "Install the Space on infrastructure you control and administer it through the local Shimpz Admin.",
-    pt: "Instale o Space na infraestrutura que você controla e administre tudo pelo Shimpz Admin local.",
-  },
-  home_isolation_title: { en: "Isolation is the default", pt: "Isolamento é o padrão" },
-  home_isolation_body: {
-    en: "Teams do not share Assistants, data, sessions, or runtime identity. Sharing happens only through declared Service capabilities.",
-    pt: "Times não compartilham Assistants, dados, sessões ou identidade de runtime. O compartilhamento acontece apenas por capabilities declaradas dos Services.",
-  },
-  home_specs_title: { en: "Build from contracts", pt: "Construa a partir de contratos" },
-  home_specs_body: {
-    en: "Services and Assistants follow semantic specs, keeping the platform extensible without coupling every component together.",
-    pt: "Services e Assistants seguem specs semânticas, mantendo a plataforma extensível sem acoplar todos os componentes.",
-  },
-  home_install_kicker: { en: "Start local", pt: "Comece local" },
-  home_install_title: { en: "Your Space starts with one command.", pt: "Seu Space começa com um comando." },
-  home_install_lead: {
-    en: "The installer pulls the verified stable image and opens the Admin on your machine. Read the platform guide before you start.",
-    pt: "O instalador baixa a imagem estável verificada e abre o Admin na sua máquina. Leia o guia da sua plataforma antes de começar.",
-  },
   home_copy: { en: "Copy", pt: "Copiar" },
   home_copied: { en: "Copied", pt: "Copiado" },
   home_copy_failed: { en: "Try again", pt: "Tentar novamente" },
-  home_read_docs: { en: "Read installation guide", pt: "Ler guia de instalação" },
-  opens_new_tab: { en: "opens in a new tab", pt: "abre em uma nova aba" },
   nav_services: { en: "Services", pt: "Services", es: "Servicios", zh: "服务", fr: "Services", de: "Dienste", ja: "サービス", ar: "الخدمات" },
   nav_assistants: { en: "Assistants", pt: "Assistants", es: "Asistentes", zh: "助手", fr: "Assistants", de: "Assistenten", ja: "アシスタント", ar: "المساعدون" },
   nav_main: { en: "Main", pt: "Principal", es: "Principal", zh: "主导航", fr: "Principale", de: "Hauptnavigation", ja: "メイン", ar: "الرئيسية" },
@@ -81,14 +24,6 @@ const D: Dict = {
   team_picker_none: { en: "No Teams yet — create one to get started.", pt: "Nenhum Time ainda — crie um para começar." },
   team_picker_new: { en: "New Team", pt: "Novo Time" },
   team_picker_open: { en: "Open chat →", pt: "Abrir chat →" },
-  home_title: {
-    en: "Shimpz — self-hosted Spaces for isolated AI workloads",
-    pt: "Shimpz — Spaces self-hosted para workloads de IA isolados",
-  },
-  home_desc: {
-    en: "Run a Shimpz Space on your own infrastructure, share Service capabilities, and keep Assistants isolated inside each Team.",
-    pt: "Rode um Space Shimpz na sua própria infraestrutura, compartilhe capabilities de Services e mantenha Assistants isolados em cada Time.",
-  },
   create_team: { en: "Create your Team", pt: "Criar seu Time" },
   team_title: { en: "Create a Team — Shimpz", pt: "Criar um Time — Shimpz" },
   team_list_title: { en: "Your Teams — Shimpz", pt: "Seus Times — Shimpz" },

@@ -19,5 +19,5 @@ export function isLocale(value: string): value is Locale {
 }
 
 export function localeDirection(locale: Locale): Direction {
-  return locale === "ar" ? "rtl" : "ltr";
+  return LOCALE_OPTIONS.find(({ code }) => code === locale)?.dir ?? "ltr";
 }

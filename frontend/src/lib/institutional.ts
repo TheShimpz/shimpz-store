@@ -55,7 +55,7 @@ const EN: InstitutionalContent = {
     { title: "Services", body: "Shared Space capabilities exposed to isolated Team bindings through defined platform APIs." },
     { title: "Brain", body: "The shared reasoning runtime that answers as a Team and coordinates only capabilities allowed inside it." },
     { title: "Team", body: "The isolated authority for its Assistants, conversations, data, bindings, and lifecycle." },
-    { title: "Assistant", body: "Independently published software installed into an authorized Team through the standard path." },
+    { title: "Assistant", body: "Independently published software whose declared Powers run inside an authorized Team through the standard path." },
   ],
   publicationKicker: "Assistant publication // one path",
   publicationTitle: "Developers → Store → Team.",
@@ -95,7 +95,7 @@ const CONTENT: Record<Locale, InstitutionalContent> = {
       { title: "Services", body: "Capabilities compartilhadas do Space, expostas a bindings isolados de Times por APIs definidas da plataforma." },
       { title: "Brain", body: "O runtime de raciocínio compartilhado que responde como um Time e coordena somente capabilities permitidas nele." },
       { title: "Team", body: "A autoridade isolada de seus Assistants, conversas, dados, bindings e lifecycle." },
-      { title: "Assistant", body: "Software publicado de forma independente e instalado em um Time autorizado pelo caminho padrão." },
+      { title: "Assistant", body: "Software publicado de forma independente cujos Powers declarados rodam em um Time autorizado pelo caminho padrão." },
     ],
     publicationKicker: "Publicação de Assistant // um caminho", publicationTitle: "Developers → Store → Team.", publicationLead: "Não existem atalhos privados nem registros embutidos. Publicação, descoberta, autorização, verificação e lifecycle permanecem com seus domínios responsáveis.",
     flow: [
@@ -134,4 +134,34 @@ const CONTENT: Record<Locale, InstitutionalContent> = {
 
 export function institutional(locale: Locale): InstitutionalContent {
   return CONTENT[locale];
+}
+
+const INSTALL: Record<Locale, Concept> = {
+  en: { title: "Start on infrastructure you control.", body: "Review the installation guide, then run the canonical installer to create a Local Space and open its Shimpz Admin." },
+  pt: { title: "Comece na infraestrutura que você controla.", body: "Revise o guia de instalação e execute o instalador canônico para criar um Space Local e abrir seu Shimpz Admin." },
+  es: { title: "Empieza en la infraestructura que controlas.", body: "Revisa la guía y ejecuta el instalador canónico para crear un Space Local y abrir Shimpz Admin." },
+  zh: { title: "从你控制的基础设施开始。", body: "阅读安装指南，然后运行标准安装程序来创建 Local Space 并打开 Shimpz Admin。" },
+  fr: { title: "Commencez sur l’infrastructure que vous contrôlez.", body: "Consultez le guide, puis exécutez l’installateur canonique pour créer un Space Local et ouvrir Shimpz Admin." },
+  de: { title: "Starte auf deiner eigenen Infrastruktur.", body: "Lies die Anleitung und führe den kanonischen Installer aus, um einen Local Space mit Shimpz Admin zu erstellen." },
+  ja: { title: "自分が管理するインフラから始めましょう。", body: "ガイドを確認し、標準インストーラーを実行して Local Space を作成し、Shimpz Admin を開きます。" },
+  ar: { title: "ابدأ على البنية التحتية التي تتحكم بها.", body: "راجع دليل التثبيت ثم شغّل المثبّت القياسي لإنشاء Local Space وفتح Shimpz Admin." },
+};
+
+const POWERS: Record<Locale, Concept> = {
+  en: { title: "Declared Powers", body: "An Assistant exposes typed, named Powers. A Team authorizes what can run inside its boundary." },
+  pt: { title: "Powers declarados", body: "Um Assistant expõe Powers tipados e nomeados. Um Time autoriza o que pode rodar dentro do seu limite." },
+  es: { title: "Powers declarados", body: "Un Assistant expone Powers tipados y con nombre. Un Team autoriza lo que puede ejecutarse dentro de su límite." },
+  zh: { title: "已声明的 Powers", body: "Assistant 公开有类型、有名称的 Powers。Team 决定哪些能力可在其边界内运行。" },
+  fr: { title: "Powers déclarés", body: "Un Assistant expose des Powers typés et nommés. Une Team autorise ce qui peut s’exécuter dans sa limite." },
+  de: { title: "Deklarierte Powers", body: "Ein Assistant stellt typisierte, benannte Powers bereit. Ein Team autorisiert, was innerhalb seiner Grenze laufen darf." },
+  ja: { title: "宣言された Powers", body: "Assistant は型と名前を持つ Powers を公開します。Team は境界内で実行できるものを許可します。" },
+  ar: { title: "Powers المعلنة", body: "يعرض Assistant قدرات Powers مسماة ومحددة النوع. وتصرّح Team بما يمكن تشغيله داخل حدودها." },
+};
+
+export function institutionalInstall(locale: Locale): Concept {
+  return INSTALL[locale];
+}
+
+export function institutionalPowers(locale: Locale): Concept {
+  return POWERS[locale];
 }
