@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { PageIntro } from "@shimpz/frontend";
   import { t, creatorOf, type Locale, type Service } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import Seo from "$lib/components/Seo.svelte";
   import ServiceIcon from "$lib/components/ServiceIcon.svelte";
   import CreatorTag from "$lib/components/CreatorTag.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
@@ -22,10 +22,10 @@
     <CreatorTag handle={creatorOf(service)} {lang} showAvatar={false} />
   {/snippet}
   <PageIntro
-    headingId="service-title"
+    titleId="service-title"
     kicker={service.category}
     title={service.name}
-    description={t(service.summary, lang)}
+    lead={t(service.summary, lang)}
     {media}
     {meta} />
 

@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { PageIntro } from "@shimpz/frontend";
   import { t, type Service, type Creator, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
   import ServiceCard from "$lib/components/ServiceCard.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
@@ -29,10 +29,10 @@
     <a href={`https://github.com/${cap.github}`} target="_blank" rel="noopener" class="btn-ghost inline-flex !py-2 text-sm">{tr("view_github", lang)}</a>
   {/snippet}
   <PageIntro
-    headingId="creator-title"
+    titleId="creator-title"
     kicker={`@${cap.handle}`}
     title={cap.name}
-    description={t(cap.bio, lang)}
+    lead={t(cap.bio, lang)}
     {media}
     {meta} />
 

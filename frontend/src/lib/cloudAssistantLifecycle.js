@@ -1,6 +1,6 @@
 const TEAM_ID_RE = /^[a-z0-9_]{1,40}$/;
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const LOCALES = new Set(["en", "pt"]);
+const LOCALES = new Set(["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]);
 
 /** @typedef {{ team_id: string, team_name: string }} CloudTeam */
 

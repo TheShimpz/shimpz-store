@@ -1,4 +1,4 @@
-import { LOCALES, SERVICES } from "$lib/catalog";
+import { CREATORS, LOCALES, SERVICES } from "$lib/catalog";
 import { SITE, u } from "$lib/url";
 
 export const prerender = true;
@@ -7,8 +7,9 @@ export function GET() {
   const paths: string[] = [];
   paths.push("/privacy", "/terms");
   for (const l of LOCALES) {
-    paths.push(u.home(l), u.services(l), u.assistants(l));
+    paths.push(u.home(l), u.services(l), u.assistants(l), u.creators(l));
     for (const service of SERVICES) paths.push(u.service(l, service));
+    for (const creator of CREATORS) paths.push(u.creator(l, creator.handle));
   }
   const body =
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PageIntro } from "@shimpz/frontend";
   import { onDestroy, onMount, tick } from "svelte";
   import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
@@ -30,7 +31,6 @@
   import { u } from "$lib/url";
   import HudIcon from "$lib/components/HudIcon.svelte";
   import AssistantHumanRequestDialog from "$lib/components/AssistantHumanRequestDialog.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
   let { data } = $props();
@@ -624,10 +624,10 @@
   {/snippet}
 
   <PageIntro
-    headingId="chat-title"
+    titleId="chat-title"
     kicker={tr("chat_kicker", lang)}
     title={teamName || tr("nav_chat", lang)}
-    description={tr("chat_lead", lang)}
+    lead={tr("chat_lead", lang)}
     media={chatMedia}
     meta={chatMeta}
   />

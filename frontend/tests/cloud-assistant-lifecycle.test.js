@@ -118,6 +118,12 @@ test("uses a closed Store/login return enum and never accepts an arbitrary redir
   assert.equal(requestedAssistantFromSearch("?assistant=another-assistant"), "another-assistant");
   assert.equal(requestedAssistantFromSearch("?assistant=../unknown"), "");
   assert.equal(closedAssistantStoreHref("en", "another-assistant"), "/en/assistants?assistant=another-assistant");
+  for (const locale of ["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]) {
+    assert.equal(
+      closedAssistantStoreHref(locale, "shimpz-cloudflare"),
+      `/${locale}/assistants?assistant=shimpz-cloudflare`,
+    );
+  }
   assert.throws(() => closedAssistantLoginHref("xx", "shimpz-cloudflare"));
   assert.throws(() => closedAssistantTeamHref("en", "../unknown"));
 });

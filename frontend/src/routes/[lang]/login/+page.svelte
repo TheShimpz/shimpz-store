@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { ShimpzBrand } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import { resolveClosedAssistantReturn } from "$lib/cloudAssistantLifecycle.js";
   import Seo from "$lib/components/Seo.svelte";
-  import ShimpzBrand from "$lib/components/ShimpzBrand.svelte";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

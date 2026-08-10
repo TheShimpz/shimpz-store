@@ -19,4 +19,6 @@ export const u = {
 
 // Same page in another locale — swaps the leading /<lang>/ segment (for hreflang + the language switch).
 export const swapLocale = (path: string, target: Locale): string =>
-  path.replace(/^\/[a-z]{2}(\/|$)/, `/${target}$1`);
+  /^\/[a-z]{2}(\/|$)/.test(path)
+    ? path.replace(/^\/[a-z]{2}(\/|$)/, `/${target}$1`)
+    : u.home(target);

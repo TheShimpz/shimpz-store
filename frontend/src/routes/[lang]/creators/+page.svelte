@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { PageIntro } from "@shimpz/frontend";
   import { CREATORS, servicesByCreator, type Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import Seo from "$lib/components/Seo.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
@@ -13,9 +13,9 @@
 
 <section class="wrap pt-10" aria-labelledby="creators-title">
   <PageIntro
-    headingId="creators-title"
+    titleId="creators-title"
     title={tr("creators_title", lang)}
-    description={tr("creators_lead", lang)} />
+    lead={tr("creators_lead", lang)} />
 
   <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each CREATORS as c (c.handle)}

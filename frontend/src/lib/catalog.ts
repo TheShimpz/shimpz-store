@@ -1,8 +1,9 @@
 // The Shimpz capability catalog is the source of truth for public Service documentation.
 
-export const LOCALES = ["en", "pt"] as const;
-export type Locale = (typeof LOCALES)[number];
-export type I18n = Record<Locale, string>;
+import { LOCALES, type Locale } from "./locales.ts";
+
+export { LOCALES, type Locale } from "./locales.ts";
+export type I18n = { en: string } & Partial<Record<Locale, string>>;
 export const t = (v: I18n, l: Locale): string => v[l] ?? v.en;
 
 // ── Services (audited platform capability inventory) ────────────────────────────────────────────

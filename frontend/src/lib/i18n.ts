@@ -1,7 +1,8 @@
 // UI-chrome translations (the catalog content carries its own en/pt in catalog.ts).
 import type { Locale } from "$lib/catalog";
 
-type Dict = Record<string, Record<Locale, string>>;
+type Translation = { en: string } & Partial<Record<Locale, string>>;
+type Dict = Record<string, Translation>;
 
 const D: Dict = {
   brand_tag: { en: "Shimpz for your Team", pt: "Shimpz para o seu Time" },
@@ -64,12 +65,18 @@ const D: Dict = {
   home_copy_failed: { en: "Try again", pt: "Tentar novamente" },
   home_read_docs: { en: "Read installation guide", pt: "Ler guia de instalação" },
   opens_new_tab: { en: "opens in a new tab", pt: "abre em uma nova aba" },
-  nav_services: { en: "Services", pt: "Services" },
-  nav_assistants: { en: "Assistants", pt: "Assistants" },
-  nav_main: { en: "Main", pt: "Principal" },
+  nav_services: { en: "Services", pt: "Services", es: "Servicios", zh: "服务", fr: "Services", de: "Dienste", ja: "サービス", ar: "الخدمات" },
+  nav_assistants: { en: "Assistants", pt: "Assistants", es: "Asistentes", zh: "助手", fr: "Assistants", de: "Assistenten", ja: "アシスタント", ar: "المساعدون" },
+  nav_main: { en: "Main", pt: "Principal", es: "Principal", zh: "主导航", fr: "Principale", de: "Hauptnavigation", ja: "メイン", ar: "الرئيسية" },
+  nav_docs: { en: "Docs", pt: "Docs", es: "Docs", zh: "文档", fr: "Docs", de: "Doku", ja: "ドキュメント", ar: "الوثائق" },
+  skip_content: { en: "Skip to content", pt: "Pular para o conteúdo", es: "Saltar al contenido", zh: "跳到内容", fr: "Aller au contenu", de: "Zum Inhalt springen", ja: "コンテンツへ移動", ar: "انتقل إلى المحتوى" },
+  language: { en: "Language", pt: "Idioma", es: "Idioma", zh: "语言", fr: "Langue", de: "Sprache", ja: "言語", ar: "اللغة" },
+  footer_links: { en: "Footer links", pt: "Links do rodapé", es: "Enlaces del pie", zh: "页脚链接", fr: "Liens de pied de page", de: "Fußzeilenlinks", ja: "フッターリンク", ar: "روابط التذييل" },
+  privacy: { en: "Privacy", pt: "Privacidade", es: "Privacidad", zh: "隐私", fr: "Confidentialité", de: "Datenschutz", ja: "プライバシー", ar: "الخصوصية" },
+  terms: { en: "Terms", pt: "Termos", es: "Términos", zh: "条款", fr: "Conditions", de: "Bedingungen", ja: "利用規約", ar: "الشروط" },
   // "Meus Times" full-screen chooser
   close: { en: "Close", pt: "Fechar" },
-  loading: { en: "Loading…", pt: "Carregando…" },
+  loading: { en: "Loading…", pt: "Carregando…", es: "Cargando…", zh: "加载中…", fr: "Chargement…", de: "Wird geladen…", ja: "読み込み中…", ar: "جارٍ التحميل…" },
   team_picker_login: { en: "Sign in to see your Teams.", pt: "Entre para ver seus Times." },
   team_picker_none: { en: "No Teams yet — create one to get started.", pt: "Nenhum Time ainda — crie um para começar." },
   team_picker_new: { en: "New Team", pt: "Novo Time" },
@@ -110,14 +117,14 @@ const D: Dict = {
     pt: "Pedido recebido — seu Time está na fila. Conclua a configuração no console do admin.",
   },
   team_err: { en: "Could not send the request. Try again.", pt: "Não deu pra enviar o pedido. Tente de novo." },
-  my_teams: { en: "My Teams", pt: "Meus Times" },
-  log_in: { en: "Log in", pt: "Entrar" },
-  sign_up: { en: "Sign up", pt: "Cadastrar" },
-  log_out: { en: "Log out", pt: "Sair" },
-  username: { en: "Username", pt: "Usuário" },
-  password: { en: "Password", pt: "Senha" },
+  my_teams: { en: "My Teams", pt: "Meus Times", es: "Mis Teams", zh: "我的 Teams", fr: "Mes Teams", de: "Meine Teams", ja: "自分の Teams", ar: "فرقي" },
+  log_in: { en: "Log in", pt: "Entrar", es: "Iniciar sesión", zh: "登录", fr: "Connexion", de: "Anmelden", ja: "ログイン", ar: "تسجيل الدخول" },
+  sign_up: { en: "Sign up", pt: "Cadastrar", es: "Registrarse", zh: "注册", fr: "Créer un compte", de: "Registrieren", ja: "新規登録", ar: "إنشاء حساب" },
+  log_out: { en: "Log out", pt: "Sair", es: "Cerrar sesión", zh: "退出", fr: "Déconnexion", de: "Abmelden", ja: "ログアウト", ar: "تسجيل الخروج" },
+  username: { en: "Username", pt: "Usuário", es: "Usuario", zh: "用户名", fr: "Nom d’utilisateur", de: "Benutzername", ja: "ユーザー名", ar: "اسم المستخدم" },
+  password: { en: "Password", pt: "Senha", es: "Contraseña", zh: "密码", fr: "Mot de passe", de: "Passwort", ja: "パスワード", ar: "كلمة المرور" },
   // account + auth
-  account: { en: "Account", pt: "Conta" },
+  account: { en: "Account", pt: "Conta", es: "Cuenta", zh: "账户", fr: "Compte", de: "Konto", ja: "アカウント", ar: "الحساب" },
   account_title: { en: "Your account", pt: "Sua conta" },
   account_lead: { en: "Manage your Shimpz account.", pt: "Gerencie sua conta Shimpz." },
   account_kicker: { en: "Account // control plane", pt: "Conta // central de controle" },
@@ -184,14 +191,14 @@ const D: Dict = {
     pt: "Chave de API do provedor protegida com sucesso.",
   },
   model_provider_removed: { en: "Account credential removed.", pt: "Credencial da conta removida." },
-  login_welcome: { en: "Welcome back", pt: "Bem-vindo de volta" },
-  signup_welcome: { en: "Create your account", pt: "Crie sua conta" },
-  login_lead: { en: "Log in to manage your Teams and model providers.", pt: "Entre para gerenciar seus Times e provedores de modelo." },
-  signup_lead: { en: "One account for your Teams, providers and private chat.", pt: "Uma conta para seus Times, provedores e chat privado." },
-  to_signup: { en: "New here? Create an account", pt: "Novo por aqui? Crie uma conta" },
-  to_login: { en: "Already have an account? Log in", pt: "Já tem conta? Entrar" },
-  password_show: { en: "Show", pt: "Mostrar" },
-  password_hide: { en: "Hide", pt: "Ocultar" },
+  login_welcome: { en: "Welcome back", pt: "Bem-vindo de volta", es: "Bienvenido de nuevo", zh: "欢迎回来", fr: "Bon retour", de: "Willkommen zurück", ja: "おかえりなさい", ar: "مرحبًا بعودتك" },
+  signup_welcome: { en: "Create your account", pt: "Crie sua conta", es: "Crea tu cuenta", zh: "创建账户", fr: "Créez votre compte", de: "Konto erstellen", ja: "アカウントを作成", ar: "أنشئ حسابك" },
+  login_lead: { en: "Log in to manage your Teams and model providers.", pt: "Entre para gerenciar seus Times e provedores de modelo.", es: "Inicia sesión para gestionar tus Teams y proveedores de modelos.", zh: "登录以管理 Teams 和模型提供商。", fr: "Connectez-vous pour gérer vos Teams et fournisseurs de modèles.", de: "Melde dich an, um Teams und Modellanbieter zu verwalten.", ja: "ログインして Teams とモデルプロバイダーを管理します。", ar: "سجّل الدخول لإدارة Teams وموفري النماذج." },
+  signup_lead: { en: "One account for your Teams, providers and private chat.", pt: "Uma conta para seus Times, provedores e chat privado.", es: "Una cuenta para tus Teams, proveedores y chat privado.", zh: "一个账户管理 Teams、提供商和私人聊天。", fr: "Un compte pour vos Teams, fournisseurs et conversations privées.", de: "Ein Konto für Teams, Anbieter und privaten Chat.", ja: "Teams、プロバイダー、非公開チャットを一つのアカウントで。", ar: "حساب واحد لفرقك وموفري النماذج والمحادثات الخاصة." },
+  to_signup: { en: "New here? Create an account", pt: "Novo por aqui? Crie uma conta", es: "¿Eres nuevo? Crea una cuenta", zh: "新用户？创建账户", fr: "Nouveau ? Créez un compte", de: "Neu hier? Konto erstellen", ja: "初めてですか？アカウントを作成", ar: "مستخدم جديد؟ أنشئ حسابًا" },
+  to_login: { en: "Already have an account? Log in", pt: "Já tem conta? Entrar", es: "¿Ya tienes cuenta? Inicia sesión", zh: "已有账户？登录", fr: "Déjà un compte ? Connectez-vous", de: "Schon registriert? Anmelden", ja: "アカウントをお持ちですか？ログイン", ar: "لديك حساب؟ سجّل الدخول" },
+  password_show: { en: "Show", pt: "Mostrar", es: "Mostrar", zh: "显示", fr: "Afficher", de: "Anzeigen", ja: "表示", ar: "إظهار" },
+  password_hide: { en: "Hide", pt: "Ocultar", es: "Ocultar", zh: "隐藏", fr: "Masquer", de: "Ausblenden", ja: "非表示", ar: "إخفاء" },
   logged_in_as: { en: "Logged in as", pt: "Conectado como" },
   current: { en: "Current", pt: "Atual" },
   destroy: { en: "Destroy", pt: "Destruir" },
@@ -372,7 +379,7 @@ const D: Dict = {
     pt: "Ferramentas de descoberta e venda virão depois. Não há checkout nem listagem paga neste MVP.",
   },
   // Creators area
-  nav_creators: { en: "Creators", pt: "Creators" },
+  nav_creators: { en: "Creators", pt: "Creators", es: "Creadores", zh: "创作者", fr: "Créateurs", de: "Creator", ja: "クリエイター", ar: "المنشئون" },
   creators_title: { en: "Creators", pt: "Creators" },
   creators_lead: { en: "The people who build Shimpz, Services, and Assistants.", pt: "As pessoas que constroem o Shimpz, Services e Assistants." },
   created_by: { en: "Created by", pt: "Criado por" },
@@ -385,7 +392,7 @@ const D: Dict = {
     en: "Start the local Shimpz Admin with the verified stable image. Services are managed by your Space, not installed from this page.",
     pt: "Inicie o Admin local do Shimpz com a imagem estável verificada. Services são gerenciados pelo seu Space, não instalados por esta página.",
   },
-  nav_chat: { en: "Chat", pt: "Chat" },
+  nav_chat: { en: "Chat", pt: "Chat", es: "Chat", zh: "聊天", fr: "Chat", de: "Chat", ja: "チャット", ar: "المحادثة" },
   chat_title: { en: "Team chat — Shimpz", pt: "Chat do Time — Shimpz" },
   chat_kicker: { en: "Team // live workspace", pt: "Time // ambiente ao vivo" },
   chat_lead: {
@@ -520,6 +527,12 @@ const D: Dict = {
   footer: {
     en: "Teams stay isolated · permissions stay explicit",
     pt: "Times continuam isolados · permissões continuam explícitas",
+    es: "Teams aislados · permisos explícitos",
+    zh: "Teams 保持隔离 · 权限始终明确",
+    fr: "Teams isolées · autorisations explicites",
+    de: "Teams bleiben isoliert · Berechtigungen bleiben explizit",
+    ja: "Teams は隔離 · 権限は明示的",
+    ar: "Teams معزولة · الصلاحيات صريحة",
   },
 };
 

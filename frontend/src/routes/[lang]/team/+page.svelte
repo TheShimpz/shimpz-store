@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PageIntro } from "@shimpz/frontend";
   import { onMount, tick } from "svelte";
   import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
@@ -13,7 +14,6 @@
   import { u } from "$lib/url";
   import { resolveClosedAssistantReturn } from "$lib/cloudAssistantLifecycle.js";
   import HudIcon from "$lib/components/HudIcon.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
   let { data } = $props();
@@ -186,10 +186,10 @@
   {/snippet}
 
   <PageIntro
-    headingId="team-list-title"
+    titleId="team-list-title"
     kicker={tr("team_list_kicker", lang)}
     title={tr("my_teams", lang)}
-    description={tr("team_list_lead", lang)}
+    lead={tr("team_list_lead", lang)}
     media={teamMedia}
     meta={teamMeta}
   />

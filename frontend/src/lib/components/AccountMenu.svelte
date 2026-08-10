@@ -39,7 +39,7 @@
       <button
         class="menu-dismiss"
         type="button"
-        aria-label={lang === "pt" ? "Fechar menu da conta" : "Close account menu"}
+        aria-label={`${tr("close", lang)} — ${tr("account", lang)}`}
         onclick={() => (open = false)}
       ></button>
       <div class="account-menu" role="menu">
@@ -100,8 +100,8 @@
   .account-menu {
     position: absolute;
     z-index: 50;
-    top: calc(100% + 0.55rem);
-    right: 0;
+    inset-block-start: calc(100% + 0.55rem);
+    inset-inline-end: 0;
     width: 12rem;
     padding: 0.35rem;
     background: linear-gradient(145deg, var(--color-card-2), var(--color-card));
@@ -131,7 +131,7 @@
     color: var(--color-fg);
     cursor: pointer;
     font-size: 0.82rem;
-    text-align: left;
+    text-align: start;
   }
 
   .account-menu a:hover,

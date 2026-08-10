@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { PageIntro } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import ModelProviderSetupWizard from "$lib/components/ModelProviderSetupWizard.svelte";
   import HudIcon from "$lib/components/HudIcon.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
   import Seo from "$lib/components/Seo.svelte";
 
   let { data } = $props();
@@ -45,10 +45,10 @@
     {#if me}<span class="mono text-xs dim">@{me.username}</span>{/if}
   {/snippet}
   <PageIntro
-    headingId="account-title"
+    titleId="account-title"
     kicker={tr("account_kicker", lang)}
     title={tr("account_title", lang)}
-    description={tr("account_lead", lang)}
+    lead={tr("account_lead", lang)}
     {media}
     {meta} />
 

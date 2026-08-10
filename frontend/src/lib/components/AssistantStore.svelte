@@ -29,10 +29,9 @@
     requestedAssistantFromSearch,
     selectCloudTeam,
   } from "$lib/cloudAssistantLifecycle.js";
-  import AssistantIcon from "$lib/components/AssistantIcon.svelte";
+  import { AssistantIcon, PageIntro } from "@shimpz/frontend";
   import HudIcon from "$lib/components/HudIcon.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
-  import PageIntro from "$lib/components/PageIntro.svelte";
 
   type ActionKind = "install" | "uninstall";
   type ActionState = "idle" | "pending" | "sent" | "error";
@@ -550,10 +549,10 @@
   aria-labelledby={embedded ? undefined : "assistants-title"}>
   {#if !embedded}
     <PageIntro
-      headingId="assistants-title"
+      titleId="assistants-title"
       kicker={tr("assistants_preview", lang)}
       title={tr("assistants_title", lang)}
-      description={tr("assistants_lead", lang)} />
+      lead={tr("assistants_lead", lang)} />
   {/if}
 
   {#if embedded && contextState === "error"}

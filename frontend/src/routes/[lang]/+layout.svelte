@@ -9,17 +9,16 @@
   const lang = $derived(data.lang as Locale);
   const pathname = $derived($page.url.pathname);
   const path = $derived(pathname + (browser ? $page.url.search : ""));
-  const embedded = $derived(/^\/(?:en|pt)\/assistants\/embed\/?$/.test(pathname));
-  const homepage = $derived(/^\/(?:en|pt)\/?$/.test(pathname));
+  const embedded = $derived(pathname.replace(/\/$/, "") === `/${lang}/assistants/embed`);
 </script>
 
-{#if !embedded && !homepage}<SiteHeader {lang} {path} />{/if}
+{#if !embedded}<SiteHeader {lang} {path} />{/if}
 
-<main id="main-content" class:embedded>
+<main id="main-content" tabindex="-1" class:embedded>
   {@render children()}
 </main>
 
-{#if !embedded}<SiteFooter {lang} minimal={homepage} />{/if}
+{#if !embedded}<SiteFooter {lang} />{/if}
 
 <style>
   main { min-height: calc(100vh - 12rem); }

@@ -1,3 +1,3 @@
 allowBuilds:
   esbuild: true
-  '@shimpz/frontend@https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/262b68a56e3738b09f85e35769add6937ddac1b6': true
+  '@shimpz/frontend@https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/70263067982946046b0bcbd163dc481d9c3b32a8': true

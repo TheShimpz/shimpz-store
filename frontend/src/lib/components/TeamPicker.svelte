@@ -119,7 +119,7 @@
     align-items: center;
     gap: 0.45rem;
     border: 0;
-    border-left: 1px solid var(--color-border-strong);
+    border-inline-start: 1px solid var(--color-border-strong);
     padding: 0.8rem 0.72rem 0.8rem 1rem;
     background: transparent;
     color: var(--color-muted);
