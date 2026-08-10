@@ -2,7 +2,6 @@
   import { DropdownMenu, SiteHeader as PublicSiteHeader, SiteNavLink } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
-  import TeamPicker from "$lib/components/TeamPicker.svelte";
   import { tr } from "$lib/i18n";
   import { LOCALE_OPTIONS } from "$lib/locales";
   import { swapLocale, u } from "$lib/url";
@@ -22,7 +21,6 @@
   <SiteNavLink href={u.creators(lang)} active={path.includes("/creators")}>{tr("nav_creators", lang)}</SiteNavLink>
   <SiteNavLink href={u.chat(lang)} active={path.includes("/chat")}>{tr("nav_chat", lang)}</SiteNavLink>
   <SiteNavLink href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} <span aria-hidden="true">↗</span></SiteNavLink>
-  <TeamPicker {lang} />
 {/snippet}
 
 {#snippet actions()}

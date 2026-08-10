@@ -17,13 +17,8 @@ const D: Dict = {
   footer_links: { en: "Footer links", pt: "Links do rodapé", es: "Enlaces del pie", zh: "页脚链接", fr: "Liens de pied de page", de: "Fußzeilenlinks", ja: "フッターリンク", ar: "روابط التذييل" },
   privacy: { en: "Privacy", pt: "Privacidade", es: "Privacidad", zh: "隐私", fr: "Confidentialité", de: "Datenschutz", ja: "プライバシー", ar: "الخصوصية" },
   terms: { en: "Terms", pt: "Termos", es: "Términos", zh: "条款", fr: "Conditions", de: "Bedingungen", ja: "利用規約", ar: "الشروط" },
-  // "Meus Times" full-screen chooser
   close: { en: "Close", pt: "Fechar" },
   loading: { en: "Loading…", pt: "Carregando…", es: "Cargando…", zh: "加载中…", fr: "Chargement…", de: "Wird geladen…", ja: "読み込み中…", ar: "جارٍ التحميل…" },
-  team_picker_login: { en: "Sign in to see your Teams.", pt: "Entre para ver seus Times." },
-  team_picker_none: { en: "No Teams yet — create one to get started.", pt: "Nenhum Time ainda — crie um para começar." },
-  team_picker_new: { en: "New Team", pt: "Novo Time" },
-  team_picker_open: { en: "Open chat →", pt: "Abrir chat →" },
   create_team: { en: "Create your Team", pt: "Criar seu Time" },
   team_title: { en: "Create a Team — Shimpz", pt: "Criar um Time — Shimpz" },
   team_list_title: { en: "Your Teams — Shimpz", pt: "Seus Times — Shimpz" },
