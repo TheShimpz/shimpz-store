@@ -45,7 +45,7 @@
       <div class="account-menu" role="menu">
         <div class="account-handle">@{account.username}</div>
         <a href={u.account(lang)} role="menuitem" onclick={() => (open = false)}>{tr("account", lang)}</a>
-        <a href={u.team(lang)} role="menuitem" onclick={() => (open = false)}>{tr("my_teams", lang)}</a>
+        <a href={u.chat(lang)} role="menuitem" onclick={() => (open = false)}>{tr("open_shimpz", lang)}</a>
         <button type="button" role="menuitem" onclick={logout}>{tr("log_out", lang)}</button>
       </div>
     {/if}

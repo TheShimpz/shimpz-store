@@ -1,16 +1,14 @@
 <script lang="ts">
-  import { Card, ShimpzBrand } from "@shimpz/frontend";
+  import { ActionLink, Card, ShimpzBrand } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
-  import { institutional, institutionalInstall, institutionalPowers } from "$lib/institutional";
+  import { institutional } from "$lib/institutional";
   import { u } from "$lib/url";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
   const content = $derived(institutional(lang));
-  const install = $derived(institutionalInstall(lang));
-  const powers = $derived(institutionalPowers(lang));
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -21,179 +19,171 @@
     <h1 id="hero-title">{content.title}</h1>
     <p class="lead">{content.lead}</p>
     <p class="support">{content.support}</p>
+    <div class="hero-install"><InstallCommand {lang} /></div>
     <div class="actions">
-      <a class="cta primary" href={u.assistants(lang)}>{content.explore}</a>
-      <a class="cta secondary" href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{content.documentation} ↗</a>
+      <ActionLink href={u.install(lang)} variant="primary">{content.installTitle}</ActionLink>
+      <ActionLink href={u.assistants(lang)} variant="ghost">{content.assistantsLink}</ActionLink>
     </div>
   </div>
-  <div class="hero-mark" aria-hidden="true">
-    <ShimpzBrand variant="symbol" />
-    <span>Space</span>
-    <i></i>
+
+  <div class="control-map" aria-hidden="true">
+    <div class="brand-node"><ShimpzBrand variant="symbol" /><span>Shimpz</span></div>
+    <div class="map-line"></div>
+    <div class="team-node">Team</div>
+    <div class="assistant-nodes"><span>Assistant 01</span><span>Assistant 02</span><span>Assistant 03</span></div>
+    <div class="approval-node"><i></i> Human approval</div>
   </div>
 </section>
 
-<section class="section wrap" aria-labelledby="profiles-title">
+<section class="section install-section" aria-labelledby="install-title">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">{content.installKicker}</p>
+      <h2 id="install-title">{content.installTitle}</h2>
+    </div>
+    <p class="section-lead">{content.installBody}</p>
+  </div>
+</section>
+
+<section class="section wrap" aria-labelledby="problem-title">
   <header class="section-heading">
-    <p class="kicker">{content.profilesKicker}</p>
-    <h2 id="profiles-title">{content.profilesTitle}</h2>
-    <p>{content.profilesLead}</p>
+    <p class="kicker">{content.problemKicker}</p>
+    <h2 id="problem-title">{content.problemTitle}</h2>
+    <p>{content.problemLead}</p>
   </header>
-  <div class="profile-grid">
-    {#each content.profiles as profile (profile.title)}
-      <Card class="institutional-card">
-        <span class="card-index">{profile.title}</span>
-        <h3>{profile.title} Space</h3>
-        <p>{profile.body}</p>
-        <small>{profile.detail}</small>
+  <div class="two-grid">
+    {#each content.alternatives as item, index (item.title)}
+      <Card class="story-card" tone={index === 1 ? "accent" : "default"}>
+        <span class="card-index">0{index + 1}</span>
+        <h3>{item.title}</h3>
+        <p>{item.body}</p>
       </Card>
     {/each}
   </div>
 </section>
 
-<section class="section install wrap" aria-labelledby="install-title">
-  <div class="install-grid">
-    <header class="section-heading">
-      <p class="kicker">Local Space // install</p>
-      <h2 id="install-title">{install.title}</h2>
-      <p>{install.body}</p>
-    </header>
-    <div class="install-action">
-      <InstallCommand {lang} />
-      <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{content.documentation} ↗</a>
-    </div>
-  </div>
-</section>
-
-<section class="section architecture" aria-labelledby="architecture-title">
+<section class="section model" aria-labelledby="model-title">
   <div class="wrap">
     <header class="section-heading">
-      <p class="kicker">{content.architectureKicker}</p>
-      <h2 id="architecture-title">{content.architectureTitle}</h2>
-      <p>{content.architectureLead}</p>
+      <p class="kicker">{content.modelKicker}</p>
+      <h2 id="model-title">{content.modelTitle}</h2>
+      <p>{content.modelLead}</p>
     </header>
-    <div class="concept-grid">
-      {#each content.concepts as concept, index (concept.title)}
-        <article>
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <h3>{concept.title}</h3>
-          <p>{concept.body}</p>
-        </article>
+    <ol class="step-grid">
+      {#each content.steps as step, index (step.title)}
+        <li><span>0{index + 1}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>
+      {/each}
+    </ol>
+  </div>
+</section>
+
+<section class="section wrap" aria-labelledby="control-title">
+  <header class="section-heading wide">
+    <p class="kicker">{content.controlKicker}</p>
+    <h2 id="control-title">{content.controlTitle}</h2>
+    <p>{content.controlLead}</p>
+  </header>
+  <div class="control-grid">
+    {#each content.controls as control (control.title)}
+      <article><i></i><h3>{control.title}</h3><p>{control.body}</p></article>
+    {/each}
+  </div>
+  <div class="inline-action"><ActionLink href={u.security(lang)}>{content.securityLink}</ActionLink></div>
+</section>
+
+<section class="section profiles" aria-labelledby="profiles-title">
+  <div class="wrap">
+    <header class="section-heading">
+      <p class="kicker">{content.profilesKicker}</p>
+      <h2 id="profiles-title">{content.profilesTitle}</h2>
+      <p>{content.profilesLead}</p>
+    </header>
+    <div class="two-grid">
+      {#each content.profiles as profile (profile.title)}
+        <Card class="profile-card">
+          <span class="profile-label">{profile.title}</span>
+          <h3>{profile.body}</h3>
+          <p>{profile.detail}</p>
+        </Card>
       {/each}
     </div>
-    <aside class="powers-note" aria-labelledby="powers-title">
-      <span>Power // explicit contract</span>
-      <div><h3 id="powers-title">{powers.title}</h3><p>{powers.body}</p></div>
-    </aside>
   </div>
 </section>
 
-<section class="section wrap" aria-labelledby="publication-title">
-  <header class="section-heading wide">
-    <p class="kicker">{content.publicationKicker}</p>
-    <h2 id="publication-title">{content.publicationTitle}</h2>
-    <p>{content.publicationLead}</p>
-  </header>
-  <ol class="publication-flow">
-    {#each content.flow as item, index (item.title)}
-      <li>
-        <span>{String(index + 1).padStart(2, "0")}</span>
-        <div><h3>{item.title}</h3><p>{item.body}</p></div>
-      </li>
-    {/each}
-  </ol>
-</section>
-
-<section class="section open-source" aria-labelledby="open-title">
-  <div class="wrap open-grid">
-    <div>
-      <p class="kicker">{content.openKicker}</p>
-      <h2 id="open-title">{content.openTitle}</h2>
-    </div>
-    <div>
-      <p>{content.openBody}</p>
-      <div class="actions">
-        <a class="cta primary" href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer">{content.github} ↗</a>
-        <a class="cta ghost" href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{content.documentation} ↗</a>
-      </div>
+<section class="section wrap open-grid" aria-labelledby="open-title">
+  <div>
+    <p class="kicker">{content.openKicker}</p>
+    <h2 id="open-title">{content.openTitle}</h2>
+  </div>
+  <div>
+    <p class="section-lead">{content.openBody}</p>
+    <div class="actions">
+      <ActionLink href={u.openSource(lang)} variant="primary">{content.openLink}</ActionLink>
+      <ActionLink href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer" variant="ghost">{content.github} ↗</ActionLink>
     </div>
   </div>
 </section>
 
-<section class="section final wrap" aria-labelledby="final-title">
-  <p class="kicker">Shimpz // Space</p>
-  <h2 id="final-title">{content.finalTitle}</h2>
-  <p>{content.finalBody}</p>
-  <div class="actions">
-    <a class="cta primary" href={u.assistants(lang)}>{content.explore}</a>
-    <a class="cta secondary" href={u.services(lang)}>Services</a>
-    <a class="cta ghost" href={u.creators(lang)}>Creators</a>
+<section class="section final" aria-labelledby="final-title">
+  <div class="wrap">
+    <p class="kicker">{content.finalKicker}</p>
+    <h2 id="final-title">{content.finalTitle}</h2>
+    <p>{content.finalBody}</p>
+    <div class="actions centered">
+      <ActionLink href={u.install(lang)} variant="primary">{content.installTitle}</ActionLink>
+      <ActionLink href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer" variant="ghost">{content.documentation} ↗</ActionLink>
+    </div>
   </div>
 </section>
 
 <style>
-  .hero {
-    display: grid;
-    min-height: min(760px, calc(100dvh - 5.25rem));
-    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.65fr);
-    align-items: center;
-    gap: clamp(3rem, 8vw, 8rem);
-    padding-block: clamp(5rem, 10vw, 9rem);
-  }
-  .hero-copy { max-width: 58rem; }
-  .kicker { margin: 0 0 1rem; color: var(--color-cyan); font: 600 0.68rem/1.4 var(--font-mono); letter-spacing: 0.15em; text-transform: uppercase; }
-  h1 { max-width: 13ch; margin: 0; font-size: clamp(3rem, 7.8vw, 7.4rem); line-height: 0.9; letter-spacing: -0.065em; }
-  .lead { max-width: 62ch; margin: 2rem 0 0; color: var(--color-fg); font-size: clamp(1.08rem, 1.8vw, 1.35rem); line-height: 1.6; }
-  .support { max-width: 68ch; margin: 1rem 0 0; color: var(--color-muted); line-height: 1.7; }
-  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-block-start: 2rem; }
-  .cta { display: inline-flex; min-height: var(--shimpz-control-height); align-items: center; justify-content: center; padding: .6rem .9rem; color: var(--shimpz-color-text-muted); font: 700 .72rem/1 var(--shimpz-font-mono); letter-spacing: .07em; border: 1px solid var(--shimpz-color-border); clip-path: polygon(0 0,calc(100% - var(--shimpz-cut)) 0,100% var(--shimpz-cut),100% 100%,0 100%); text-transform: uppercase; }
-  .cta.primary { color: var(--shimpz-color-bg); background: var(--shimpz-color-cyan); border-color: var(--shimpz-color-cyan); }
-  .cta.secondary { color: var(--shimpz-color-cyan); background: var(--shimpz-color-surface-raised); border-color: var(--shimpz-color-cyan); }
-  .cta:hover { color: var(--shimpz-color-bg); background: var(--shimpz-color-text); border-color: var(--shimpz-color-text); box-shadow: var(--shimpz-glow-cyan); }
-  .hero-mark { position: relative; display: grid; aspect-ratio: 1; place-items: center; background: radial-gradient(circle, rgba(0,240,255,.13), transparent 65%); border: 1px solid var(--color-border); clip-path: polygon(12% 0,100% 0,100% 88%,88% 100%,0 100%,0 12%); }
-  .hero-mark :global(.shimpz-brand) { transform: scale(2.2); }
-  .hero-mark span { position: absolute; inset-block-end: 1.2rem; inset-inline-start: 1.4rem; font: 600 0.68rem/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase; }
-  .hero-mark i { position: absolute; inset-block-start: 1rem; inset-inline-end: 1rem; width: .55rem; height: .55rem; background: var(--color-green); border-radius: 50%; box-shadow: 0 0 12px var(--color-green); }
+  .hero { display: grid; min-height: min(780px, calc(100dvh - 5rem)); grid-template-columns: minmax(0, 1.15fr) minmax(20rem, .75fr); align-items: center; gap: clamp(3rem, 8vw, 8rem); padding-block: clamp(4rem, 9vw, 8rem); }
+  .hero-copy { max-width: 62rem; }
+  .kicker { margin: 0 0 1rem; color: var(--color-cyan); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .15em; text-transform: uppercase; }
+  h1 { max-width: 14ch; margin: 0; font-size: clamp(3rem, 7vw, 6.8rem); line-height: .92; letter-spacing: -.065em; }
+  .lead { max-width: 60ch; margin: 2rem 0 0; color: var(--color-fg); font-size: clamp(1.05rem, 1.8vw, 1.35rem); line-height: 1.6; }
+  .support, .section-heading > p:last-child, .section-lead, .final p { max-width: 68ch; color: var(--color-muted); line-height: 1.75; }
+  .support { margin-block-start: 1rem; }
+  .hero-install { max-width: 50rem; margin-block-start: 2rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block-start: 1rem; }
+  .control-map { position: relative; display: grid; min-height: 31rem; align-content: center; gap: 1rem; padding: clamp(1.5rem, 4vw, 2.5rem); overflow: hidden; background: radial-gradient(circle at 50% 30%, rgba(0,240,255,.14), transparent 55%), var(--color-surface); border: 1px solid var(--color-border); clip-path: polygon(12% 0,100% 0,100% 88%,88% 100%,0 100%,0 12%); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+  .brand-node, .team-node, .assistant-nodes span, .approval-node { border: 1px solid var(--color-border-strong); background: #050505; }
+  .brand-node { display: flex; align-items: center; gap: .8rem; justify-self: center; padding: 1rem 1.2rem; color: var(--color-cyan); }
+  .brand-node :global(.shimpz-brand) { transform: scale(.85); }
+  .map-line { width: 1px; height: 2rem; justify-self: center; background: var(--color-cyan); }
+  .team-node { justify-self: center; padding: .9rem 2.5rem; }
+  .assistant-nodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+  .assistant-nodes span { padding: .8rem .5rem; color: var(--color-muted); text-align: center; }
+  .approval-node { display: flex; align-items: center; gap: .6rem; justify-self: center; padding: .8rem 1rem; color: var(--color-green); }
+  .approval-node i, .control-grid i { width: .5rem; height: .5rem; background: var(--color-green); border-radius: 50%; box-shadow: 0 0 10px var(--color-green); }
   .section { padding-block: clamp(5rem, 10vw, 9rem); }
-  .section-heading { max-width: 64rem; margin-block-end: clamp(2.5rem, 6vw, 4rem); }
-  .section-heading.wide { max-width: 72rem; }
-  h2 { max-width: 18ch; margin: 0; font-size: clamp(2.2rem, 5vw, 4.7rem); line-height: .98; letter-spacing: -.05em; }
-  .section-heading > p:last-child, .open-grid p, .final > p { max-width: 68ch; color: var(--color-muted); font-size: 1rem; line-height: 1.75; }
-  .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-  :global(.institutional-card) { min-height: 20rem; padding: clamp(1.5rem, 4vw, 2.5rem); }
-  :global(.institutional-card h3) { margin: auto 0 1rem; font-size: clamp(1.7rem, 4vw, 2.8rem); }
-  :global(.institutional-card p) { color: var(--color-muted); line-height: 1.7; }
-  :global(.institutional-card small), .card-index { color: var(--color-muted-2); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-  .architecture, .open-source { border-block: 1px solid var(--color-border); background: var(--color-surface); }
-  .install-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(24rem, 1fr); align-items: end; gap: clamp(2rem, 8vw, 7rem); }
-  .install-grid .section-heading { margin-block-end: 0; }
-  .install-action > a { display: inline-flex; margin-block-start: 1rem; color: var(--color-cyan); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-  .concept-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block-start: 1px solid var(--color-border); border-inline-start: 1px solid var(--color-border); }
-  .concept-grid article { min-height: 18rem; padding: 1.5rem; border-block-end: 1px solid var(--color-border); border-inline-end: 1px solid var(--color-border); }
-  .concept-grid span, .publication-flow > li > span { color: var(--color-cyan); font: 600 .65rem/1 var(--font-mono); }
-  .concept-grid h3, .publication-flow h3 { margin: 3rem 0 1rem; font-size: 1.15rem; }
-  .concept-grid p, .publication-flow p { margin: 0; color: var(--color-muted); font-size: .9rem; line-height: 1.65; }
-  .powers-note { display: grid; grid-template-columns: minmax(10rem, .45fr) minmax(0, 1fr); gap: 2rem; padding: 1.5rem; margin-block-start: 1rem; border: 1px solid var(--color-border); }
-  .powers-note > span { color: var(--color-cyan); font: 600 .65rem/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
-  .powers-note h3 { margin: 0 0 .5rem; font-size: 1.15rem; }
-  .powers-note p { max-width: 58rem; margin: 0; color: var(--color-muted); line-height: 1.65; }
-  .publication-flow { display: grid; padding: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; border: 1px solid var(--color-border); }
-  .publication-flow li { display: grid; min-height: 16rem; grid-template-rows: auto 1fr; padding: 1.5rem; border-inline-end: 1px solid var(--color-border); }
-  .publication-flow li:last-child { border-inline-end: 0; }
-  .publication-flow div { align-self: end; }
-  .publication-flow h3 { margin-block-start: 0; }
-  .open-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); gap: clamp(2rem, 8vw, 8rem); }
+  .install-section, .model, .profiles, .final { border-block: 1px solid var(--color-border); background: var(--color-surface); }
+  .split, .open-grid { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1fr); gap: clamp(2rem,8vw,8rem); align-items: end; }
+  .section-heading { max-width: 66rem; margin-block-end: clamp(2.5rem,6vw,4rem); }
+  .section-heading.wide { max-width: 78rem; }
+  h2 { max-width: 19ch; margin: 0; font-size: clamp(2.2rem,5vw,4.8rem); line-height: .98; letter-spacing: -.05em; }
+  .two-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+  :global(.story-card), :global(.profile-card) { min-height: 18rem; }
+  :global(.story-card .content), :global(.profile-card .content) { display: flex; height: 100%; flex-direction: column; }
+  :global(.story-card h3), :global(.profile-card h3) { margin: auto 0 1rem; font-size: clamp(1.4rem,3vw,2.4rem); line-height: 1.1; }
+  :global(.story-card p), :global(.profile-card p) { margin: 0; color: var(--color-muted); line-height: 1.7; }
+  .card-index, .profile-label { color: var(--color-cyan); font: 600 .68rem/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+  .step-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 0; border: 1px solid var(--color-border); list-style: none; }
+  .step-grid li { display: grid; min-height: 17rem; align-content: space-between; padding: 1.5rem; border-inline-end: 1px solid var(--color-border); }
+  .step-grid li:last-child { border-inline-end: 0; }
+  .step-grid > li > span { color: var(--color-cyan); font: 600 .65rem/1 var(--font-mono); }
+  .step-grid h3, .control-grid h3 { margin: 0 0 .8rem; font-size: 1.15rem; }
+  .step-grid p, .control-grid p { margin: 0; color: var(--color-muted); font-size: .92rem; line-height: 1.65; }
+  .control-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-block-start: 1px solid var(--color-border); border-inline-start: 1px solid var(--color-border); }
+  .control-grid article { min-height: 15rem; padding: 1.5rem; border-block-end: 1px solid var(--color-border); border-inline-end: 1px solid var(--color-border); }
+  .control-grid i { display: block; margin-block-end: 3rem; }
+  .inline-action { margin-block-start: 1rem; }
+  .open-grid { align-items: start; }
   .final { text-align: center; }
-  .final h2, .final > p { margin-inline: auto; }
-  .final .actions { justify-content: center; }
-  @media (max-width: 980px) { .concept-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 760px) {
-    .hero, .open-grid, .install-grid { grid-template-columns: 1fr; }
-    .hero { min-height: auto; }
-    .hero-mark { width: min(100%, 24rem); }
-    .profile-grid, .publication-flow { grid-template-columns: 1fr; }
-    .publication-flow li { min-height: 12rem; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
-    .publication-flow li:last-child { border-block-end: 0; }
-  }
-  @media (max-width: 480px) { .concept-grid, .powers-note { grid-template-columns: 1fr; } .concept-grid article { min-height: 14rem; } }
+  .final h2, .final p { margin-inline: auto; }
+  .centered { justify-content: center; }
+  @media (max-width: 900px) { .control-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+  @media (max-width: 760px) { .hero, .split, .open-grid { grid-template-columns: 1fr; } .hero { min-height: auto; } .control-map { width: min(100%,30rem); min-height: 26rem; } .two-grid, .step-grid { grid-template-columns: 1fr; } .step-grid li { min-height: 12rem; border-inline-end: 0; border-block-end: 1px solid var(--color-border); } .step-grid li:last-child { border-block-end: 0; } }
+  @media (max-width: 520px) { .control-grid, .assistant-nodes { grid-template-columns: 1fr; } .control-grid article { min-height: 12rem; } .assistant-nodes span:nth-child(n+3) { display: none; } }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>

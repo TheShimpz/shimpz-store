@@ -7,7 +7,16 @@ export function GET() {
   const paths: string[] = [];
   paths.push("/privacy", "/terms");
   for (const l of LOCALES) {
-    paths.push(u.home(l), u.services(l), u.assistants(l), u.creators(l));
+    paths.push(
+      u.home(l),
+      u.services(l),
+      u.assistants(l),
+      u.creators(l),
+      u.security(l),
+      u.install(l),
+      u.openSource(l),
+      u.about(l),
+    );
     for (const service of SERVICES) paths.push(u.service(l, service));
     for (const creator of CREATORS) paths.push(u.creator(l, creator.handle));
   }

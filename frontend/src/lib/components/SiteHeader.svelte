@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DropdownMenu, SiteHeader as PublicSiteHeader, SiteNavLink } from "@shimpz/frontend";
+  import { ActionLink, DropdownMenu, SiteHeader as PublicSiteHeader, SiteNavLink } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
   import { tr } from "$lib/i18n";
@@ -16,14 +16,15 @@
 </script>
 
 {#snippet navigation()}
-  <SiteNavLink href={u.services(lang)} active={path.includes("/services")}>{tr("nav_services", lang)}</SiteNavLink>
   <SiteNavLink href={u.assistants(lang)} active={path.includes("/assistants")}>{tr("nav_assistants", lang)}</SiteNavLink>
+  <SiteNavLink href={u.services(lang)} active={path.includes("/services")}>{tr("nav_services", lang)}</SiteNavLink>
   <SiteNavLink href={u.creators(lang)} active={path.includes("/creators")}>{tr("nav_creators", lang)}</SiteNavLink>
-  <SiteNavLink href={u.chat(lang)} active={path.includes("/chat")}>{tr("nav_chat", lang)}</SiteNavLink>
+  <SiteNavLink href={u.security(lang)} active={path.includes("/security")}>{tr("nav_security", lang)}</SiteNavLink>
   <SiteNavLink href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} <span aria-hidden="true">↗</span></SiteNavLink>
 {/snippet}
 
 {#snippet actions()}
+  <ActionLink href={u.install(lang)} variant="primary" size="compact">{tr("nav_install", lang)}</ActionLink>
   <AccountMenu {lang} />
   <DropdownMenu
     items={languageItems}
@@ -36,7 +37,6 @@
 
 <PublicSiteHeader
   brandHref={u.home(lang)}
-  brandProduct="Space"
   brandAriaLabel="Shimpz home"
   navigationLabel={tr("nav_main", lang)}
   skipLabel={tr("skip_content", lang)}

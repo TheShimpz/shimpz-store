@@ -8,6 +8,8 @@
 </script>
 
 {#snippet links()}
+  <a href={u.openSource(lang)}>{tr("nav_open_source", lang)}</a>
+  <a href={u.about(lang)}>{tr("nav_about", lang)}</a>
   <a href="/privacy">{tr("privacy", lang)}</a>
   <a href="/terms">{tr("terms", lang)}</a>
   <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} ↗</a>
@@ -16,7 +18,7 @@
 
 {#snippet meta()}
   <i aria-hidden="true"></i>
-  <span>Space platform // open source</span>
+  <span>{tr("footer_meta", lang)}</span>
 {/snippet}
 
 <PublicSiteFooter

@@ -15,6 +15,10 @@ export const u = {
   account: (l: Locale) => `/${l}/account`,
   creators: (l: Locale) => `/${l}/creators`,
   creator: (l: Locale, handle: string) => `/${l}/creators/${handle}`,
+  security: (l: Locale) => `/${l}/security`,
+  install: (l: Locale) => `/${l}/install`,
+  openSource: (l: Locale) => `/${l}/open-source`,
+  about: (l: Locale) => `/${l}/about`,
 };
 
 // Same page in another locale — swaps the leading /<lang>/ segment (for hreflang + the language switch).
