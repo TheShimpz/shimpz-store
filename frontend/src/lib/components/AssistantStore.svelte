@@ -554,6 +554,15 @@
       kicker={tr("assistants_preview", lang)}
       title={tr("assistants_title", lang)}
       lead={tr("assistants_lead", lang)} />
+
+    <aside class="local-setup" aria-labelledby="local-setup-title">
+      <div>
+        <p class="kicker">LOCAL // 60 SECONDS</p>
+        <h2 id="local-setup-title">{tr("assistants_local_setup", lang)}</h2>
+        <p>{tr("assistants_local_setup_help", lang)}</p>
+      </div>
+      <InstallCommand {lang} />
+    </aside>
   {/if}
 
   {#if embedded && contextState === "error"}
@@ -692,16 +701,6 @@
     {/each}
   </div>
 
-  {#if !embedded}
-    <aside class="local-setup" aria-labelledby="local-setup-title">
-      <div>
-        <p class="kicker">LOCAL // 60 SECONDS</p>
-        <h2 id="local-setup-title">{tr("assistants_local_setup", lang)}</h2>
-        <p>{tr("assistants_local_setup_help", lang)}</p>
-      </div>
-      <InstallCommand {lang} />
-    </aside>
-  {/if}
 </section>
 
 <style>
@@ -869,7 +868,7 @@
     grid-template-columns: minmax(15rem, 0.7fr) minmax(22rem, 1.3fr);
     align-items: center;
     gap: clamp(1.5rem, 5vw, 4rem);
-    margin-top: 2rem;
+    margin-top: 1.25rem;
     padding: clamp(1.2rem, 3vw, 2rem);
     background: var(--color-card);
     box-shadow: inset 0 0 0 1px var(--color-border);

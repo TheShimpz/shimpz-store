@@ -1,10 +1,13 @@
 // @ts-nocheck -- executed by Node's built-in test runner; the browser bundle has no Node typings.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 import { formatCatalogCount, homepage } from "../src/lib/homepage.ts";
-import { HOMEPAGE_REQUESTS } from "../src/lib/homepageRequests.ts";
+import {
+  HOMEPAGE_REQUESTS,
+  homepageRequestChallenge,
+  homepageRequestLabel,
+} from "../src/lib/homepageRequests.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
@@ -19,7 +22,6 @@ test("freezes the exact first-person English homepage narrative", () => {
     sdkCta: "Explore my SDK on GitHub",
     menuLabel: "Power human request kinds",
     interfaceLabel: "Real interface",
-    imageAlt: "Shimpz interface showing",
     groupNotes: {
       approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
       input: "I render one closed, bounded field. input:password is only for a third-party secret deliberately delivered to the named Assistant — never your Shimpz password.",
@@ -61,7 +63,6 @@ test("provides a complete native homepage narrative for every supported locale",
       content.humanRequests.sdkCta,
       content.humanRequests.menuLabel,
       content.humanRequests.interfaceLabel,
-      content.humanRequests.imageAlt,
       ...Object.values(content.humanRequests.groupNotes),
       content.developersHeading,
       content.developersBody,
@@ -100,7 +101,7 @@ test("provides a complete native homepage narrative for every supported locale",
   }
 });
 
-test("keeps every closed Power request kind paired with a real screenshot", () => {
+test("keeps every closed Power request kind renderable as localized interface data", () => {
   assert.deepEqual(HOMEPAGE_REQUESTS.map(({ kind }) => kind), [
     "approval",
     "input:text",
@@ -115,17 +116,22 @@ test("keeps every closed Power request kind paired with a real screenshot", () =
     "auth:phishing-resistant",
   ]);
 
-  const screenshotDirectory = new URL("../static/power-requests/", import.meta.url);
-  assert.deepEqual(readdirSync(screenshotDirectory).sort(), HOMEPAGE_REQUESTS.map(({ image }) => image).sort());
-
-  for (const request of HOMEPAGE_REQUESTS) {
-    const screenshot = new URL(request.image, screenshotDirectory);
-    assert.ok(existsSync(screenshot), `${request.kind} screenshot exists`);
-    const bytes = readFileSync(screenshot);
-    assert.ok(bytes.length > 1_000, `${request.kind} screenshot is not empty`);
-    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${request.kind} screenshot is a PNG`);
-    assert.equal(bytes.readUInt32BE(16), 512, `${request.kind} screenshot has the canonical width`);
-    assert.equal(bytes.readUInt32BE(20), request.height, `${request.kind} screenshot height matches its layout hint`);
+  for (const locale of LOCALES) {
+    for (const request of HOMEPAGE_REQUESTS) {
+      const label = homepageRequestLabel(request, locale);
+      const challenge = homepageRequestChallenge(request, locale);
+      assert.ok(label.trim().length > 0, `${locale} ${request.kind} has a human-readable label`);
+      if (locale !== "en") {
+        assert.notEqual(label, homepageRequestLabel(request, "en"), `${locale} ${request.kind} has a native label`);
+      }
+      assert.equal(challenge.request.kind, request.kind);
+      assert.equal(challenge.request.title, label);
+      assert.ok(challenge.request.label.trim().length > 0);
+      assert.notEqual(challenge.request.label, challenge.request.title);
+      assert.ok(challenge.request.description.trim().length > 0);
+      assert.ok(challenge.power.summary.trim().length > 0);
+      assert.equal("image" in request, false, `${request.kind} is rendered instead of screenshotted`);
+    }
   }
 });
 

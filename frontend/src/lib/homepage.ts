@@ -9,7 +9,6 @@ export type HomepageHumanRequests = {
   sdkCta: string;
   menuLabel: string;
   interfaceLabel: string;
-  imageAlt: string;
   groupNotes: {
     approval: string;
     input: string;
@@ -60,7 +59,6 @@ const CONTENT = {
       sdkCta: "Explore my SDK on GitHub",
       menuLabel: "Power human request kinds",
       interfaceLabel: "Real interface",
-      imageAlt: "Shimpz interface showing",
       groupNotes: {
         approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
         input: "I render one closed, bounded field. input:password is only for a third-party secret deliberately delivered to the named Assistant — never your Shimpz password.",
@@ -108,7 +106,6 @@ const CONTENT = {
       sdkCta: "Explore minha SDK no GitHub",
       menuLabel: "Tipos de solicitação humana de Power",
       interfaceLabel: "Interface real",
-      imageAlt: "Interface da Shimpz mostrando",
       groupNotes: {
         approval: "Eu registro sua decisão para uma ação descrita. A aprovação é atribuível, de uso único e vinculada à solicitação exata.",
         input: "Eu apresento um campo fechado e limitado. input:password serve apenas para um segredo de terceiro entregue intencionalmente ao Assistente identificado — nunca para sua senha da Shimpz.",
@@ -156,7 +153,6 @@ const CONTENT = {
       sdkCta: "Explora mi SDK en GitHub",
       menuLabel: "Tipos de solicitud humana de Power",
       interfaceLabel: "Interfaz real",
-      imageAlt: "Interfaz de Shimpz mostrando",
       groupNotes: {
         approval: "Registro tu decisión para una acción descrita. La aprobación es atribuible, de un solo uso y está vinculada a la solicitud exacta.",
         input: "Presento un campo cerrado y acotado. input:password sirve únicamente para un secreto de terceros entregado deliberadamente al Assistant indicado — nunca para tu contraseña de Shimpz.",
@@ -204,7 +200,6 @@ const CONTENT = {
       sdkCta: "Explorer mon SDK sur GitHub",
       menuLabel: "Types de demandes humaines de Power",
       interfaceLabel: "Interface réelle",
-      imageAlt: "Interface Shimpz présentant",
       groupNotes: {
         approval: "J’enregistre votre décision pour une action décrite. L’approbation est attribuable, à usage unique et liée à la demande exacte.",
         input: "J’affiche un champ fermé et borné. input:password sert uniquement à un secret tiers remis volontairement à l’Assistant nommé — jamais à votre mot de passe Shimpz.",
@@ -252,7 +247,6 @@ const CONTENT = {
       sdkCta: "Mein SDK auf GitHub erkunden",
       menuLabel: "Arten menschlicher Power-Anfragen",
       interfaceLabel: "Echte Oberfläche",
-      imageAlt: "Shimpz-Oberfläche für",
       groupNotes: {
         approval: "Ich erfasse deine Entscheidung für eine beschriebene Aktion. Die Freigabe ist zurechenbar, einmalig und an die exakte Anfrage gebunden.",
         input: "Ich zeige ein geschlossenes, begrenztes Feld. input:password ist ausschließlich für ein bewusst an den benannten Assistant übergebenes Drittanbieter-Geheimnis bestimmt — niemals für dein Shimpz-Passwort.",
@@ -300,7 +294,6 @@ const CONTENT = {
       sdkCta: "在 GitHub 上查看我的 SDK",
       menuLabel: "Power 人工请求类型",
       interfaceLabel: "真实界面",
-      imageAlt: "Shimpz 界面正在显示",
       groupNotes: {
         approval: "我会记录你对一项明确操作的决定。批准可归因、仅使用一次，并与确切请求绑定。",
         input: "我会呈现一个封闭且有界的字段。input:password 仅用于你有意交给指定 Assistant 的第三方秘密 — 绝不是你的 Shimpz 密码。",
@@ -348,7 +341,6 @@ const CONTENT = {
       sdkCta: "GitHub で私の SDK を見る",
       menuLabel: "Power の人間向けリクエスト種別",
       interfaceLabel: "実際のインターフェース",
-      imageAlt: "次を表示する Shimpz インターフェース:",
       groupNotes: {
         approval: "私は、説明された 1 つの操作に対するあなたの判断を記録します。承認は帰属可能で 1 回限り、正確なリクエストに結び付けられます。",
         input: "私は閉じた範囲付きフィールドを表示します。input:password は、指定された Assistant に意図的に渡す第三者の秘密専用です。Shimpz のパスワードには決して使いません。",
@@ -396,7 +388,6 @@ const CONTENT = {
       sdkCta: "استكشف SDK الخاصة بي على GitHub",
       menuLabel: "أنواع طلبات Power البشرية",
       interfaceLabel: "واجهة حقيقية",
-      imageAlt: "واجهة Shimpz تعرض",
       groupNotes: {
         approval: "أسجّل قرارك لإجراء موصوف واحد. تكون الموافقة منسوبة إليك، صالحة لمرة واحدة، ومرتبطة بالطلب المحدد.",
         input: "أعرض حقلًا مغلقًا ومحدودًا. يُستخدم input:password فقط لسر تابع لطرف ثالث تسلّمه عمدًا إلى Assistant المحددة — وليس لكلمة مرور Shimpz أبدًا.",
