@@ -15,12 +15,12 @@ from app.middleware import TraceIdMiddleware
 from app.payloads import ClientPayloadError
 from app.routers import (
     account,
+    action_assurance,
     assistants,
     files,
     inference,
     model_providers,
     oauth,
-    action_assurance,
     public,
     static,
     teams,
