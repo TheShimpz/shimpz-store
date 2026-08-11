@@ -10,6 +10,9 @@
     | "chevron"
     | "destroy"
     | "key"
+    | "eye"
+    | "hosted"
+    | "local"
     | "retry"
     | "send"
     | "session"
@@ -58,6 +61,15 @@
   {:else if name === "key"}
     <circle cx="8" cy="12" r="4" />
     <path d="M12 12h8M17 12v3M20 12v2" />
+  {:else if name === "eye"}
+    <path d="M2.8 12s3.3-5.5 9.2-5.5 9.2 5.5 9.2 5.5-3.3 5.5-9.2 5.5S2.8 12 2.8 12Z" />
+    <circle cx="12" cy="12" r="2.5" />
+  {:else if name === "local"}
+    <path d="M3 4.5h18v12H3zM8 20h8M12 16.5V20" />
+    <path d="M6.5 8.5h4M6.5 11.5h7" />
+  {:else if name === "hosted"}
+    <path d="M6.5 18.5h11.7a3.3 3.3 0 0 0 .5-6.6A6.2 6.2 0 0 0 6.9 9.6a4.5 4.5 0 0 0-.4 8.9Z" />
+    <path d="M9 14h6M12 11v6" />
   {:else if name === "shield"}
     <path d="M12 3 19 6v5.5c0 4.4-2.8 7.6-7 9.5-4.2-1.9-7-5.1-7-9.5V6l7-3Z" />
     <path d="m8.5 12 2.2 2.2 4.8-5" />

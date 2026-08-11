@@ -8,12 +8,18 @@
 </script>
 
 {#snippet links()}
-  <a href={u.openSource(lang)}>{tr("nav_open_source", lang)}</a>
-  <a href={u.about(lang)}>{tr("nav_about", lang)}</a>
-  <a href="/privacy">{tr("privacy", lang)}</a>
-  <a href="/terms">{tr("terms", lang)}</a>
-  <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} ↗</a>
-  <a href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  <div data-slot="site-footer-group">
+    <p data-slot="site-footer-group-title">{tr("footer_group_project", lang)}</p>
+    <a href={u.openSource(lang)}>{tr("nav_open_source", lang)}</a>
+    <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} ↗</a>
+    <a href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  </div>
+  <div data-slot="site-footer-group">
+    <p data-slot="site-footer-group-title">{tr("footer_group_company", lang)}</p>
+    <a href={u.about(lang)}>{tr("nav_about", lang)}</a>
+    <a href="/privacy">{tr("privacy", lang)}</a>
+    <a href="/terms">{tr("terms", lang)}</a>
+  </div>
 {/snippet}
 
 {#snippet meta()}
@@ -26,6 +32,7 @@
   brandAriaLabel="Shimpz home"
   linksLabel={tr("footer_links", lang)}
   statement={tr("footer", lang)}
+  contentWidth="editorial"
   {links}
   {meta}
 />

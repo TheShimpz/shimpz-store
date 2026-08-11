@@ -38,6 +38,7 @@
 <PublicSiteHeader
   brandHref={u.home(lang)}
   brandAriaLabel="Shimpz home"
+  contentWidth="editorial"
   navigationLabel={tr("nav_main", lang)}
   skipLabel={tr("skip_content", lang)}
   {navigation}

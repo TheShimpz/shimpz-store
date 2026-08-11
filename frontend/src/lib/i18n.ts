@@ -22,6 +22,8 @@ const D: Dict = {
   skip_content: { en: "Skip to content", pt: "Pular para o conteúdo", es: "Saltar al contenido", zh: "跳到内容", fr: "Aller au contenu", de: "Zum Inhalt springen", ja: "コンテンツへ移動", ar: "انتقل إلى المحتوى" },
   language: { en: "Language", pt: "Idioma", es: "Idioma", zh: "语言", fr: "Langue", de: "Sprache", ja: "言語", ar: "اللغة" },
   footer_links: { en: "Footer links", pt: "Links do rodapé", es: "Enlaces del pie", zh: "页脚链接", fr: "Liens de pied de page", de: "Fußzeilenlinks", ja: "フッターリンク", ar: "روابط التذييل" },
+  footer_group_project: { en: "Project", pt: "Projeto", es: "Proyecto", zh: "项目", fr: "Projet", de: "Projekt", ja: "プロジェクト", ar: "المشروع" },
+  footer_group_company: { en: "Company", pt: "Empresa", es: "Empresa", zh: "公司", fr: "Entreprise", de: "Unternehmen", ja: "会社", ar: "الشركة" },
   privacy: { en: "Privacy", pt: "Privacidade", es: "Privacidad", zh: "隐私", fr: "Confidentialité", de: "Datenschutz", ja: "プライバシー", ar: "الخصوصية" },
   terms: { en: "Terms", pt: "Termos", es: "Términos", zh: "条款", fr: "Conditions", de: "Bedingungen", ja: "利用規約", ar: "الشروط" },
   close: { en: "Close", pt: "Fechar" },
