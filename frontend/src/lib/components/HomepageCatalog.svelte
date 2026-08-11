@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { AssistantIcon } from "@shimpz/frontend";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import type { HomepageContent } from "$lib/homepage";
+  import { formatCatalogCount, type HomepageContent } from "$lib/homepage";
 
   type CatalogAssistant = {
     id: string;
@@ -18,8 +18,7 @@
   let catalogState = $state<"loading" | "ready" | "error">("loading");
 
   function countHeading(): string {
-    const noun = assistants.length === 1 ? content.assistantSingular : content.assistantPlural;
-    return `${assistants.length} ${noun} ${content.catalogGrowing}`;
+    return formatCatalogCount(content, assistants.length);
   }
 
   function category(assistant: CatalogAssistant): string {
@@ -49,17 +48,20 @@
 
 <section class="catalog" aria-labelledby="catalog-title" data-slot="homepage-catalog">
   <header>
-    <p>{content.catalogHeading}</p>
     <h2 id="catalog-title">{catalogState === "ready" ? countHeading() : content.catalogHeading}</h2>
   </header>
 
-  <div class="catalog-stage" aria-busy={catalogState === "loading"}>
+  <div
+    class="catalog-stage"
+    class:empty={catalogState === "ready" && assistants.length === 0}
+    aria-busy={catalogState === "loading"}
+  >
     {#if catalogState === "error"}
       <div class="catalog-error" role="alert">
         <span>{content.catalogUnavailable}</span>
         <button type="button" onclick={loadCatalog}>{content.catalogRetry}</button>
       </div>
-    {:else if catalogState === "ready"}
+    {:else if catalogState === "ready" && assistants.length > 0}
       <div class="catalog-grid">
         {#each assistants as assistant (assistant.id)}
           <article>
@@ -82,14 +84,6 @@
 
 <style>
   .catalog { padding-block: clamp(5rem, 10vw, 9rem); }
-  header { display: grid; gap: 1rem; margin-block-end: clamp(2rem, 5vw, 4rem); }
-  header > p, .category {
-    margin: 0;
-    color: var(--color-cyan);
-    font: 600 .68rem/1.4 var(--font-mono);
-    letter-spacing: .15em;
-    text-transform: uppercase;
-  }
   h2 {
     max-width: var(--shimpz-type-section-measure);
     margin: 0;
@@ -97,13 +91,24 @@
     letter-spacing: var(--shimpz-type-section-tracking);
     text-wrap: balance;
   }
-  .catalog-stage { min-height: 13rem; }
+  .catalog-stage { min-height: 13rem; margin-block-start: clamp(2rem, 5vw, 4rem); }
+  .catalog-stage.empty { min-height: 0; margin-block-start: 0; }
   .catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--color-border); }
-  article { min-height: 16rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
+  article { min-width: 0; min-height: 16rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   article:nth-child(3n) { border-inline-end: 0; }
   article:nth-child(n + 4) { border-block-start: 1px solid var(--color-border); }
-  .identity { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .category { text-align: end; }
+  .identity { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 1rem; }
+  .category {
+    min-width: 0;
+    max-width: 70%;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--color-cyan);
+    font: 600 .68rem/1.4 var(--font-mono);
+    letter-spacing: .15em;
+    text-align: end;
+    text-transform: uppercase;
+  }
   h3 { margin: 3.5rem 0 .7rem; font-size: 1.15rem; line-height: 1.2; }
   .summary { max-width: 44ch; margin: 0; color: var(--color-muted); font-size: .9rem; line-height: 1.65; }
   .catalog-error { display: flex; min-height: 8rem; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem; color: var(--color-muted); border: 1px solid var(--color-border); }

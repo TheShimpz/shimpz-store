@@ -14,9 +14,10 @@ export type HomepageContent = {
   developerFeatures: [HomepageFeature, HomepageFeature, HomepageFeature];
   developersCta: string;
   catalogHeading: string;
+  assistantZero: string;
   assistantSingular: string;
   assistantPlural: string;
-  catalogGrowing: string;
+  catalogCountTemplate: string;
   catalogCore: string;
   catalogUnavailable: string;
   catalogRetry: string;
@@ -29,7 +30,7 @@ type FeatureTuple = [string, string];
 type HomepageTuple = [
   string, string, string, string, string, string,
   string, string, [FeatureTuple, FeatureTuple, FeatureTuple], string,
-  [string, string, string, string, string, string, string],
+  [string, string, string, string, string, string, string, string],
   string, string, [FeatureTuple, FeatureTuple, FeatureTuple],
 ];
 
@@ -39,7 +40,7 @@ function buildContent(input: Record<Locale, HomepageTuple>): Record<Locale, Home
     [
       seoTitle, seoDescription, title, lead, readSpec, browseAssistants,
       developersHeading, developersBody, developerFeatures, developersCta,
-      [catalogHeading, assistantSingular, assistantPlural, catalogGrowing, catalogCore, catalogUnavailable, catalogRetry],
+      [catalogHeading, assistantZero, assistantSingular, assistantPlural, catalogCountTemplate, catalogCore, catalogUnavailable, catalogRetry],
       usersHeading, usersBody, userFeatures,
     ],
   ]) => [locale, {
@@ -54,9 +55,10 @@ function buildContent(input: Record<Locale, HomepageTuple>): Record<Locale, Home
     developerFeatures: developerFeatures.map(([featureTitle, body]) => ({ title: featureTitle, body })),
     developersCta,
     catalogHeading,
+    assistantZero,
     assistantSingular,
     assistantPlural,
-    catalogGrowing,
+    catalogCountTemplate,
     catalogCore,
     catalogUnavailable,
     catalogRetry,
@@ -81,7 +83,7 @@ const CONTENT = buildContent({
       ["Isolated runtime", "Each assistant runs in its own container. No shared state, no surprises."],
     ],
     "Publish your first assistant",
-    ["Live catalog", "assistant", "assistants", "and growing", "Core", "The live assistant catalog is temporarily unavailable.", "Retry"],
+    ["Live catalog", "assistants", "assistant", "assistants", "{count} {noun} and growing", "Core", "The live assistant catalog is temporarily unavailable.", "Retry"],
     "For Users",
     "Create a team, install the assistants it needs, and talk to it in chat — the way you'd talk to people.",
     [
@@ -104,7 +106,7 @@ const CONTENT = buildContent({
       ["Runtime isolado", "Cada assistente roda em seu próprio container. Sem estado compartilhado, sem surpresas."],
     ],
     "Publique seu primeiro assistente",
-    ["Catálogo ao vivo", "assistente", "assistentes", "e crescendo", "Core", "O catálogo de assistentes está temporariamente indisponível.", "Tentar novamente"],
+    ["Catálogo ao vivo", "assistentes", "assistente", "assistentes", "{count} {noun} e crescendo", "Core", "O catálogo de assistentes está temporariamente indisponível.", "Tentar novamente"],
     "Para usuários",
     "Crie um time, instale os assistentes de que ele precisa e converse pelo chat — como você conversaria com pessoas.",
     [
@@ -127,7 +129,7 @@ const CONTENT = buildContent({
       ["Runtime aislado", "Cada asistente se ejecuta en su propio contenedor. Sin estado compartido, sin sorpresas."],
     ],
     "Publica tu primer asistente",
-    ["Catálogo en vivo", "asistente", "asistentes", "y creciendo", "Core", "El catálogo de asistentes no está disponible temporalmente.", "Reintentar"],
+    ["Catálogo en vivo", "asistentes", "asistente", "asistentes", "{count} {noun} y creciendo", "Core", "El catálogo de asistentes no está disponible temporalmente.", "Reintentar"],
     "Para usuarios",
     "Crea un team, instala los asistentes que necesita y habla con él por chat — como hablarías con personas.",
     [
@@ -150,7 +152,7 @@ const CONTENT = buildContent({
       ["Runtime isolé", "Chaque assistant s’exécute dans son propre conteneur. Aucun état partagé, aucune surprise."],
     ],
     "Publiez votre premier assistant",
-    ["Catalogue en direct", "assistant", "assistants", "et ce n’est qu’un début", "Core", "Le catalogue d’assistants est temporairement indisponible.", "Réessayer"],
+    ["Catalogue en direct", "assistant", "assistant", "assistants", "{count} {noun} et ce n’est qu’un début", "Core", "Le catalogue d’assistants est temporairement indisponible.", "Réessayer"],
     "Pour les utilisateurs",
     "Créez une team, installez les assistants dont elle a besoin et échangez avec elle dans le chat — comme avec des personnes.",
     [
@@ -173,7 +175,7 @@ const CONTENT = buildContent({
       ["Isolierte Runtime", "Jeder Assistant läuft in seinem eigenen Container. Kein geteilter Zustand, keine Überraschungen."],
     ],
     "Veröffentliche deinen ersten Assistant",
-    ["Live-Katalog", "Assistant", "Assistants", "und es werden mehr", "Core", "Der Assistant-Katalog ist vorübergehend nicht verfügbar.", "Erneut versuchen"],
+    ["Live-Katalog", "Assistants", "Assistant", "Assistants", "{count} {noun} und es werden mehr", "Core", "Der Assistant-Katalog ist vorübergehend nicht verfügbar.", "Erneut versuchen"],
     "Für Nutzer",
     "Erstelle ein Team, installiere die benötigten Assistants und sprich im Chat mit ihm — so, wie du mit Menschen sprichst.",
     [
@@ -189,7 +191,7 @@ const CONTENT = buildContent({
     "面向开发者", "按照严格的 Spec 构建，通过人工审核并发布。你的 Assistant 在 Docker 中隔离运行——无需管理基础设施。",
     [["Spec 与审核", "每个 Assistant 都遵循严格标准，并在发布前经过人工验证。"], ["内置计费", "安装会被计量并结算给你。你只写代码，不开账单。"], ["隔离 Runtime", "每个 Assistant 都在自己的容器中运行。没有共享状态，没有意外。"]],
     "发布你的第一个 Assistant",
-    ["实时目录", "个 Assistant", "个 Assistant", "且持续增长", "Core", "Assistant 目录暂时不可用。", "重试"],
+    ["实时目录", "个 Assistant", "个 Assistant", "个 Assistant", "{count}{noun}，且持续增长", "Core", "Assistant 目录暂时不可用。", "重试"],
     "面向用户", "创建 Team，安装它需要的 Assistant，然后在聊天中与它交流——就像与人交流一样。",
     [["经审核，而非生成", "Assistant 是发布前经过审查的真实代码，不会临时编写。"], ["Team 相互隔离", "每个 Team 独立运行，拥有自己的 Assistant 和上下文。"], ["Self-hosted", "运行在你自己的基础设施上。你的数据留在你这里。"]],
   ],
@@ -200,7 +202,7 @@ const CONTENT = buildContent({
     "開発者向け", "厳格な Spec に沿って開発し、人によるレビューを通過して公開。Assistant は Docker 内で分離実行され、管理するインフラはありません。",
     [["Spec とレビュー", "すべての Assistant が厳格な標準に従い、公開前に人の手で検証されます。"], ["組み込みの課金", "インストールは計測され、収益が支払われます。書くのはコードで、請求書ではありません。"], ["分離された Runtime", "各 Assistant は専用コンテナで実行されます。共有状態も想定外もありません。"]],
     "最初の Assistant を公開する",
-    ["ライブカタログ", "件の Assistant", "件の Assistant", "、さらに増加中", "Core", "Assistant カタログは一時的に利用できません。", "再試行"],
+    ["ライブカタログ", "件の Assistant", "件の Assistant", "件の Assistant", "{count}{noun}、さらに増加中", "Core", "Assistant カタログは一時的に利用できません。", "再試行"],
     "ユーザー向け", "Team を作成し、必要な Assistant をインストールして、人と話すようにチャットで話しかけます。",
     [["生成ではなくレビュー済み", "Assistant は公開前に審査された実際のコードです。その場で書かれるものではありません。"], ["分離された Team", "各 Team は独自の Assistant とコンテキストを持ち、個別に実行されます。"], ["Self-hosted", "あなた自身のインフラで実行。データはあなたのもとに残ります。"]],
   ],
@@ -211,7 +213,7 @@ const CONTENT = buildContent({
     "للمطورين", "طوّر وفق Spec صارمة واجتز المراجعة اليدوية وانشر. تعمل Assistant معزولة داخل Docker — بلا بنية تحتية تديرها.",
     [["Spec ومراجعة", "تتبع كل Assistant معيارًا صارمًا وتُعتمد يدويًا قبل النشر."], ["فوترة مدمجة", "تُقاس عمليات التثبيت وتُدفع عوائدها. اكتب الكود، لا الفواتير."], ["Runtime معزول", "تعمل كل Assistant في حاويتها الخاصة. لا حالة مشتركة ولا مفاجآت."]],
     "انشر أول Assistant لك",
-    ["الكتالوج المباشر", "Assistant", "Assistants", "وفي ازدياد", "Core", "كتالوج Assistants غير متاح مؤقتًا.", "أعد المحاولة"],
+    ["الكتالوج المباشر", "Assistants", "Assistant", "Assistants", "{count} {noun} وفي ازدياد", "Core", "كتالوج Assistants غير متاح مؤقتًا.", "أعد المحاولة"],
     "للمستخدمين", "أنشئ Team وثبّت Assistants التي تحتاجها وتحدث إليها في الدردشة — كما تتحدث مع الناس.",
     [["مراجعة لا مولّدة", "Assistants كود حقيقي يُفحص قبل النشر. لا يُكتب شيء لحظيًا."], ["Teams معزولة", "تعمل كل Team بصورة مستقلة مع Assistants وسياق خاصين بها."], ["Self-hosted", "تعمل على بنيتك التحتية. تبقى بياناتك لديك."]],
   ],
@@ -219,4 +221,15 @@ const CONTENT = buildContent({
 
 export function homepage(locale: Locale): HomepageContent {
   return CONTENT[locale];
+}
+
+export function formatCatalogCount(content: HomepageContent, count: number): string {
+  const noun = count === 0
+    ? content.assistantZero
+    : count === 1
+      ? content.assistantSingular
+      : content.assistantPlural;
+  return content.catalogCountTemplate
+    .replace("{count}", () => String(count))
+    .replace("{noun}", () => noun);
 }

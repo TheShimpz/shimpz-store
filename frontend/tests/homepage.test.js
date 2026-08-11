@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { homepage } from "../src/lib/homepage.ts";
+import { formatCatalogCount, homepage } from "../src/lib/homepage.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 
 test("freezes the exact English Creator and user narrative", () => {
@@ -39,6 +39,11 @@ test("provides a complete native homepage narrative for every supported locale",
       content.developersBody,
       content.developersCta,
       content.catalogHeading,
+      content.assistantZero,
+      content.assistantSingular,
+      content.assistantPlural,
+      content.catalogCountTemplate,
+      content.catalogCore,
       content.catalogUnavailable,
       content.catalogRetry,
       content.usersHeading,
@@ -48,6 +53,8 @@ test("provides a complete native homepage narrative for every supported locale",
     ]) {
       assert.ok(value.trim().length > 0, `${locale} homepage copy is complete`);
     }
+    assert.ok(content.catalogCountTemplate.includes("{count}"), `${locale} catalog count retains {count}`);
+    assert.ok(content.catalogCountTemplate.includes("{noun}"), `${locale} catalog count retains {noun}`);
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
@@ -55,4 +62,12 @@ test("provides a complete native homepage narrative for every supported locale",
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }
   }
+});
+
+test("formats catalog counts according to each locale", () => {
+  assert.equal(formatCatalogCount(homepage("en"), 0), "0 assistants and growing");
+  assert.equal(formatCatalogCount(homepage("en"), 1), "1 assistant and growing");
+  assert.equal(formatCatalogCount(homepage("fr"), 0), "0 assistant et ce n’est qu’un début");
+  assert.equal(formatCatalogCount(homepage("zh"), 3), "3个 Assistant，且持续增长");
+  assert.equal(formatCatalogCount(homepage("ja"), 1), "1件の Assistant、さらに増加中");
 });
