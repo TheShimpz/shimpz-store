@@ -29,7 +29,7 @@
 
 <PublicSiteFooter
   brandHref={u.home(lang)}
-  brandAriaLabel="Shimpz home"
+  brandAriaLabel={tr("brand_home", lang)}
   linksLabel={tr("footer_links", lang)}
   statement={tr("footer", lang)}
   contentWidth="editorial"
