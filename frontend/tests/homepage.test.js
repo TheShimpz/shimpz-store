@@ -1,15 +1,31 @@
 // @ts-nocheck -- executed by Node's built-in test runner; the browser bundle has no Node typings.
 import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 import { formatCatalogCount, homepage } from "../src/lib/homepage.ts";
+import { HOMEPAGE_REQUESTS } from "../src/lib/homepageRequests.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
   assert.equal(content.title, "Give me a goal and my assistants do the work on your computer");
   assert.equal(content.lead, "No agents. No code. Just a team. Assistants that already work — with the LLM you choose.");
-  assert.equal(content.demoCaption, '"Build me a landing page inspired by Apple." — so I did.');
+  assert.equal(content.watchMeWork, "See how I ask");
+  assert.deepEqual(content.humanRequests, {
+    heading: "I ask before I act.",
+    body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Power and ask you directly. Every request is bound to that exact Assistant, Power, and action.",
+    sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
+    sdkCta: "Explore my SDK on GitHub",
+    menuLabel: "Power human request kinds",
+    interfaceLabel: "Real interface",
+    imageAlt: "Shimpz interface showing",
+    groupNotes: {
+      approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
+      input: "I render one closed, bounded field. input:password is only for a third-party secret deliberately delivered to the named Assistant — never your Shimpz password.",
+      auth: "I run the trusted authentication ceremony. Passwords, authenticator codes, and passkey evidence never enter Assistant code.",
+    },
+  });
   assert.equal(content.usersHeading, "What I do for you");
   assert.equal(content.usersBody, "Give me a goal and I'll put the right assistants on it. I orchestrate, they execute — all on your machine.");
   assert.deepEqual(content.userFeatures, [
@@ -39,8 +55,14 @@ test("provides a complete native homepage narrative for every supported locale",
       content.lead,
       content.meetAssistants,
       content.watchMeWork,
-      content.demoCaption,
-      content.demoPending,
+      content.humanRequests.heading,
+      content.humanRequests.body,
+      content.humanRequests.sdkSummary,
+      content.humanRequests.sdkCta,
+      content.humanRequests.menuLabel,
+      content.humanRequests.interfaceLabel,
+      content.humanRequests.imageAlt,
+      ...Object.values(content.humanRequests.groupNotes),
       content.developersHeading,
       content.developersBody,
       content.developersCta,
@@ -71,9 +93,39 @@ test("provides a complete native homepage narrative for every supported locale",
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
+      assert.notEqual(content.humanRequests.body, english.humanRequests.body, `${locale} localizes the Power request narrative`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }
+  }
+});
+
+test("keeps every closed Power request kind paired with a real screenshot", () => {
+  assert.deepEqual(HOMEPAGE_REQUESTS.map(({ kind }) => kind), [
+    "approval",
+    "input:text",
+    "input:textarea",
+    "input:password",
+    "input:phone",
+    "input:select",
+    "input:choice",
+    "input:choices",
+    "auth:reauth",
+    "auth:second-factor",
+    "auth:phishing-resistant",
+  ]);
+
+  const screenshotDirectory = new URL("../static/power-requests/", import.meta.url);
+  assert.deepEqual(readdirSync(screenshotDirectory).sort(), HOMEPAGE_REQUESTS.map(({ image }) => image).sort());
+
+  for (const request of HOMEPAGE_REQUESTS) {
+    const screenshot = new URL(request.image, screenshotDirectory);
+    assert.ok(existsSync(screenshot), `${request.kind} screenshot exists`);
+    const bytes = readFileSync(screenshot);
+    assert.ok(bytes.length > 1_000, `${request.kind} screenshot is not empty`);
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], `${request.kind} screenshot is a PNG`);
+    assert.equal(bytes.readUInt32BE(16), 512, `${request.kind} screenshot has the canonical width`);
+    assert.equal(bytes.readUInt32BE(20), request.height, `${request.kind} screenshot height matches its layout hint`);
   }
 });
 

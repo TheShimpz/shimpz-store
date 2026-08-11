@@ -6,6 +6,7 @@
     ShimpzBrand,
   } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
+  import ApprovalRequestsShowcase from "$lib/components/ApprovalRequestsShowcase.svelte";
   import HomepageCatalog from "$lib/components/HomepageCatalog.svelte";
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -54,16 +55,9 @@
   />
 </div>
 
-<div class="surface-band demo-band">
-  <div class="editorial-wrap demo-space">
-    <figure id="demo" data-slot="homepage-demo" data-demo-state="todo" aria-labelledby="demo-caption">
-      <div class="demo-pending">
-        <span class="todo-label">TODO</span>
-        <HudIcon name="chat" size={48} />
-        <strong>{content.demoPending}</strong>
-      </div>
-      <figcaption id="demo-caption">{content.demoCaption}</figcaption>
-    </figure>
+<div class="surface-band demo-band" data-slot="homepage-power-requests-band">
+  <div class="editorial-wrap">
+    <ApprovalRequestsShowcase content={content.humanRequests} />
   </div>
 </div>
 
@@ -151,21 +145,6 @@
     height: clamp(16rem, 44vw, 30rem);
   }
   .demo-band { background: var(--color-bg); }
-  .demo-space { padding-block: clamp(4rem, 8vw, 7rem); }
-  figure { display: grid; gap: 1.5rem; margin: 0; }
-  .demo-pending {
-    display: grid;
-    min-height: clamp(17rem, 34vw, 28rem);
-    place-content: center;
-    justify-items: center;
-    gap: 1.25rem;
-    color: var(--color-cyan);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-  }
-  .demo-pending strong { color: var(--color-muted); font: 600 .72rem/1.5 var(--font-mono); letter-spacing: .08em; text-align: center; text-transform: uppercase; }
-  .todo-label { padding: .45rem .65rem; color: var(--color-bg); font: 800 .7rem/1 var(--font-mono); letter-spacing: .12em; background: var(--color-yellow); }
-  figcaption { color: var(--color-text); font-size: clamp(1.25rem, 2.5vw, 2rem); font-weight: 650; line-height: 1.3; text-wrap: balance; }
   .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
   .feature-list li { display: grid; min-height: 15rem; align-content: space-between; gap: 2rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   .feature-list li:last-child { border-inline-end: 0; }
@@ -203,7 +182,6 @@
       width: min(70vw, 16rem);
       height: min(70vw, 16rem);
     }
-    .demo-pending { min-height: 15rem; }
     .feature-list { grid-template-columns: 1fr; }
     .feature-list li { min-height: auto; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .feature-list li:last-child { border-block-end: 0; }

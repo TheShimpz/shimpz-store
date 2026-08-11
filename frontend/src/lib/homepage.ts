@@ -2,6 +2,21 @@ import type { Locale } from "$lib/locales";
 
 export type HomepageFeature = { title: string; body: string };
 
+export type HomepageHumanRequests = {
+  heading: string;
+  body: string;
+  sdkSummary: string;
+  sdkCta: string;
+  menuLabel: string;
+  interfaceLabel: string;
+  imageAlt: string;
+  groupNotes: {
+    approval: string;
+    input: string;
+    auth: string;
+  };
+};
+
 export type HomepageContent = {
   seoTitle: string;
   seoDescription: string;
@@ -9,8 +24,7 @@ export type HomepageContent = {
   lead: string;
   meetAssistants: string;
   watchMeWork: string;
-  demoCaption: string;
-  demoPending: string;
+  humanRequests: HomepageHumanRequests;
   usersHeading: string;
   usersBody: string;
   userFeatures: [HomepageFeature, HomepageFeature, HomepageFeature];
@@ -38,9 +52,21 @@ const CONTENT = {
     title: "Give me a goal and my assistants do the work on your computer",
     lead: "No agents. No code. Just a team. Assistants that already work — with the LLM you choose.",
     meetAssistants: "Meet my assistants",
-    watchMeWork: "Watch me work",
-    demoCaption: '"Build me a landing page inspired by Apple." — so I did.',
-    demoPending: "I'm preparing a real execution demo",
+    watchMeWork: "See how I ask",
+    humanRequests: {
+      heading: "I ask before I act.",
+      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Power and ask you directly. Every request is bound to that exact Assistant, Power, and action.",
+      sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
+      sdkCta: "Explore my SDK on GitHub",
+      menuLabel: "Power human request kinds",
+      interfaceLabel: "Real interface",
+      imageAlt: "Shimpz interface showing",
+      groupNotes: {
+        approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
+        input: "I render one closed, bounded field. input:password is only for a third-party secret deliberately delivered to the named Assistant — never your Shimpz password.",
+        auth: "I run the trusted authentication ceremony. Passwords, authenticator codes, and passkey evidence never enter Assistant code.",
+      },
+    },
     usersHeading: "What I do for you",
     usersBody: "Give me a goal and I'll put the right assistants on it. I orchestrate, they execute — all on your machine.",
     userFeatures: [
@@ -74,9 +100,21 @@ const CONTENT = {
     title: "Dê-me um objetivo e meus assistentes fazem o trabalho no seu computador",
     lead: "Sem agents. Sem código. Só um time. Assistentes que já funcionam — com a LLM que você escolher.",
     meetAssistants: "Conheça meus assistentes",
-    watchMeWork: "Veja-me trabalhar",
-    demoCaption: '"Crie para mim uma landing page inspirada na Apple." — e foi o que eu fiz.',
-    demoPending: "Estou preparando uma demo de execução real",
+    watchMeWork: "Veja como eu pergunto",
+    humanRequests: {
+      heading: "Eu pergunto antes de agir.",
+      body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso o Power e pergunto diretamente a você. Cada solicitação fica vinculada ao Assistente, ao Power e à ação exatos.",
+      sdkSummary: "Minha SDK oferece aos Creators três chamadas e 11 tipos fechados de solicitação. Assistentes não podem inventar formulários nem cerimônias de autenticação em runtime.",
+      sdkCta: "Explore minha SDK no GitHub",
+      menuLabel: "Tipos de solicitação humana de Power",
+      interfaceLabel: "Interface real",
+      imageAlt: "Interface da Shimpz mostrando",
+      groupNotes: {
+        approval: "Eu registro sua decisão para uma ação descrita. A aprovação é atribuível, de uso único e vinculada à solicitação exata.",
+        input: "Eu apresento um campo fechado e limitado. input:password serve apenas para um segredo de terceiro entregue intencionalmente ao Assistente identificado — nunca para sua senha da Shimpz.",
+        auth: "Eu conduzo a cerimônia de autenticação confiável. Senhas, códigos de autenticador e evidências de passkey nunca entram no código do Assistente.",
+      },
+    },
     usersHeading: "O que eu faço por você",
     usersBody: "Dê-me um objetivo e eu colocarei os assistentes certos nele. Eu orquestro, eles executam — tudo na sua máquina.",
     userFeatures: [
@@ -110,9 +148,21 @@ const CONTENT = {
     title: "Dame un objetivo y mis asistentes hacen el trabajo en tu ordenador",
     lead: "Sin agentes. Sin código. Solo un team. Asistentes que ya funcionan — con el LLM que elijas.",
     meetAssistants: "Conoce a mis asistentes",
-    watchMeWork: "Mírame trabajar",
-    demoCaption: '"Créame una landing page inspirada en Apple." — y eso hice.',
-    demoPending: "Estoy preparando una demo de ejecución real",
+    watchMeWork: "Mira cómo pregunto",
+    humanRequests: {
+      heading: "Pregunto antes de actuar.",
+      body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Power y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant, Power y acción exactos.",
+      sdkSummary: "Mi SDK ofrece a los Creators tres llamadas y 11 tipos cerrados de solicitud. Los Assistants no pueden inventar formularios ni ceremonias de autenticación en runtime.",
+      sdkCta: "Explora mi SDK en GitHub",
+      menuLabel: "Tipos de solicitud humana de Power",
+      interfaceLabel: "Interfaz real",
+      imageAlt: "Interfaz de Shimpz mostrando",
+      groupNotes: {
+        approval: "Registro tu decisión para una acción descrita. La aprobación es atribuible, de un solo uso y está vinculada a la solicitud exacta.",
+        input: "Presento un campo cerrado y acotado. input:password sirve únicamente para un secreto de terceros entregado deliberadamente al Assistant indicado — nunca para tu contraseña de Shimpz.",
+        auth: "Ejecuto la ceremonia de autenticación de confianza. Las contraseñas, los códigos del autenticador y la evidencia de passkey nunca entran en el código del Assistant.",
+      },
+    },
     usersHeading: "Lo que hago por ti",
     usersBody: "Dame un objetivo y pondré a los asistentes adecuados a trabajar en él. Yo orquesto, ellos ejecutan — todo en tu máquina.",
     userFeatures: [
@@ -146,9 +196,21 @@ const CONTENT = {
     title: "Donnez-moi un objectif et mes assistants font le travail sur votre ordinateur",
     lead: "Pas d’agents. Pas de code. Juste une team. Des assistants déjà opérationnels — avec le LLM de votre choix.",
     meetAssistants: "Découvrez mes assistants",
-    watchMeWork: "Regardez-moi travailler",
-    demoCaption: '« Crée-moi une landing page inspirée par Apple. » — et je l’ai fait.',
-    demoPending: "Je prépare une démo d’exécution réelle",
+    watchMeWork: "Voyez comment je demande",
+    humanRequests: {
+      heading: "Je demande avant d’agir.",
+      body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Power en pause et je vous interroge directement. Chaque demande est liée à cet Assistant, ce Power et cette action précis.",
+      sdkSummary: "Mon SDK propose aux Creators trois appels et 11 types fermés de demandes. Les Assistants ne peuvent pas inventer de formulaires ni de cérémonies d’authentification au runtime.",
+      sdkCta: "Explorer mon SDK sur GitHub",
+      menuLabel: "Types de demandes humaines de Power",
+      interfaceLabel: "Interface réelle",
+      imageAlt: "Interface Shimpz présentant",
+      groupNotes: {
+        approval: "J’enregistre votre décision pour une action décrite. L’approbation est attribuable, à usage unique et liée à la demande exacte.",
+        input: "J’affiche un champ fermé et borné. input:password sert uniquement à un secret tiers remis volontairement à l’Assistant nommé — jamais à votre mot de passe Shimpz.",
+        auth: "J’exécute la cérémonie d’authentification de confiance. Les mots de passe, codes d’authentification et preuves de passkey n’entrent jamais dans le code de l’Assistant.",
+      },
+    },
     usersHeading: "Ce que je fais pour vous",
     usersBody: "Donnez-moi un objectif et je mobiliserai les bons assistants. J’orchestre, ils exécutent — le tout sur votre machine.",
     userFeatures: [
@@ -182,9 +244,21 @@ const CONTENT = {
     title: "Gib mir ein Ziel und meine Assistants erledigen die Arbeit auf deinem Computer",
     lead: "Keine Agents. Kein Code. Nur ein Team. Assistants, die bereits funktionieren — mit dem LLM deiner Wahl.",
     meetAssistants: "Lerne meine Assistants kennen",
-    watchMeWork: "Sieh mir bei der Arbeit zu",
-    demoCaption: '„Erstelle mir eine von Apple inspirierte Landingpage.“ — und das habe ich getan.',
-    demoPending: "Ich bereite eine Demo einer echten Ausführung vor",
+    watchMeWork: "Sieh, wie ich nachfrage",
+    humanRequests: {
+      heading: "Ich frage, bevor ich handle.",
+      body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seinen Power und frage dich direkt. Jede Anfrage ist an genau diesen Assistant, Power und diese Aktion gebunden.",
+      sdkSummary: "Mein SDK bietet Creators drei Aufrufe und 11 geschlossene Anfragearten. Assistants können zur Runtime keine Formulare oder Authentifizierungsverfahren erfinden.",
+      sdkCta: "Mein SDK auf GitHub erkunden",
+      menuLabel: "Arten menschlicher Power-Anfragen",
+      interfaceLabel: "Echte Oberfläche",
+      imageAlt: "Shimpz-Oberfläche für",
+      groupNotes: {
+        approval: "Ich erfasse deine Entscheidung für eine beschriebene Aktion. Die Freigabe ist zurechenbar, einmalig und an die exakte Anfrage gebunden.",
+        input: "Ich zeige ein geschlossenes, begrenztes Feld. input:password ist ausschließlich für ein bewusst an den benannten Assistant übergebenes Drittanbieter-Geheimnis bestimmt — niemals für dein Shimpz-Passwort.",
+        auth: "Ich führe das vertrauenswürdige Authentifizierungsverfahren aus. Passwörter, Authenticator-Codes und Passkey-Nachweise gelangen nie in den Assistant-Code.",
+      },
+    },
     usersHeading: "Was ich für dich tue",
     usersBody: "Gib mir ein Ziel und ich setze die richtigen Assistants darauf an. Ich orchestriere, sie führen aus — alles auf deinem Rechner.",
     userFeatures: [
@@ -218,9 +292,21 @@ const CONTENT = {
     title: "给我一个目标，我的 Assistant 就会在你的电脑上完成工作",
     lead: "无需 Agent。无需代码。只需一个 Team。开箱即用的 Assistant — 搭配你选择的 LLM。",
     meetAssistants: "认识我的 Assistant",
-    watchMeWork: "看我工作",
-    demoCaption: '“为我创建一个受 Apple 启发的 landing page。”— 我做到了。',
-    demoPending: "我正在准备真实执行演示",
+    watchMeWork: "看看我如何询问",
+    humanRequests: {
+      heading: "行动之前，我会先询问你。",
+      body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Power 并直接询问你。每个请求都与确切的 Assistant、Power 和操作绑定。",
+      sdkSummary: "我的 SDK 为 Creator 提供 3 个调用和 11 种封闭的请求类型。Assistant 无法在 runtime 临时发明表单或身份验证流程。",
+      sdkCta: "在 GitHub 上查看我的 SDK",
+      menuLabel: "Power 人工请求类型",
+      interfaceLabel: "真实界面",
+      imageAlt: "Shimpz 界面正在显示",
+      groupNotes: {
+        approval: "我会记录你对一项明确操作的决定。批准可归因、仅使用一次，并与确切请求绑定。",
+        input: "我会呈现一个封闭且有界的字段。input:password 仅用于你有意交给指定 Assistant 的第三方秘密 — 绝不是你的 Shimpz 密码。",
+        auth: "我负责执行可信的身份验证流程。密码、验证器代码和 passkey 证明绝不会进入 Assistant 代码。",
+      },
+    },
     usersHeading: "我能为你做什么",
     usersBody: "给我一个目标，我会让合适的 Assistant 来处理。我负责编排，它们负责执行 — 全部在你的机器上。",
     userFeatures: [
@@ -254,9 +340,21 @@ const CONTENT = {
     title: "目標を教えてくれれば、私の Assistant があなたのコンピューターで作業します",
     lead: "Agent もコードも不要。必要なのは Team だけ。選んだ LLM で、すでに動く Assistant を使えます。",
     meetAssistants: "私の Assistant を見る",
-    watchMeWork: "私の仕事を見る",
-    demoCaption: '「Apple に着想を得た landing page を作って。」— だから作りました。',
-    demoPending: "実際の実行デモを準備しています",
+    watchMeWork: "私の確認方法を見る",
+    humanRequests: {
+      heading: "行動する前に、私はあなたに確認します。",
+      body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Power を一時停止して直接確認します。各リクエストは、正確な Assistant、Power、操作に結び付けられます。",
+      sdkSummary: "私の SDK は Creator に 3 つの呼び出しと 11 種類の閉じたリクエストを提供します。Assistant が runtime でフォームや認証手順を勝手に作ることはできません。",
+      sdkCta: "GitHub で私の SDK を見る",
+      menuLabel: "Power の人間向けリクエスト種別",
+      interfaceLabel: "実際のインターフェース",
+      imageAlt: "次を表示する Shimpz インターフェース:",
+      groupNotes: {
+        approval: "私は、説明された 1 つの操作に対するあなたの判断を記録します。承認は帰属可能で 1 回限り、正確なリクエストに結び付けられます。",
+        input: "私は閉じた範囲付きフィールドを表示します。input:password は、指定された Assistant に意図的に渡す第三者の秘密専用です。Shimpz のパスワードには決して使いません。",
+        auth: "信頼された認証手順は私が実行します。パスワード、認証コード、passkey の証明が Assistant のコードに入ることはありません。",
+      },
+    },
     usersHeading: "私ができること",
     usersBody: "目標を教えてください。最適な Assistant を割り当てます。私が編成し、Assistant が実行します — すべてあなたのマシン上で。",
     userFeatures: [
@@ -290,9 +388,21 @@ const CONTENT = {
     title: "أعطني هدفًا وستنجز Assistants الخاصة بي العمل على حاسوبك",
     lead: "لا Agents. لا كود. فقط Team. Assistants تعمل بالفعل — مع LLM الذي تختاره.",
     meetAssistants: "تعرّف إلى Assistants الخاصة بي",
-    watchMeWork: "شاهدني أعمل",
-    demoCaption: '«أنشئ لي landing page مستوحاة من Apple.» — وهذا ما فعلته.',
-    demoPending: "أنا أُعدّ عرضًا لتنفيذ حقيقي",
+    watchMeWork: "شاهد كيف أطلب قرارك",
+    humanRequests: {
+      heading: "أسألك قبل أن أتصرف.",
+      body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Power الخاص بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وPower والإجراء المحدد بدقة.",
+      sdkSummary: "تمنح SDK الخاصة بي Creators ثلاث استدعاءات و11 نوعًا مغلقًا من الطلبات. لا تستطيع Assistants اختراع نماذج أو مراسم مصادقة أثناء Runtime.",
+      sdkCta: "استكشف SDK الخاصة بي على GitHub",
+      menuLabel: "أنواع طلبات Power البشرية",
+      interfaceLabel: "واجهة حقيقية",
+      imageAlt: "واجهة Shimpz تعرض",
+      groupNotes: {
+        approval: "أسجّل قرارك لإجراء موصوف واحد. تكون الموافقة منسوبة إليك، صالحة لمرة واحدة، ومرتبطة بالطلب المحدد.",
+        input: "أعرض حقلًا مغلقًا ومحدودًا. يُستخدم input:password فقط لسر تابع لطرف ثالث تسلّمه عمدًا إلى Assistant المحددة — وليس لكلمة مرور Shimpz أبدًا.",
+        auth: "أنا أنفذ مراسم المصادقة الموثوقة. لا تدخل كلمات المرور أو رموز تطبيق المصادقة أو أدلة passkey إلى كود Assistant أبدًا.",
+      },
+    },
     usersHeading: "ما أفعله من أجلك",
     usersBody: "أعطني هدفًا وسأضع Assistants المناسبة للعمل عليه. أنا أنسّق وهي تنفّذ — كل ذلك على جهازك.",
     userFeatures: [
