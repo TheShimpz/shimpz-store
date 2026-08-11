@@ -15,9 +15,9 @@
   const lang = $derived(data.lang as Locale);
   const content = $derived(institutional(lang));
 
-  const delegationSrcset = "/brand/illustrations/team-architecture-768.webp 768w, /brand/illustrations/team-architecture-1536.webp 1536w";
-  const authorizationSrcset = "/brand/illustrations/bounded-authorization-768.webp 768w, /brand/illustrations/bounded-authorization-1536.webp 1536w";
-  const profilesSrcset = "/brand/illustrations/space-profiles-768.webp 768w, /brand/illustrations/space-profiles-1536.webp 1536w";
+  const delegationSrcset = "/brand/illustrations/delegation-flow-v2-768.webp 768w, /brand/illustrations/delegation-flow-v2-1536.webp 1536w";
+  const authorizationSrcset = "/brand/illustrations/authorization-flow-v2-768.webp 768w, /brand/illustrations/authorization-flow-v2-1536.webp 1536w";
+  const profilesSrcset = "/brand/illustrations/space-profiles-v2-768.webp 768w, /brand/illustrations/space-profiles-v2-1536.webp 1536w";
   const delegationStages = $derived([
     content.steps[0].title,
     content.steps[1].title,
@@ -37,7 +37,7 @@
   <link
     rel="preload"
     as="image"
-    href="/brand/illustrations/team-architecture-1536.webp"
+    href="/brand/illustrations/delegation-flow-v2-1536.webp"
     imagesrcset={delegationSrcset}
     imagesizes="(max-width: 760px) calc(100vw - 2rem), 58vw"
   />
@@ -46,19 +46,20 @@
 {#snippet heroMedia()}
   <div class="illustrated-diagram" data-diagram="delegation">
     <EditorialVisual
-      src="/brand/illustrations/team-architecture-1536.webp"
+      src="/brand/illustrations/delegation-flow-v2-1536.webp"
       srcset={delegationSrcset}
       sizes="(max-width: 760px) calc(100vw - 2rem), 58vw"
       alt=""
       width={1536}
       height={1024}
-      fit="contain"
+      aspect="flow"
+      fit="cover"
       treatment="unframed"
       priority
     />
-    <ol class="diagram-legend legend-four" data-slot="diagram-legend">
+    <ol class="diagram-legend legend-four" data-slot="diagram-legend" dir="ltr">
       {#each delegationStages as stage, index (index)}
-        <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
+        <li><span aria-hidden="true">0{index + 1}</span><strong dir="auto">{stage}</strong></li>
       {/each}
     </ol>
   </div>
@@ -74,18 +75,19 @@
 {#snippet authorizationMedia()}
   <div class="illustrated-diagram" data-diagram="authorization">
     <EditorialVisual
-      src="/brand/illustrations/bounded-authorization-1536.webp"
+      src="/brand/illustrations/authorization-flow-v2-1536.webp"
       srcset={authorizationSrcset}
       sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
       alt=""
       width={1536}
       height={1024}
-      fit="contain"
+      aspect="flow"
+      fit="cover"
       treatment="unframed"
     />
-    <ol class="diagram-legend legend-three" data-slot="diagram-legend">
+    <ol class="diagram-legend legend-three" data-slot="diagram-legend" dir="ltr">
       {#each authorizationStages as stage, index (index)}
-        <li><span aria-hidden="true">0{index + 1}</span><strong>{stage}</strong></li>
+        <li><span aria-hidden="true">0{index + 1}</span><strong dir="auto">{stage}</strong></li>
       {/each}
     </ol>
   </div>
@@ -98,7 +100,7 @@
 {#snippet profilesMedia()}
   <div class="illustrated-diagram" data-diagram="profiles">
     <EditorialVisual
-      src="/brand/illustrations/space-profiles-1536.webp"
+      src="/brand/illustrations/space-profiles-v2-1536.webp"
       srcset={profilesSrcset}
       sizes="(max-width: 760px) calc(100vw - 2rem), 48vw"
       alt=""
