@@ -37,10 +37,24 @@ test("projects the exact immutable publication identity needed by the Store", ()
       summary: "A safe example.",
       version: "1.2.3",
       creators: ["@creator"],
+      providers: ["example"],
       sourceDigest: DIGEST,
       iconDigest: ICON_DIGEST,
     },
   ]);
+});
+
+test("projects sorted unique Integration providers for public categorization", () => {
+  const value = catalog();
+  value.assistants[0].integrations = [
+    { id: "zeta", provider: "zeta", scopes: ["read"] },
+    { id: "alpha", provider: "alpha", scopes: ["read"] },
+    { id: "alpha-write", provider: "alpha", scopes: ["write"] },
+  ];
+  assert.deepEqual(parseAssistantCatalog(value)[0].providers, ["alpha", "zeta"]);
+
+  value.assistants[0].integrations = [];
+  assert.deepEqual(parseAssistantCatalog(value)[0].providers, []);
 });
 
 test("fails closed on ambiguous or executable catalog data", () => {

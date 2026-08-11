@@ -119,12 +119,16 @@ function parseAssistant(value) {
   ) {
     throw new Error("invalid Assistant catalog");
   }
+  const providers = [...new Set(
+    (/** @type {{ provider: string }[]} */ (record.integrations)).map(({ provider }) => provider),
+  )].sort((left, right) => left.localeCompare(right, "en"));
   return Object.freeze({
     id: record.assistant_id,
     name: record.name,
     summary: record.summary,
     version: record.assistant_version,
     creators: Object.freeze([...(/** @type {string[]} */ (record.creators))]),
+    providers: Object.freeze(providers),
     sourceDigest: record.source_digest,
     iconDigest: record.icon_digest,
   });

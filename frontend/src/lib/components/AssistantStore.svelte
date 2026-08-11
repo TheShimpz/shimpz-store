@@ -46,6 +46,7 @@
     summary: string;
     version: string;
     creators: readonly string[];
+    providers: readonly string[];
     sourceDigest: string;
     iconDigest: string;
   };
