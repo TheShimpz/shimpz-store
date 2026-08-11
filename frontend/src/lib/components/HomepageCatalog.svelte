@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { AssistantIcon } from "@shimpz/frontend";
+  import { ActionLink, AssistantIcon } from "@shimpz/frontend";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import { formatCatalogCount, type HomepageContent } from "$lib/homepage";
 
@@ -13,7 +13,7 @@
     iconDigest: string;
   };
 
-  let { content }: { content: HomepageContent } = $props();
+  let { content, catalogHref }: { content: HomepageContent; catalogHref: string } = $props();
   let assistants = $state<readonly CatalogAssistant[]>([]);
   let catalogState = $state<"loading" | "ready" | "error">("loading");
 
@@ -80,6 +80,10 @@
       </div>
     {/if}
   </div>
+
+  <div class="catalog-action">
+    <ActionLink href={catalogHref} variant="primary">{content.catalogCta} →</ActionLink>
+  </div>
 </section>
 
 <style>
@@ -93,6 +97,7 @@
   }
   .catalog-stage { min-height: 13rem; margin-block-start: clamp(2rem, 5vw, 4rem); }
   .catalog-stage.empty { min-height: 0; margin-block-start: 0; }
+  .catalog-action { margin-block-start: var(--shimpz-space-6); }
   .catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--color-border); }
   article { min-width: 0; min-height: 16rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   article:nth-child(3n) { border-inline-end: 0; }
