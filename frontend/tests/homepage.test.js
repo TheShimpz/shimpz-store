@@ -17,7 +17,7 @@ test("freezes the exact first-person English homepage narrative", () => {
   assert.equal(content.watchMeWork, "See how I ask");
   assert.deepEqual(content.humanRequests, {
     heading: "I ask before I act.",
-    body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant, Action, and action.",
+      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant and Action.",
     sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
     sdkCta: "Explore my SDK on GitHub",
     menuLabel: "Action human request kinds",

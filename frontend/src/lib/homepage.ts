@@ -54,7 +54,7 @@ const CONTENT = {
     watchMeWork: "See how I ask",
     humanRequests: {
       heading: "I ask before I act.",
-      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant, Action, and action.",
+      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant and Action.",
       sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
       sdkCta: "Explore my SDK on GitHub",
       menuLabel: "Action human request kinds",
@@ -101,7 +101,7 @@ const CONTENT = {
     watchMeWork: "Veja como eu pergunto",
     humanRequests: {
       heading: "Eu pergunto antes de agir.",
-      body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso o Action e pergunto diretamente a você. Cada solicitação fica vinculada ao Assistente, ao Action e à ação exatos.",
+      body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso a Action e pergunto diretamente a você. Cada solicitação fica vinculada àquele Assistente e àquela Action exatos.",
       sdkSummary: "Minha SDK oferece aos Creators três chamadas e 11 tipos fechados de solicitação. Assistentes não podem inventar formulários nem cerimônias de autenticação em runtime.",
       sdkCta: "Explore minha SDK no GitHub",
       menuLabel: "Tipos de solicitação humana de Action",
@@ -148,7 +148,7 @@ const CONTENT = {
     watchMeWork: "Mira cómo pregunto",
     humanRequests: {
       heading: "Pregunto antes de actuar.",
-      body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Action y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant, Action y acción exactos.",
+      body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Action y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant y esa Action exactos.",
       sdkSummary: "Mi SDK ofrece a los Creators tres llamadas y 11 tipos cerrados de solicitud. Los Assistants no pueden inventar formularios ni ceremonias de autenticación en runtime.",
       sdkCta: "Explora mi SDK en GitHub",
       menuLabel: "Tipos de solicitud humana de Action",
@@ -195,7 +195,7 @@ const CONTENT = {
     watchMeWork: "Voyez comment je demande",
     humanRequests: {
       heading: "Je demande avant d’agir.",
-      body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Action en pause et je vous interroge directement. Chaque demande est liée à cet Assistant, ce Action et cette action précis.",
+      body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Action en pause et je vous interroge directement. Chaque demande est liée à cet Assistant et à cette Action précis.",
       sdkSummary: "Mon SDK propose aux Creators trois appels et 11 types fermés de demandes. Les Assistants ne peuvent pas inventer de formulaires ni de cérémonies d’authentification au runtime.",
       sdkCta: "Explorer mon SDK sur GitHub",
       menuLabel: "Types de demandes humaines de Action",
@@ -242,7 +242,7 @@ const CONTENT = {
     watchMeWork: "Sieh, wie ich nachfrage",
     humanRequests: {
       heading: "Ich frage, bevor ich handle.",
-      body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seinen Action und frage dich direkt. Jede Anfrage ist an genau diesen Assistant, Action und diese Aktion gebunden.",
+      body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seine Action und frage dich direkt. Jede Anfrage ist an genau diesen Assistant und diese Action gebunden.",
       sdkSummary: "Mein SDK bietet Creators drei Aufrufe und 11 geschlossene Anfragearten. Assistants können zur Runtime keine Formulare oder Authentifizierungsverfahren erfinden.",
       sdkCta: "Mein SDK auf GitHub erkunden",
       menuLabel: "Arten menschlicher Action-Anfragen",
@@ -289,7 +289,7 @@ const CONTENT = {
     watchMeWork: "看看我如何询问",
     humanRequests: {
       heading: "行动之前，我会先询问你。",
-      body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Action 并直接询问你。每个请求都与确切的 Assistant、Action 和操作绑定。",
+      body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Action 并直接询问你。每个请求都与确切的 Assistant 和 Action 绑定。",
       sdkSummary: "我的 SDK 为 Creator 提供 3 个调用和 11 种封闭的请求类型。Assistant 无法在 runtime 临时发明表单或身份验证流程。",
       sdkCta: "在 GitHub 上查看我的 SDK",
       menuLabel: "Action 人工请求类型",
@@ -336,7 +336,7 @@ const CONTENT = {
     watchMeWork: "私の確認方法を見る",
     humanRequests: {
       heading: "行動する前に、私はあなたに確認します。",
-      body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Action を一時停止して直接確認します。各リクエストは、正確な Assistant、Action、操作に結び付けられます。",
+      body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Action を一時停止して直接確認します。各リクエストは、正確な Assistant と Action に結び付けられます。",
       sdkSummary: "私の SDK は Creator に 3 つの呼び出しと 11 種類の閉じたリクエストを提供します。Assistant が runtime でフォームや認証手順を勝手に作ることはできません。",
       sdkCta: "GitHub で私の SDK を見る",
       menuLabel: "Action の人間向けリクエスト種別",
@@ -383,7 +383,7 @@ const CONTENT = {
     watchMeWork: "شاهد كيف أطلب قرارك",
     humanRequests: {
       heading: "أسألك قبل أن أتصرف.",
-      body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Action الخاص بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وAction والإجراء المحدد بدقة.",
+      body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Action الخاصة بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وAction المحددتين بدقة.",
       sdkSummary: "تمنح SDK الخاصة بي Creators ثلاث استدعاءات و11 نوعًا مغلقًا من الطلبات. لا تستطيع Assistants اختراع نماذج أو مراسم مصادقة أثناء Runtime.",
       sdkCta: "استكشف SDK الخاصة بي على GitHub",
       menuLabel: "أنواع طلبات Action البشرية",
