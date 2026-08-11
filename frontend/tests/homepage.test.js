@@ -7,7 +7,7 @@ import { LOCALES } from "../src/lib/locales.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
-  assert.equal(content.title, "Give me a goal. My assistants do the work. On your computer.");
+  assert.equal(content.title, "Give me a goal and my assistants do the work on your computer");
   assert.equal(content.lead, "No agents. No code. Just a team. Assistants that already work — with the LLM you choose.");
   assert.equal(content.demoCaption, '"Build me a landing page inspired by Apple." — so I did.');
   assert.equal(content.usersHeading, "What I do for you");
