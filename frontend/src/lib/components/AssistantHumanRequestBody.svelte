@@ -64,5 +64,6 @@
   :global(.request-origin span) { color: var(--shimpz-color-text-faint); font: 600 0.58rem/1.2 var(--shimpz-font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
   :global(.request-origin strong) { overflow: hidden; font-size: 0.78rem; line-height: 1.4; text-overflow: ellipsis; }
   :global(.request-origin code) { overflow: hidden; color: var(--shimpz-color-cyan); font-size: 0.6rem; text-overflow: ellipsis; }
+  @container (max-width: 32rem) { :global(.request-origin > [data-slot="card-content"]) { grid-template-columns: 1fr; } }
   @media (max-width: 520px) { :global(.request-origin > [data-slot="card-content"]) { grid-template-columns: 1fr; } }
 </style>

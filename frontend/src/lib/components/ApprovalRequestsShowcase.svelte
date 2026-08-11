@@ -169,14 +169,15 @@
   .request-menu button:focus-visible { z-index: 1; outline: 2px solid var(--color-yellow); outline-offset: -2px; }
   .number { color: var(--color-green); font: 600 .66rem/1 var(--font-mono); letter-spacing: .1em; }
   .request-menu button strong { font: 650 clamp(.66rem, .8vw, .8rem)/1.2 var(--font-mono); white-space: nowrap; }
-  .request-stage { display: grid; min-width: 0; min-height: 44rem; align-content: start; gap: 1rem; }
+  .request-stage { display: grid; min-width: 0; min-height: 58rem; align-content: start; gap: 1rem; }
   .stage-heading { display: flex; min-width: 0; min-height: 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; color: var(--color-muted); font: 600 .66rem/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
   .stage-heading code { overflow: hidden; color: var(--color-cyan); font: inherit; text-overflow: ellipsis; white-space: nowrap; }
-  .signature { display: block; block-size: 3rem; overflow: auto; overflow-wrap: anywhere; color: var(--color-text); font: 500 .72rem/1.5 var(--font-mono); }
-  .request-preview { display: grid; block-size: 36rem; place-items: center; overflow: auto; }
-  .request-preview form { width: min(100%, 46rem); max-block-size: 100%; margin: auto; }
-  .request-preview :global(.shimpz-dialog-frame) { max-height: 36rem; }
-  .group-note { block-size: 5rem; max-inline-size: 40rem; margin: 0 auto; overflow: auto; color: var(--color-muted); font-size: .88rem; line-height: 1.65; text-align: center; }
+  .signature { display: block; block-size: 2.25rem; overflow: auto; overflow-wrap: anywhere; color: var(--color-text); font: 500 .72rem/1.5 var(--font-mono); }
+  .request-preview { display: grid; min-width: 0; place-items: start center; }
+  .request-preview form { container-type: inline-size; width: min(100%, 27.6rem); margin-inline: auto; }
+  .request-preview :global(.shimpz-dialog-frame) { max-height: none; }
+  .request-preview :global(.shimpz-dialog-frame footer) { flex-wrap: wrap; }
+  .group-note { min-block-size: 5rem; max-inline-size: 40rem; margin: 0 auto; color: var(--color-muted); font-size: .88rem; line-height: 1.65; text-align: center; }
   @media (max-width: 1080px) {
     section { gap: 2.5rem; padding-block: 4.5rem; }
     .intro { grid-template-columns: 1fr; gap: 2rem; }
@@ -187,11 +188,8 @@
     .request-menu li { width: max-content; min-width: min(17rem, 76vw); border-block-end: 0; border-inline-end: 1px solid var(--color-border); }
     .request-menu li:last-child { border-inline-end: 0; }
     .request-menu button { width: max-content; min-width: 100%; }
-    .request-stage { min-height: 50rem; }
-    .request-preview { block-size: 44rem; }
-    .request-preview :global(.shimpz-dialog-frame) { max-height: 44rem; }
-    .signature { block-size: 4rem; }
-    .group-note { block-size: 7rem; }
+    .request-stage { min-height: 62rem; }
+    .group-note { min-block-size: 7rem; }
     .stage-heading { align-items: start; flex-direction: column; }
   }
 </style>
