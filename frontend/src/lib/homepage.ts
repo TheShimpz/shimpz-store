@@ -54,10 +54,10 @@ const CONTENT = {
     watchMeWork: "See how I ask",
     humanRequests: {
       heading: "I ask before I act.",
-      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Power and ask you directly. Every request is bound to that exact Assistant, Power, and action.",
+      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant, Action, and action.",
       sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
       sdkCta: "Explore my SDK on GitHub",
-      menuLabel: "Power human request kinds",
+      menuLabel: "Action human request kinds",
       interfaceLabel: "Real interface",
       groupNotes: {
         approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
@@ -101,10 +101,10 @@ const CONTENT = {
     watchMeWork: "Veja como eu pergunto",
     humanRequests: {
       heading: "Eu pergunto antes de agir.",
-      body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso o Power e pergunto diretamente a você. Cada solicitação fica vinculada ao Assistente, ao Power e à ação exatos.",
+      body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso o Action e pergunto diretamente a você. Cada solicitação fica vinculada ao Assistente, ao Action e à ação exatos.",
       sdkSummary: "Minha SDK oferece aos Creators três chamadas e 11 tipos fechados de solicitação. Assistentes não podem inventar formulários nem cerimônias de autenticação em runtime.",
       sdkCta: "Explore minha SDK no GitHub",
-      menuLabel: "Tipos de solicitação humana de Power",
+      menuLabel: "Tipos de solicitação humana de Action",
       interfaceLabel: "Interface real",
       groupNotes: {
         approval: "Eu registro sua decisão para uma ação descrita. A aprovação é atribuível, de uso único e vinculada à solicitação exata.",
@@ -148,10 +148,10 @@ const CONTENT = {
     watchMeWork: "Mira cómo pregunto",
     humanRequests: {
       heading: "Pregunto antes de actuar.",
-      body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Power y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant, Power y acción exactos.",
+      body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Action y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant, Action y acción exactos.",
       sdkSummary: "Mi SDK ofrece a los Creators tres llamadas y 11 tipos cerrados de solicitud. Los Assistants no pueden inventar formularios ni ceremonias de autenticación en runtime.",
       sdkCta: "Explora mi SDK en GitHub",
-      menuLabel: "Tipos de solicitud humana de Power",
+      menuLabel: "Tipos de solicitud humana de Action",
       interfaceLabel: "Interfaz real",
       groupNotes: {
         approval: "Registro tu decisión para una acción descrita. La aprobación es atribuible, de un solo uso y está vinculada a la solicitud exacta.",
@@ -195,10 +195,10 @@ const CONTENT = {
     watchMeWork: "Voyez comment je demande",
     humanRequests: {
       heading: "Je demande avant d’agir.",
-      body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Power en pause et je vous interroge directement. Chaque demande est liée à cet Assistant, ce Power et cette action précis.",
+      body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Action en pause et je vous interroge directement. Chaque demande est liée à cet Assistant, ce Action et cette action précis.",
       sdkSummary: "Mon SDK propose aux Creators trois appels et 11 types fermés de demandes. Les Assistants ne peuvent pas inventer de formulaires ni de cérémonies d’authentification au runtime.",
       sdkCta: "Explorer mon SDK sur GitHub",
-      menuLabel: "Types de demandes humaines de Power",
+      menuLabel: "Types de demandes humaines de Action",
       interfaceLabel: "Interface réelle",
       groupNotes: {
         approval: "J’enregistre votre décision pour une action décrite. L’approbation est attribuable, à usage unique et liée à la demande exacte.",
@@ -242,10 +242,10 @@ const CONTENT = {
     watchMeWork: "Sieh, wie ich nachfrage",
     humanRequests: {
       heading: "Ich frage, bevor ich handle.",
-      body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seinen Power und frage dich direkt. Jede Anfrage ist an genau diesen Assistant, Power und diese Aktion gebunden.",
+      body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seinen Action und frage dich direkt. Jede Anfrage ist an genau diesen Assistant, Action und diese Aktion gebunden.",
       sdkSummary: "Mein SDK bietet Creators drei Aufrufe und 11 geschlossene Anfragearten. Assistants können zur Runtime keine Formulare oder Authentifizierungsverfahren erfinden.",
       sdkCta: "Mein SDK auf GitHub erkunden",
-      menuLabel: "Arten menschlicher Power-Anfragen",
+      menuLabel: "Arten menschlicher Action-Anfragen",
       interfaceLabel: "Echte Oberfläche",
       groupNotes: {
         approval: "Ich erfasse deine Entscheidung für eine beschriebene Aktion. Die Freigabe ist zurechenbar, einmalig und an die exakte Anfrage gebunden.",
@@ -289,10 +289,10 @@ const CONTENT = {
     watchMeWork: "看看我如何询问",
     humanRequests: {
       heading: "行动之前，我会先询问你。",
-      body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Power 并直接询问你。每个请求都与确切的 Assistant、Power 和操作绑定。",
+      body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Action 并直接询问你。每个请求都与确切的 Assistant、Action 和操作绑定。",
       sdkSummary: "我的 SDK 为 Creator 提供 3 个调用和 11 种封闭的请求类型。Assistant 无法在 runtime 临时发明表单或身份验证流程。",
       sdkCta: "在 GitHub 上查看我的 SDK",
-      menuLabel: "Power 人工请求类型",
+      menuLabel: "Action 人工请求类型",
       interfaceLabel: "真实界面",
       groupNotes: {
         approval: "我会记录你对一项明确操作的决定。批准可归因、仅使用一次，并与确切请求绑定。",
@@ -336,10 +336,10 @@ const CONTENT = {
     watchMeWork: "私の確認方法を見る",
     humanRequests: {
       heading: "行動する前に、私はあなたに確認します。",
-      body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Power を一時停止して直接確認します。各リクエストは、正確な Assistant、Power、操作に結び付けられます。",
+      body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Action を一時停止して直接確認します。各リクエストは、正確な Assistant、Action、操作に結び付けられます。",
       sdkSummary: "私の SDK は Creator に 3 つの呼び出しと 11 種類の閉じたリクエストを提供します。Assistant が runtime でフォームや認証手順を勝手に作ることはできません。",
       sdkCta: "GitHub で私の SDK を見る",
-      menuLabel: "Power の人間向けリクエスト種別",
+      menuLabel: "Action の人間向けリクエスト種別",
       interfaceLabel: "実際のインターフェース",
       groupNotes: {
         approval: "私は、説明された 1 つの操作に対するあなたの判断を記録します。承認は帰属可能で 1 回限り、正確なリクエストに結び付けられます。",
@@ -383,10 +383,10 @@ const CONTENT = {
     watchMeWork: "شاهد كيف أطلب قرارك",
     humanRequests: {
       heading: "أسألك قبل أن أتصرف.",
-      body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Power الخاص بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وPower والإجراء المحدد بدقة.",
+      body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Action الخاص بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وAction والإجراء المحدد بدقة.",
       sdkSummary: "تمنح SDK الخاصة بي Creators ثلاث استدعاءات و11 نوعًا مغلقًا من الطلبات. لا تستطيع Assistants اختراع نماذج أو مراسم مصادقة أثناء Runtime.",
       sdkCta: "استكشف SDK الخاصة بي على GitHub",
-      menuLabel: "أنواع طلبات Power البشرية",
+      menuLabel: "أنواع طلبات Action البشرية",
       interfaceLabel: "واجهة حقيقية",
       groupNotes: {
         approval: "أسجّل قرارك لإجراء موصوف واحد. تكون الموافقة منسوبة إليك، صالحة لمرة واحدة، ومرتبطة بالطلب المحدد.",

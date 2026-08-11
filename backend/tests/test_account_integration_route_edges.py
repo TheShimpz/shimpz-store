@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from app import authn
 from app.main import app
 from app.oauth_broker import SCOPES, OAuthBrokerError
-from app.routers import model_providers, oauth, power_assurance
+from app.routers import model_providers, oauth, action_assurance
 
 
 def _session(authenticated: bool = True):
@@ -99,24 +99,24 @@ def test_model_provider_revocation_projects_an_already_absent_secret(monkeypatch
     }
 
 
-def test_power_assurance_error_categories_and_invalid_descriptors():
-    assert power_assurance._public_error(429).status_code == 429
-    assert power_assurance._public_error(400).status_code == 400
-    assert power_assurance._credential_descriptor(None) is None
-    assert power_assurance._options_response(403, {}).status_code == 403
-    assert power_assurance._options_response(200, {}).status_code == 502
+def test_action_assurance_error_categories_and_invalid_descriptors():
+    assert action_assurance._public_error(429).status_code == 429
+    assert action_assurance._public_error(400).status_code == 400
+    assert action_assurance._credential_descriptor(None) is None
+    assert action_assurance._options_response(403, {}).status_code == 403
+    assert action_assurance._options_response(200, {}).status_code == 502
 
 
-def test_power_assurance_rejects_non_object_account_response(monkeypatch):
+def test_action_assurance_rejects_non_object_account_response(monkeypatch):
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
 
     async def invalid(*_args, **_kwargs):
         return 200, []
 
-    monkeypatch.setattr(power_assurance, "call_bounded", invalid)
+    monkeypatch.setattr(action_assurance, "call_bounded", invalid)
     with TestClient(app) as client:
         response = client.post(
-            "/api/security/power-assurance/password",
+            "/api/security/action-assurance/password",
             json={"team_id": "team", "challenge_id": "a" * 32, "password": "secret"},
             headers={"Origin": "https://shimpz.com"},
         )

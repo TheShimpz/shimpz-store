@@ -69,7 +69,7 @@ def _approval_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "b" 
             {
                 "assistant_id": "shimpz-cloudflare",
                 "assistant_name": "Shimpz Cloudflare",
-                "power_id": "list-zones",
+                "action_id": "list-zones",
                 "title": "Publish zones",
                 "summary": "Publish the current zones?",
                 "docs": None,

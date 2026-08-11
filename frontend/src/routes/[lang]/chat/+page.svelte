@@ -15,11 +15,11 @@
     teamChatWebSocketPath,
   } from "$lib/teamChat.js";
   import {
-    createPowerAssuranceBody,
-    parsePowerAssuranceHandle,
-    parsePowerAssuranceOptions,
-    serializePowerAssuranceCredential,
-  } from "$lib/powerAssurance.js";
+    createActionAssuranceBody,
+    parseActionAssuranceHandle,
+    parseActionAssuranceOptions,
+    serializeActionAssuranceCredential,
+  } from "$lib/actionAssurance.js";
   import { tr } from "$lib/i18n";
   import {
     MODEL_PROVIDERS,
@@ -240,7 +240,7 @@
 
   async function postAssurance(path: string, body: Record<string, any>) {
     const encoded = JSON.stringify(body);
-    const response = await fetch(`/api/security/power-assurance/${path}`, {
+    const response = await fetch(`/api/security/action-assurance/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: encoded,
@@ -255,24 +255,24 @@
     if (kind === "auth:reauth" || kind === "auth:second-factor") {
       const path = kind === "auth:reauth" ? "password" : "totp";
       const field = kind === "auth:reauth" ? "password" : "code";
-      const body = createPowerAssuranceBody(selected, challenge.challenge_id, field, supplied);
+      const body = createActionAssuranceBody(selected, challenge.challenge_id, field, supplied);
       const payload = await postAssurance(path, body);
       body[field] = null;
-      return parsePowerAssuranceHandle(payload);
+      return parseActionAssuranceHandle(payload);
     }
     if (kind !== "auth:phishing-resistant") throw new TypeError("unsupported assurance kind");
     const optionsPayload = await postAssurance(
       "webauthn/options",
-      createPowerAssuranceBody(selected, challenge.challenge_id, null, null),
+      createActionAssuranceBody(selected, challenge.challenge_id, null, null),
     );
-    const publicKey = parsePowerAssuranceOptions(optionsPayload);
+    const publicKey = parseActionAssuranceOptions(optionsPayload);
     const credential = await navigator.credentials.get({ publicKey });
-    const serialized = serializePowerAssuranceCredential(credential);
+    const serialized = serializeActionAssuranceCredential(credential);
     const confirmed = await postAssurance(
       "webauthn/confirm",
-      createPowerAssuranceBody(selected, challenge.challenge_id, "credential", serialized),
+      createActionAssuranceBody(selected, challenge.challenge_id, "credential", serialized),
     );
-    return parsePowerAssuranceHandle(confirmed);
+    return parseActionAssuranceHandle(confirmed);
   }
 
   async function respondToHuman(response: any) {

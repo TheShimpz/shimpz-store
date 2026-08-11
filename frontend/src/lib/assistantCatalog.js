@@ -1,7 +1,7 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
-const POWER_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const HUMAN_REQUEST_KINDS = new Set([
   "approval",
   "input:text",
@@ -25,7 +25,7 @@ const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "icon_digest",
   "name",
   "platforms",
-  "powers",
+  "actions",
   "source_digest",
   "summary",
 ]);
@@ -84,14 +84,14 @@ function validIntegrations(value) {
 }
 
 /** @param {unknown} value */
-function validPowers(value) {
-  return Array.isArray(value) && value.length >= 1 && value.length <= 64 && value.every((power) =>
-    hasExactKeys(power, ["human_requests", "integrations", "id"]) &&
-    boundedText(power.id, 64) &&
-    POWER_ID_RE.test(power.id) &&
-    boundedStrings(power.integrations, 16, 64) &&
-    boundedStrings(power.human_requests, 11, 25) &&
-    (/** @type {string[]} */ (power.human_requests)).every((kind) => HUMAN_REQUEST_KINDS.has(kind))
+function validActions(value) {
+  return Array.isArray(value) && value.length >= 1 && value.length <= 64 && value.every((action) =>
+    hasExactKeys(action, ["human_requests", "integrations", "id"]) &&
+    boundedText(action.id, 64) &&
+    ACTION_ID_RE.test(action.id) &&
+    boundedStrings(action.integrations, 16, 64) &&
+    boundedStrings(action.human_requests, 11, 25) &&
+    (/** @type {string[]} */ (action.human_requests)).every((kind) => HUMAN_REQUEST_KINDS.has(kind))
   );
 }
 
@@ -115,7 +115,7 @@ function parseAssistant(value) {
     !boundedStrings(record.platforms, 2, 20, PLATFORM_RE) ||
     !boundedStrings(record.allowed_hosts, 64, 253) ||
     !validIntegrations(record.integrations) ||
-    !validPowers(record.powers)
+    !validActions(record.actions)
   ) {
     throw new Error("invalid Assistant catalog");
   }

@@ -8,6 +8,36 @@ ROOT = Path(__file__).resolve().parents[2]
 UV_IMAGE = "ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ceb1506f332c3facae5deceded"
 
 
+def _module_dependencies(source: Path, module: Path) -> list[Path]:
+    dependencies: list[Path] = []
+    tree = ast.parse((source / module).read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        if node.module == "app":
+            dependencies.extend(
+                child
+                for alias in node.names
+                if (source / (child := Path(f"{alias.name}.py"))).is_file()
+            )
+            continue
+        if not node.module.startswith("app."):
+            continue
+        imported = Path(*node.module.removeprefix("app.").split("."))
+        module_file = imported.with_suffix(".py")
+        if (source / module_file).is_file():
+            dependencies.append(module_file)
+        package_init = imported / "__init__.py"
+        if (source / package_init).is_file():
+            dependencies.append(package_init)
+            dependencies.extend(
+                child
+                for alias in node.names
+                if (source / (child := imported / f"{alias.name}.py")).is_file()
+            )
+    return dependencies
+
+
 def _runtime_import_closure() -> set[str]:
     source = ROOT / "backend" / "app"
     pending = [Path("main.py")]
@@ -17,29 +47,7 @@ def _runtime_import_closure() -> set[str]:
         if module in modules:
             continue
         modules.add(module)
-        tree = ast.parse((source / module).read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ImportFrom) or not node.module:
-                continue
-            if node.module == "app":
-                for alias in node.names:
-                    child = Path(f"{alias.name}.py")
-                    if (source / child).is_file():
-                        pending.append(child)
-                continue
-            if not node.module.startswith("app."):
-                continue
-            imported = Path(*node.module.removeprefix("app.").split("."))
-            module_file = imported.with_suffix(".py")
-            if (source / module_file).is_file():
-                pending.append(module_file)
-            package_init = imported / "__init__.py"
-            if (source / package_init).is_file():
-                pending.append(package_init)
-                for alias in node.names:
-                    child = imported / f"{alias.name}.py"
-                    if (source / child).is_file():
-                        pending.append(child)
+        pending.extend(_module_dependencies(source, module))
     return {f"backend/app/{module}" for module in modules if len(module.parts) == 1}
 
 
@@ -54,7 +62,7 @@ def test_static_runtime_packages_the_exact_application_import_closure():
         "COPY backend/app/chat/__init__.py backend/app/chat/events.py "
         "backend/app/chat/relay.py backend/app/chat/ws.py ./app/chat/"
     ) in dockerfile
-    assert "backend/app/routers/power_assurance.py" in runtime
+    assert "backend/app/routers/action_assurance.py" in runtime
 
 
 def test_static_runtime_has_a_bounded_health_probe():

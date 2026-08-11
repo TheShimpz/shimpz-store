@@ -28,7 +28,7 @@ def _assistant(**changes) -> dict[str, object]:
         "platforms": ["linux/amd64", "linux/arm64"],
         "allowed_hosts": ["api.example.com"],
         "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
-        "powers": [
+        "actions": [
             {
                 "id": "hello",
                 "input_schema": {"type": "object"},
@@ -60,7 +60,7 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
                 "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
-                "powers": [
+                "actions": [
                     {
                         "id": "hello",
                         "integrations": ["github"],
@@ -86,7 +86,7 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(
             integrations=[{"id": "github", "provider": "gitlab", "scopes": []}]
         ),
-        lambda value: value["assistants"][0].update(powers=[]),
+        lambda value: value["assistants"][0].update(actions=[]),
         lambda value: value["assistants"][0].update(extra="field"),
         lambda value: value["assistants"][0].update(assistant_id="Invalid"),
         lambda value: value["assistants"][0].update(assistant_version="01.0.0"),
@@ -95,9 +95,9 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(platforms=["linux/amd64"]),
         lambda value: value["assistants"][0].update(github="https://example.com/repository"),
         lambda value: value["assistants"].append(copy.deepcopy(value["assistants"][0])),
-        lambda value: value["assistants"][0]["powers"][0].update(command="/bin/sh"),
-        lambda value: value["assistants"][0]["powers"][0].update(human_requests=["unknown"]),
-        lambda value: value["assistants"][0]["powers"][0].update(human_requests=["approval", "approval"]),
+        lambda value: value["assistants"][0]["actions"][0].update(command="/bin/sh"),
+        lambda value: value["assistants"][0]["actions"][0].update(human_requests=["unknown"]),
+        lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "approval"]),
     ],
 )
 def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:

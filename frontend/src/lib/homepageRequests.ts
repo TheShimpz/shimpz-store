@@ -12,7 +12,7 @@ export type HomepageRequest = {
 type PreviewCopy = {
   description: string;
   fieldLabel: string;
-  powerSummary: string;
+  actionSummary: string;
   placeholder: string;
   optionOne: string;
   optionTwo: string;
@@ -20,65 +20,65 @@ type PreviewCopy = {
 
 const PREVIEW_COPY: Record<Locale, PreviewCopy> = {
   en: {
-    description: "I paused this Power until you answer this request.",
+    description: "I paused this Action until you answer this request.",
     fieldLabel: "Requested value",
-    powerSummary: "Change one reviewed DNS record.",
+    actionSummary: "Change one reviewed DNS record.",
     placeholder: "Enter the reviewed value",
     optionOne: "Use the current domain",
     optionTwo: "Create a new domain",
   },
   pt: {
-    description: "Eu pausei este Power até você responder a esta solicitação.",
+    description: "Eu pausei este Action até você responder a esta solicitação.",
     fieldLabel: "Valor solicitado",
-    powerSummary: "Alterar um registro DNS revisado.",
+    actionSummary: "Alterar um registro DNS revisado.",
     placeholder: "Digite o valor revisado",
     optionOne: "Usar o domínio atual",
     optionTwo: "Criar um novo domínio",
   },
   es: {
-    description: "He pausado este Power hasta que respondas a esta solicitud.",
+    description: "He pausado este Action hasta que respondas a esta solicitud.",
     fieldLabel: "Valor solicitado",
-    powerSummary: "Cambiar un registro DNS revisado.",
+    actionSummary: "Cambiar un registro DNS revisado.",
     placeholder: "Introduce el valor revisado",
     optionOne: "Usar el dominio actual",
     optionTwo: "Crear un dominio nuevo",
   },
   zh: {
-    description: "我已暂停此 Power，等待你回应这项请求。",
+    description: "我已暂停此 Action，等待你回应这项请求。",
     fieldLabel: "请求的值",
-    powerSummary: "更改一条已审核的 DNS 记录。",
+    actionSummary: "更改一条已审核的 DNS 记录。",
     placeholder: "输入已审核的值",
     optionOne: "使用当前域名",
     optionTwo: "创建新域名",
   },
   fr: {
-    description: "J’ai suspendu ce Power jusqu’à votre réponse à cette demande.",
+    description: "J’ai suspendu ce Action jusqu’à votre réponse à cette demande.",
     fieldLabel: "Valeur demandée",
-    powerSummary: "Modifier un enregistrement DNS vérifié.",
+    actionSummary: "Modifier un enregistrement DNS vérifié.",
     placeholder: "Saisissez la valeur vérifiée",
     optionOne: "Utiliser le domaine actuel",
     optionTwo: "Créer un nouveau domaine",
   },
   de: {
-    description: "Ich habe diesen Power angehalten, bis du diese Anfrage beantwortest.",
+    description: "Ich habe diesen Action angehalten, bis du diese Anfrage beantwortest.",
     fieldLabel: "Angeforderter Wert",
-    powerSummary: "Einen geprüften DNS-Eintrag ändern.",
+    actionSummary: "Einen geprüften DNS-Eintrag ändern.",
     placeholder: "Geprüften Wert eingeben",
     optionOne: "Aktuelle Domain verwenden",
     optionTwo: "Neue Domain erstellen",
   },
   ja: {
-    description: "このリクエストに回答するまで、Power を一時停止しています。",
+    description: "このリクエストに回答するまで、Action を一時停止しています。",
     fieldLabel: "要求された値",
-    powerSummary: "確認済みの DNS レコードを変更する。",
+    actionSummary: "確認済みの DNS レコードを変更する。",
     placeholder: "確認済みの値を入力",
     optionOne: "現在のドメインを使用",
     optionTwo: "新しいドメインを作成",
   },
   ar: {
-    description: "أوقفت هذا الـ Power مؤقتًا حتى تجيب عن هذا الطلب.",
+    description: "أوقفت هذا الـ Action مؤقتًا حتى تجيب عن هذا الطلب.",
     fieldLabel: "القيمة المطلوبة",
-    powerSummary: "تغيير سجل DNS تمت مراجعته.",
+    actionSummary: "تغيير سجل DNS تمت مراجعته.",
     placeholder: "أدخل القيمة التي تمت مراجعتها",
     optionOne: "استخدم النطاق الحالي",
     optionTwo: "أنشئ نطاقًا جديدًا",
@@ -166,8 +166,8 @@ export function homepageRequestChallenge(request: HomepageRequest, lang: Locale)
   return {
     challenge_id: `homepage-${request.kind}`,
     expires_in: 300,
-    assistant: { id: "shimpz-cloudflare", name: "Shimpz Cloudflare" },
-    power: { id: "change-dns-record", summary: copy.powerSummary },
+    assistant: { id: "shimpz-cloudflare", name: "Shimpz Cloudflare", version: "0.4.1" },
+    action: { id: "change-dns-record", summary: copy.actionSummary },
     request: {
       kind: request.kind,
       title: label,

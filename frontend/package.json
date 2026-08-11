@@ -28,7 +28,7 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.1.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
-    "@shimpz/frontend": "https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/1008475ea586b1941badd09f4f06e9b4434154ec",
+    "@shimpz/frontend": "https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/3f47f3b078c1b73a9ff848e7a74ed66ad49e6970",
     "dompurify": "^3.2.4",
     "marked": "^15.0.6"
   }

@@ -17,10 +17,10 @@ test("freezes the exact first-person English homepage narrative", () => {
   assert.equal(content.watchMeWork, "See how I ask");
   assert.deepEqual(content.humanRequests, {
     heading: "I ask before I act.",
-    body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Power and ask you directly. Every request is bound to that exact Assistant, Power, and action.",
+    body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant, Action, and action.",
     sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
     sdkCta: "Explore my SDK on GitHub",
-    menuLabel: "Power human request kinds",
+    menuLabel: "Action human request kinds",
     interfaceLabel: "Real interface",
     groupNotes: {
       approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
@@ -94,14 +94,14 @@ test("provides a complete native homepage narrative for every supported locale",
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
-      assert.notEqual(content.humanRequests.body, english.humanRequests.body, `${locale} localizes the Power request narrative`);
+      assert.notEqual(content.humanRequests.body, english.humanRequests.body, `${locale} localizes the Action request narrative`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }
   }
 });
 
-test("keeps every closed Power request kind renderable as localized interface data", () => {
+test("keeps every closed Action request kind renderable as localized interface data", () => {
   assert.deepEqual(HOMEPAGE_REQUESTS.map(({ kind }) => kind), [
     "approval",
     "input:text",
@@ -129,7 +129,7 @@ test("keeps every closed Power request kind renderable as localized interface da
       assert.ok(challenge.request.label.trim().length > 0);
       assert.notEqual(challenge.request.label, challenge.request.title);
       assert.ok(challenge.request.description.trim().length > 0);
-      assert.ok(challenge.power.summary.trim().length > 0);
+      assert.ok(challenge.action.summary.trim().length > 0);
       assert.equal("image" in request, false, `${request.kind} is rendered instead of screenshotted`);
     }
   }

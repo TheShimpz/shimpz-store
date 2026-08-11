@@ -20,7 +20,7 @@ function humanRequest(kind, fields = {}) {
     kind,
     ordinal: 0,
     title: "Provide reviewed input",
-    description: "Provide only the information requested by this exact Power.",
+    description: "Provide only the information requested by this exact Action.",
     fingerprint: "d".repeat(64),
     ...fields,
   };
@@ -31,8 +31,8 @@ function humanChallenge(request = humanRequest("approval")) {
     type: "human-required",
     challenge_id: "c".repeat(32),
     expires_in: 300,
-    assistant: { id: "shimpz-cloudflare", name: "Shimpz Cloudflare" },
-    power: { id: "list-zones", summary: "List reviewed Cloudflare zones." },
+    assistant: { id: "shimpz-cloudflare", name: "Shimpz Cloudflare", version: "0.4.1" },
+    action: { id: "list-zones", summary: "List reviewed Cloudflare zones." },
     request,
   };
 }
@@ -148,7 +148,7 @@ test("uses the terminal event contract for browser chat", () => {
   }
 });
 
-test("accepts all and only the eleven reviewed Power human request descriptors", () => {
+test("accepts all and only the eleven reviewed Action human request descriptors", () => {
   const options = [
     { value: "one", label: "One", description: null },
     { value: "two", label: "Two", description: "Second option" },

@@ -62,7 +62,6 @@
     {kicker}
     title={request.title}
     titleId="human-request-title"
-    lead={request.description}
     size="md"
     oncancel={deny}
     onsubmit={submit}

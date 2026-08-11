@@ -69,14 +69,14 @@
 
 <section
   id="demo"
-  data-slot="homepage-power-requests"
+  data-slot="homepage-action-requests"
   data-active-kind={activeRequest.kind}
   data-rotation-ms={HOMEPAGE_REQUEST_ROTATION_MS}
-  aria-labelledby="power-requests-title">
+  aria-labelledby="action-requests-title">
   <header class="intro">
     <div>
-      <p class="kicker">SHIMPZ SDK // POWER HUMAN REQUESTS</p>
-      <h2 id="power-requests-title">{content.heading}</h2>
+      <p class="kicker">SHIMPZ SDK // ACTION HUMAN REQUESTS</p>
+      <h2 id="action-requests-title">{content.heading}</h2>
       <p class="lead">{content.body}</p>
     </div>
     <div class="sdk-copy">
@@ -90,7 +90,7 @@
   <div
     class="showcase"
     role="group"
-    aria-labelledby="power-requests-title"
+    aria-labelledby="action-requests-title"
     onpointerenter={startHover}
     onpointerleave={stopHover}
     onfocusin={() => focusWithin = true}
@@ -128,7 +128,6 @@
             title={activeChallenge.request.title}
             titleId="homepage-request-preview-title"
             titleLevel={3}
-            lead={activeChallenge.request.description}
           >
             <AssistantHumanRequestBody
               challenge={activeChallenge}
@@ -169,7 +168,7 @@
   .request-menu button:focus-visible { z-index: 1; outline: 2px solid var(--color-yellow); outline-offset: -2px; }
   .number { color: var(--color-green); font: 600 .66rem/1 var(--font-mono); letter-spacing: .1em; }
   .request-menu button strong { font: 650 clamp(.66rem, .8vw, .8rem)/1.2 var(--font-mono); white-space: nowrap; }
-  .request-stage { display: grid; min-width: 0; min-height: 58rem; align-content: start; gap: 1rem; }
+  .request-stage { display: grid; min-width: 0; min-height: 42rem; align-content: start; gap: 1rem; }
   .stage-heading { display: flex; min-width: 0; min-height: 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; color: var(--color-muted); font: 600 .66rem/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
   .stage-heading code { overflow: hidden; color: var(--color-cyan); font: inherit; text-overflow: ellipsis; white-space: nowrap; }
   .signature { display: block; block-size: 2.25rem; overflow: auto; overflow-wrap: anywhere; color: var(--color-text); font: 500 .72rem/1.5 var(--font-mono); }
@@ -188,7 +187,7 @@
     .request-menu li { width: max-content; min-width: min(17rem, 76vw); border-block-end: 0; border-inline-end: 1px solid var(--color-border); }
     .request-menu li:last-child { border-inline-end: 0; }
     .request-menu button { width: max-content; min-width: 100%; }
-    .request-stage { min-height: 62rem; }
+    .request-stage { min-height: 46rem; }
     .group-note { min-block-size: 7rem; }
     .stage-heading { align-items: start; flex-direction: column; }
   }

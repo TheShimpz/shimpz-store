@@ -55,7 +55,7 @@
   />
 </div>
 
-<div class="surface-band demo-band" data-slot="homepage-power-requests-band">
+<div class="surface-band demo-band" data-slot="homepage-action-requests-band">
   <div class="editorial-wrap">
     <ApprovalRequestsShowcase content={content.humanRequests} {lang} />
   </div>

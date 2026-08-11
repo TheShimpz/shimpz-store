@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  createPowerAssuranceBody,
+  createActionAssuranceBody,
   decodeBase64url,
   encodeBase64url,
-  parsePowerAssuranceHandle,
-  parsePowerAssuranceOptions,
-  serializePowerAssuranceCredential,
-} from "../src/lib/powerAssurance.js";
+  parseActionAssuranceHandle,
+  parseActionAssuranceOptions,
+  serializeActionAssuranceCredential,
+} from "../src/lib/actionAssurance.js";
 
 function encoded(text) {
   return Buffer.from(text).toString("base64url");
@@ -18,7 +18,7 @@ function encoded(text) {
 test("projects the exact Account assurance handle", () => {
   for (const expires_in of [1, 120, 300]) {
     assert.equal(
-      parsePowerAssuranceHandle({ version: 1, handle: "a".repeat(43), expires_in }),
+      parseActionAssuranceHandle({ version: 1, handle: "a".repeat(43), expires_in }),
       "a".repeat(43),
     );
   }
@@ -30,18 +30,18 @@ test("projects the exact Account assurance handle", () => {
     { version: 1, handle: "a".repeat(43), expires_in: true },
     { version: 1, handle: "a".repeat(43), expires_in: 300, token: "private" },
   ]) {
-    assert.throws(() => parsePowerAssuranceHandle(value));
+    assert.throws(() => parseActionAssuranceHandle(value));
   }
 });
 
 test("binds factors only to one canonical Team challenge", () => {
   const challengeId = "b".repeat(32);
-  assert.deepEqual(createPowerAssuranceBody("team_1", challengeId, "password", "secret"), {
+  assert.deepEqual(createActionAssuranceBody("team_1", challengeId, "password", "secret"), {
     team_id: "team_1",
     challenge_id: challengeId,
     password: "secret",
   });
-  assert.deepEqual(createPowerAssuranceBody("team_1", challengeId, null), {
+  assert.deepEqual(createActionAssuranceBody("team_1", challengeId, null), {
     team_id: "team_1",
     challenge_id: challengeId,
   });
@@ -50,12 +50,12 @@ test("binds factors only to one canonical Team challenge", () => {
     ["team_1", "short", "code", "123456"],
     ["team_1", challengeId, "token", "private"],
   ]) {
-    assert.throws(() => createPowerAssuranceBody(...args));
+    assert.throws(() => createActionAssuranceBody(...args));
   }
 });
 
 test("converts only exact UV-required WebAuthn options", () => {
-  const options = parsePowerAssuranceOptions({
+  const options = parseActionAssuranceOptions({
     challenge: encoded("challenge"),
     timeout: 300_000,
     rpId: "shimpz.com",
@@ -82,7 +82,7 @@ test("converts only exact UV-required WebAuthn options", () => {
       userVerification: "required",
     },
   ]) {
-    assert.throws(() => parsePowerAssuranceOptions(value));
+    assert.throws(() => parseActionAssuranceOptions(value));
   }
 });
 
@@ -104,7 +104,7 @@ test("serializes one browser assertion without retaining browser objects", () =>
     credential.rawId = Uint8Array.from([8, 9]).buffer;
     credential.type = "public-key";
     credential.response = response;
-    assert.deepEqual(serializePowerAssuranceCredential(credential), {
+    assert.deepEqual(serializeActionAssuranceCredential(credential), {
       id: "credential",
       rawId: "CAk",
       type: "public-key",
@@ -116,8 +116,8 @@ test("serializes one browser assertion without retaining browser objects", () =>
       },
     });
     response.userHandle = null;
-    assert.equal("userHandle" in serializePowerAssuranceCredential(credential).response, false);
-    assert.throws(() => serializePowerAssuranceCredential({}));
+    assert.equal("userHandle" in serializeActionAssuranceCredential(credential).response, false);
+    assert.throws(() => serializeActionAssuranceCredential({}));
   } finally {
     globalThis.PublicKeyCredential = previousCredential;
     globalThis.AuthenticatorAssertionResponse = previousResponse;

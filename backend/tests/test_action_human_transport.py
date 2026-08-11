@@ -25,7 +25,7 @@ def _human_request(kind: str, **fields: object) -> dict:
         "kind": kind,
         "ordinal": 0,
         "title": "Provide reviewed input",
-        "description": "Provide only the information requested by this exact Power.",
+        "description": "Provide only the information requested by this exact Action.",
         "fingerprint": "d" * 64,
         **fields,
     }
@@ -44,8 +44,8 @@ def _human_challenge(
         "turn_id": challenge_id,
         "challenge_id": challenge_id,
         "expires_in": 300,
-        "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare"},
-        "power": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
+        "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare", "version": "0.4.1"},
+        "action": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
         "request": request or _human_request("approval"),
     }
 
@@ -255,8 +255,8 @@ def test_terminal_event_contract_projects_exact_public_human_challenge():
         "type": "human-required",
         "challenge_id": "c" * 32,
         "expires_in": 300,
-        "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare"},
-        "power": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
+        "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare", "version": "0.4.1"},
+        "action": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
         "request": _human_request("approval"),
     }
 

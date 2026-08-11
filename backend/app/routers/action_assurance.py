@@ -1,4 +1,4 @@
-"""Same-origin Account factor ceremonies for one Hosted Power challenge."""
+"""Same-origin Account factor ceremonies for one Hosted Action challenge."""
 
 from __future__ import annotations
 
@@ -42,11 +42,11 @@ def _public_error(status: int) -> JSONResponse:
 def _binding(payload: dict, factor_field: str | None) -> dict[str, object]:
     expected = _BASE_FIELDS | ({factor_field} if factor_field is not None else set())
     if set(payload) != expected:
-        raise ClientPayloadError(400, "invalid Power assurance request")
+        raise ClientPayloadError(400, "invalid Action assurance request")
     team_id = team_contract.canonical_team_id(payload.get("team_id"))
     challenge_id = payload.get("challenge_id")
     if team_id is None or not valid_challenge_id(challenge_id):
-        raise ClientPayloadError(400, "invalid Power assurance request")
+        raise ClientPayloadError(400, "invalid Action assurance request")
     result: dict[str, object] = {"team_id": team_id, "challenge_id": challenge_id}
     if factor_field is not None:
         result[factor_field] = payload[factor_field]
@@ -143,38 +143,38 @@ async def _account_ceremony(
     return _options_response(status, data) if options else _handle_response(status, data)
 
 
-@router.post("/api/security/power-assurance/password")
+@router.post("/api/security/action-assurance/password")
 async def password(request: Request) -> JSONResponse:
     return await _account_ceremony(
         request,
-        "/v1/security/power-assurance/password",
+        "/v1/security/action-assurance/password",
         "password",
     )
 
 
-@router.post("/api/security/power-assurance/totp")
+@router.post("/api/security/action-assurance/totp")
 async def totp(request: Request) -> JSONResponse:
     return await _account_ceremony(
         request,
-        "/v1/security/power-assurance/totp",
+        "/v1/security/action-assurance/totp",
         "code",
     )
 
 
-@router.post("/api/security/power-assurance/webauthn/options")
+@router.post("/api/security/action-assurance/webauthn/options")
 async def webauthn_options(request: Request) -> JSONResponse:
     return await _account_ceremony(
         request,
-        "/v1/security/power-assurance/webauthn/options",
+        "/v1/security/action-assurance/webauthn/options",
         None,
         options=True,
     )
 
 
-@router.post("/api/security/power-assurance/webauthn/confirm")
+@router.post("/api/security/action-assurance/webauthn/confirm")
 async def webauthn_confirm(request: Request) -> JSONResponse:
     return await _account_ceremony(
         request,
-        "/v1/security/power-assurance/webauthn/confirm",
+        "/v1/security/action-assurance/webauthn/confirm",
         "credential",
     )

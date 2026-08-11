@@ -36,7 +36,7 @@ export function encodeBase64url(value) {
 }
 
 /** @param {any} value @returns {PublicKeyCredentialRequestOptions} */
-export function parsePowerAssuranceOptions(value) {
+export function parseActionAssuranceOptions(value) {
   const source = record(value);
   const expected = ["challenge", "timeout", "rpId", "allowCredentials", "userVerification"];
   if (
@@ -71,7 +71,7 @@ export function parsePowerAssuranceOptions(value) {
 }
 
 /** @param {any} value */
-export function serializePowerAssuranceCredential(value) {
+export function serializeActionAssuranceCredential(value) {
   if (!(value instanceof PublicKeyCredential) || !(value.response instanceof AuthenticatorAssertionResponse)) {
     throw new TypeError("invalid passkey credential");
   }
@@ -92,7 +92,7 @@ export function serializePowerAssuranceCredential(value) {
 }
 
 /** @param {any} value @returns {string} */
-export function parsePowerAssuranceHandle(value) {
+export function parseActionAssuranceHandle(value) {
   const source = record(value);
   if (
     !source ||
@@ -104,26 +104,26 @@ export function parsePowerAssuranceHandle(value) {
     source.expires_in < 1 ||
     source.expires_in > MAX_ASSURANCE_TTL_SECONDS
   ) {
-    throw new TypeError("invalid Power assurance response");
+    throw new TypeError("invalid Action assurance response");
   }
   return source.handle;
 }
 
 /** @param {any} teamId @param {any} challengeId @param {string | null} field @param {any} value */
-export function createPowerAssuranceBody(teamId, challengeId, field, value) {
+export function createActionAssuranceBody(teamId, challengeId, field, value) {
   if (
     typeof teamId !== "string" ||
     !TEAM_ID_RE.test(teamId) ||
     typeof challengeId !== "string" ||
     !CHALLENGE_ID_RE.test(challengeId)
   ) {
-    throw new TypeError("invalid Power assurance binding");
+    throw new TypeError("invalid Action assurance binding");
   }
   /** @type {Record<string, any>} */
   const body = { team_id: teamId, challenge_id: challengeId };
   if (field !== null) {
     if (!["password", "code", "credential"].includes(field)) {
-      throw new TypeError("invalid Power assurance factor");
+      throw new TypeError("invalid Action assurance factor");
     }
     body[field] = value;
   }

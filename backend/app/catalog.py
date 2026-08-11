@@ -14,7 +14,7 @@ _GITHUB = re.compile(
     r"^https://github\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/"
     r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$"
 )
-_POWER_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+_ACTION_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _HUMAN_REQUEST_KINDS = {
     "approval",
     "input:text",
@@ -40,7 +40,7 @@ _ASSISTANT_FIELDS = {
     "platforms",
     "allowed_hosts",
     "integrations",
-    "powers",
+    "actions",
 }
 
 
@@ -85,30 +85,30 @@ def _integrations(value: object) -> list[dict[str, object]]:
         if (
             not isinstance(integration_id, str)
             or integration_id != provider
-            or _POWER_ID.fullmatch(integration_id) is None
+            or _ACTION_ID.fullmatch(integration_id) is None
         ):
             raise CatalogError("catalog Integration identity is invalid")
         projected.append({"id": integration_id, "provider": provider, "scopes": scopes})
     return projected
 
 
-def _powers(value: object) -> list[dict[str, object]]:
+def _actions(value: object) -> list[dict[str, object]]:
     if not isinstance(value, list) or not 1 <= len(value) <= 64:
-        raise CatalogError("catalog Powers are invalid")
+        raise CatalogError("catalog Actions are invalid")
     projected = []
     for item in value:
         if (
             not isinstance(item, dict)
             or set(item) != {"id", "input_schema", "output_schema", "integrations", "human_requests"}
             or not isinstance(item["id"], str)
-            or _POWER_ID.fullmatch(item["id"]) is None
+            or _ACTION_ID.fullmatch(item["id"]) is None
             or not isinstance(item["input_schema"], dict)
             or not isinstance(item["output_schema"], dict)
         ):
-            raise CatalogError("catalog Power is invalid")
+            raise CatalogError("catalog Action is invalid")
         human_requests = _closed_strings(item["human_requests"], 11, 25)
         if any(kind not in _HUMAN_REQUEST_KINDS for kind in human_requests):
-            raise CatalogError("catalog Power human requests are invalid")
+            raise CatalogError("catalog Action human requests are invalid")
         projected.append(
             {
                 "id": item["id"],
@@ -152,7 +152,7 @@ def _assistant(value: object) -> dict[str, object]:
         "platforms": platforms,
         "allowed_hosts": _closed_strings(value["allowed_hosts"], 32, 253),
         "integrations": _integrations(value["integrations"]),
-        "powers": _powers(value["powers"]),
+        "actions": _actions(value["actions"]),
     }
 
 

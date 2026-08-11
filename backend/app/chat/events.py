@@ -160,6 +160,17 @@ def _human_identity(value: object, label: str, maximum: int) -> dict[str, str] |
     return {"id": identifier, label: public_label}
 
 
+def _human_assistant(value: object) -> dict[str, str] | None:
+    if not isinstance(value, dict) or set(value) != {"id", "name", "version"}:
+        return None
+    identifier = team_contract.canonical_assistant_id(value["id"])
+    name = _public_text(value["name"], 80)
+    version = _public_text(value["version"], 40)
+    if identifier is None or name is None or version is None:
+        return None
+    return {"id": identifier, "name": name, "version": version}
+
+
 def _human_request_base(value: object) -> dict[str, object] | None:
     if not isinstance(value, dict):
         return None
@@ -291,13 +302,13 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "challenge_id",
         "expires_in",
         "assistant",
-        "power",
+        "action",
         "request",
     }
     identity = chat_ws_common.challenge_identity(value, expected_team_id)
     expires_in = value.get("expires_in")
-    assistant = _human_identity(value.get("assistant"), "name", 80)
-    power = _human_identity(value.get("power"), "summary", 160)
+    assistant = _human_assistant(value.get("assistant"))
+    action = _human_identity(value.get("action"), "summary", 160)
     request = _human_request(value.get("request"))
     if (
         set(value) != expected
@@ -308,7 +319,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         or not isinstance(expires_in, int)
         or not 1 <= expires_in <= 300
         or assistant is None
-        or power is None
+        or action is None
         or request is None
     ):
         return None
@@ -317,7 +328,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "challenge_id": identity[0],
         "expires_in": expires_in,
         "assistant": assistant,
-        "power": power,
+        "action": action,
         "request": request,
     }
 

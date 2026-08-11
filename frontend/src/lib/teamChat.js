@@ -77,6 +77,23 @@ function humanIdentity(value, label, maximum) {
 }
 
 /** @param {any} value */
+function humanAssistant(value) {
+  const source = record(value);
+  if (!source || !hasExactKeys(source, ["id", "name", "version"])) {
+    throw new TypeError("invalid human request Assistant");
+  }
+  const id = source.id;
+  if (typeof id !== "string" || id.length > 80 || !ASSISTANT_ID_RE.test(id)) {
+    throw new TypeError("invalid human request Assistant");
+  }
+  return {
+    id,
+    name: publicText(source.name, 80),
+    version: publicText(source.version, 40),
+  };
+}
+
+/** @param {any} value */
 function humanOptions(value) {
   if (!Array.isArray(value) || value.length < 2 || value.length > 32) {
     throw new TypeError("invalid human request options");
@@ -181,7 +198,7 @@ function humanRequest(value) {
 
 /** @param {Record<string, any>} source */
 function humanChallenge(source) {
-  if (!hasExactKeys(source, ["type", "challenge_id", "expires_in", "assistant", "power", "request"])) {
+  if (!hasExactKeys(source, ["type", "challenge_id", "expires_in", "assistant", "action", "request"])) {
     throw new TypeError("invalid human challenge event");
   }
   if (
@@ -198,8 +215,8 @@ function humanChallenge(source) {
     type: "human-required",
     challenge_id: source.challenge_id,
     expires_in: source.expires_in,
-    assistant: humanIdentity(source.assistant, "name", 80),
-    power: humanIdentity(source.power, "summary", 160),
+    assistant: humanAssistant(source.assistant),
+    action: humanIdentity(source.action, "summary", 160),
     request: humanRequest(source.request),
   };
 }

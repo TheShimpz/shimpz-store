@@ -20,7 +20,7 @@ from app.routers import (
     inference,
     model_providers,
     oauth,
-    power_assurance,
+    action_assurance,
     public,
     static,
     teams,
@@ -61,7 +61,7 @@ app.include_router(model_providers.router)
 app.include_router(files.router)
 app.include_router(inference.router)
 app.include_router(oauth.router)
-app.include_router(power_assurance.router)
+app.include_router(action_assurance.router)
 app.include_router(public.router)
 app.include_router(teams.router)
 app.include_router(chat_ws.router)

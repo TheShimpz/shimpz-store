@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import NamedTuple
+
 import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -18,13 +21,31 @@ log = structlog.get_logger()
 router = APIRouter()
 
 
+class _InventoryProjection(NamedTuple):
+    projector: Callable[[object], object | None]
+    response_key: str
+    invalid_detail: str
+    invalid_event: str
+
+
+_INSTALLED = _InventoryProjection(
+    assistant_inventory,
+    "installed",
+    "invalid Assistant inventory",
+    "assistant_inventory_invalid",
+)
+_RUNNING = _InventoryProjection(
+    running_assistant_inventory,
+    "assistant_ids",
+    "invalid chat Assistant inventory",
+    "chat_assistant_inventory_invalid",
+)
+
+
 async def _assistant_inventory(
     request: Request,
     team_id: str,
-    projector,
-    response_key: str,
-    invalid_detail: str,
-    invalid_event: str,
+    projection: _InventoryProjection,
 ) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
@@ -42,36 +63,22 @@ async def _assistant_inventory(
     )
     if status != 200:
         return private_json(data, status)
-    projected = projector(data)
+    projected = projection.projector(data)
     if projected is None:
-        log.warning(invalid_event, team_id=team_id)
-        return private_json({"detail": invalid_detail}, 502)
-    return private_json({response_key: projected})
+        log.warning(projection.invalid_event, team_id=team_id)
+        return private_json({"detail": projection.invalid_detail}, 502)
+    return private_json({projection.response_key: projected})
 
 
 @router.get("/api/teams/{team_id}/assistants")
 async def cloud_assistants_list(request: Request, team_id: str) -> JSONResponse:
-    return await _assistant_inventory(
-        request,
-        team_id,
-        assistant_inventory,
-        "installed",
-        "invalid Assistant inventory",
-        "assistant_inventory_invalid",
-    )
+    return await _assistant_inventory(request, team_id, _INSTALLED)
 
 
 @router.get("/api/teams/{team_id}/chat/assistants")
 async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
     """Return the verified default Assistant scope without exposing runtime metadata."""
-    return await _assistant_inventory(
-        request,
-        team_id,
-        running_assistant_inventory,
-        "assistant_ids",
-        "invalid chat Assistant inventory",
-        "chat_assistant_inventory_invalid",
-    )
+    return await _assistant_inventory(request, team_id, _RUNNING)
 
 
 @router.post("/api/teams/{team_id}/assistants")

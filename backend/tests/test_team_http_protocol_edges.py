@@ -207,30 +207,30 @@ def test_storage_response_rejects_oversized_file_list():
         {"phase": "model", "state": "started", "seq": True},
         {"phase": "model", "state": "finished", "seq": 1, "elapsed_ms": -1},
         {
-            "phase": "power",
+            "phase": "action",
             "state": "started",
             "seq": 1,
             "assistant_id": "Bad",
             "index": 1,
-            "power": "list-zones",
+            "action": "list-zones",
             "total": 1,
         },
         {
-            "phase": "power",
+            "phase": "action",
             "state": "started",
             "seq": 1,
             "assistant_id": "assistant",
             "index": 2,
-            "power": "list-zones",
+            "action": "list-zones",
             "total": 1,
         },
         {
-            "phase": "power",
+            "phase": "action",
             "state": "started",
             "seq": 1,
             "assistant_id": "assistant",
             "index": 1,
-            "power": "Bad",
+            "action": "Bad",
             "total": 1,
         },
     ],
@@ -240,15 +240,15 @@ def test_progress_event_rejects_invalid_shapes(value):
         progress.canonical_event(value)
 
 
-def test_progress_event_projects_finished_power():
+def test_progress_event_projects_finished_action():
     event = {
         "seq": 1,
-        "phase": "power",
+        "phase": "action",
         "state": "finished",
         "elapsed_ms": 0,
         "assistant_id": "assistant",
         "index": 1,
-        "power": "list-zones",
+        "action": "list-zones",
         "total": 1,
     }
     assert progress.canonical_event(event) == event
