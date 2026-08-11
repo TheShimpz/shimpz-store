@@ -1,5 +1,5 @@
-import type { Locale } from "$lib/catalog";
-import { tr } from "$lib/i18n";
+import type { Locale } from "./catalog.ts";
+import { tr } from "./i18n.ts";
 
 export function humanRequestKicker(kind: string, lang: Locale): string {
   return tr(
@@ -27,8 +27,6 @@ export function humanRequestPrimaryLabel(kind: string, lang: Locale): string {
 
 export function humanRequestFieldLabels(request: Record<string, any>, lang: Locale) {
   return {
-    required: tr("human_required", lang),
-    optional: tr("human_optional", lang),
     chooseOption: tr("human_choose", lang),
     selectionHint: `${tr("human_selection_hint", lang)} ${request.min_selections ?? 0}–${request.max_selections ?? 0}`,
     reauthLabel: tr("human_password_label", lang),

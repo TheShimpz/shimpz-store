@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Notice, ActionRequestFields } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
+  import { humanRequestContextParts } from "$lib/humanRequestContext";
   import { humanRequestFieldLabels } from "$lib/humanRequestPresentation";
   import { tr } from "$lib/i18n";
 
@@ -22,16 +23,10 @@
 
   const request = $derived(challenge?.request ?? {});
   const fieldLabels = $derived(humanRequestFieldLabels(request, lang));
-  const context = $derived(
-    tr("human_context", lang)
-      .replace("{action}", challenge.action.id)
-      .replace("{assistant}", challenge.assistant.name)
-      .replace("{version}", challenge.assistant.version)
-      .replace("{seconds}", String(challenge.expires_in)),
-  );
+  const context = $derived(humanRequestContextParts(tr("human_context", lang), challenge));
 </script>
 
-<p class="context">{context}</p>
+<p class="context">{#each context as part}{#if part.emphasized}<strong><bdi>{part.text}</bdi></strong>{:else}{part.text}{/if}{/each}</p>
 
 {#if presentation}
   <fieldset class="presentation-fields" disabled aria-label={tr("human_preview", lang)}>
@@ -57,5 +52,6 @@
 
 <style>
   .context { margin: 0; color: var(--shimpz-color-text-dim); font-size: 0.78rem; line-height: 1.55; }
+  .context strong { color: var(--shimpz-color-cyan); font-family: var(--shimpz-font-mono); font-weight: 700; }
   .presentation-fields { display: contents; margin: 0; border: 0; padding: 0; }
 </style>

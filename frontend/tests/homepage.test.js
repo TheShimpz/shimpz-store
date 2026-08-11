@@ -9,6 +9,8 @@ import {
   homepageRequestLabel,
 } from "../src/lib/homepageRequests.ts";
 import { LOCALES } from "../src/lib/locales.ts";
+import { humanRequestContextParts } from "../src/lib/humanRequestContext.ts";
+import { tr } from "../src/lib/i18n.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
@@ -132,6 +134,24 @@ test("keeps every closed Action request kind renderable as localized interface d
       assert.ok(challenge.action.summary.trim().length > 0);
       assert.equal("image" in request, false, `${request.kind} is rendered instead of screenshotted`);
     }
+  }
+});
+
+test("preserves localized context order while emphasizing only Assistant identity data", () => {
+  const challenge = homepageRequestChallenge(HOMEPAGE_REQUESTS[0], "en");
+  for (const locale of LOCALES) {
+    const parts = humanRequestContextParts(tr("human_context", locale), challenge);
+    assert.equal(parts.map(({ text }) => text).join(""), tr("human_context", locale)
+      .replace("{action}", challenge.action.id)
+      .replace("{assistant}", challenge.assistant.name)
+      .replace("{version}", challenge.assistant.version)
+      .replace("{seconds}", String(challenge.expires_in)));
+    assert.deepEqual(
+      parts.filter(({ emphasized }) => emphasized).map(({ text }) => text),
+      locale === "zh" || locale === "ja"
+        ? [challenge.assistant.name, `v${challenge.assistant.version}`, challenge.action.id]
+        : [challenge.action.id, challenge.assistant.name, `v${challenge.assistant.version}`],
+    );
   }
 });
 
