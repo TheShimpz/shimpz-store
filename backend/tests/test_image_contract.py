@@ -16,9 +16,7 @@ def _module_dependencies(source: Path, module: Path) -> list[Path]:
             continue
         if node.module == "app":
             dependencies.extend(
-                child
-                for alias in node.names
-                if (source / (child := Path(f"{alias.name}.py"))).is_file()
+                child for alias in node.names if (source / (child := Path(f"{alias.name}.py"))).is_file()
             )
             continue
         if not node.module.startswith("app."):
@@ -31,9 +29,7 @@ def _module_dependencies(source: Path, module: Path) -> list[Path]:
         if (source / package_init).is_file():
             dependencies.append(package_init)
             dependencies.extend(
-                child
-                for alias in node.names
-                if (source / (child := imported / f"{alias.name}.py")).is_file()
+                child for alias in node.names if (source / (child := imported / f"{alias.name}.py")).is_file()
             )
     return dependencies
 

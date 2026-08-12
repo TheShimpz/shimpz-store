@@ -231,6 +231,7 @@ def test_action_assurance_redacts_failures_and_rejects_expanded_successes(
     assurance_case: tuple[int, dict, int, str],
 ):
     status, body, expected_status, expected_detail = assurance_case
+
     async def account_call(*_args, **_kwargs):
         return status, body
 

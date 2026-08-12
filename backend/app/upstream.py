@@ -98,9 +98,7 @@ def call_raw(
     headers: dict[str, str] = dict(options.get("extra") or {})
     headers["Content-Type"] = options["media_type"]
     headers[FILE_NAME_HEADER] = quote(options["filename"], safe="")
-    return _request(
-        _Request(base, "POST", path, body, headers, options["timeout"], MAX_JSON_RESPONSE_BYTES)
-    )
+    return _request(_Request(base, "POST", path, body, headers, options["timeout"], MAX_JSON_RESPONSE_BYTES))
 
 
 async def call_bounded(
