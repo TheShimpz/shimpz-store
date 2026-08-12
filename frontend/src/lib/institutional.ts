@@ -67,7 +67,7 @@ const EN: InstitutionalContent = {
   steps: [
     { title: "Talk to a Team", body: "A Team keeps one isolated conversation, context, files, inference configuration, and workload boundary." },
     { title: "Install Assistants", body: "Each independently published Assistant gives the Team declared, reviewable capabilities." },
-    { title: "Authorize the important parts", body: "When a Action needs human authority, execution pauses and asks before the consequential action." },
+    { title: "Authorize the important parts", body: "When an Action needs human authority, execution pauses and asks before the consequential action." },
   ],
   controlKicker: "Control // part of execution",
   controlTitle: "Trust comes from visible mechanisms.",
