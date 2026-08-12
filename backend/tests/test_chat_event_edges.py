@@ -40,6 +40,8 @@ def test_error_and_text_projection_reject_invalid_shapes():
     assert events._public_text(None, 10) is None
     assert events._human_identity(None, "name", 80) is None
     assert events._human_identity({"id": "Invalid", "name": "Name"}, "name", 80) is None
+    assert events._human_assistant(None) is None
+    assert events._human_assistant({"id": "Invalid", "name": "Name", "version": "0.4.2"}) is None
 
 
 def test_human_request_helpers_reject_invalid_base_and_input():
