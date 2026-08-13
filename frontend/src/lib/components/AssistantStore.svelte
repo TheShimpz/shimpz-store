@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
@@ -16,47 +15,34 @@
     createAssistantUninstallRequest,
     shouldReconcileAssistantStoreAction,
   } from "$lib/assistantInstallBridge.js";
-  import {
-    assistantStoreMode,
-    closedAssistantTeamHref,
-    closedAssistantLoginHref,
-    cloudAssistantAction,
-    cloudRequestIsCurrent,
-    cloudStoreCanStart,
-    parseCloudAccount,
-    parseCloudAssistantInventory,
-    parseCloudTeams,
-    requestedAssistantFromSearch,
-    selectCloudTeam,
-  } from "$lib/cloudAssistantLifecycle.js";
+  import { closedAssistantStoreHref } from "$lib/cloudAssistantLifecycle.js";
   import { AssistantIcon, PageIntro } from "@shimpz/frontend";
   import HudIcon from "$lib/components/HudIcon.svelte";
-  import InstallCommand from "$lib/components/InstallCommand.svelte";
 
   type ActionKind = "install" | "uninstall";
   type ActionState = "idle" | "pending" | "sent" | "error";
   type ContextState = "connecting" | "ready" | "error";
   type InventoryState = "loading" | "ready" | "error";
-  type CloudPhase = "checking" | "unauthenticated" | "empty" | "ready" | "error";
-  type CloudInventoryState = "idle" | "loading" | "ready" | "error";
-  type CloudTeam = { team_id: string; team_name: string };
-  type CatalogAssistant = {
-    id: string;
-    name: string;
-    summary: string;
-    version: string;
-    creators: readonly string[];
-    providers: readonly string[];
-    sourceDigest: string;
-    iconDigest: string;
-  };
+  type CatalogAssistant = ReturnType<typeof parseAssistantCatalog>[number];
   type PendingAction = {
     action: ActionKind;
     parentOrigin: string;
     timeout: ReturnType<typeof setTimeout>;
   };
 
-  let { lang, embedded = false }: { lang: Locale; embedded?: boolean } = $props();
+  let {
+    lang,
+    embedded = false,
+    assistants = [],
+    catalogState: providedCatalogState = "ready",
+    onRetry = () => {},
+  }: {
+    lang: Locale;
+    embedded?: boolean;
+    assistants?: readonly CatalogAssistant[];
+    catalogState?: "loading" | "ready" | "error";
+    onRetry?: () => void;
+  } = $props();
   let actionStates = $state<Record<string, ActionState>>({});
   let actionKinds = $state<Record<string, ActionKind>>({});
   let contextState = $state<ContextState>("connecting");
@@ -67,21 +53,10 @@
   const pendingActions = new Map<string, PendingAction>();
   let contextTimeout: ReturnType<typeof setTimeout> | undefined;
   let frameRequest = 0;
-  let cloudPhase = $state<CloudPhase>("checking");
-  let cloudInventoryState = $state<CloudInventoryState>("idle");
-  let cloudTeams = $state<CloudTeam[]>([]);
-  let cloudSelectedTeam = $state("");
-  let cloudInstalledAssistantIds = $state<string[]>([]);
-  let cloudActionLatch = $state(false);
-  let cloudPendingAction = $state<ActionKind | "">("");
-  let cloudFeedback = $state<"" | "success" | "error">("");
-  let cloudGeneration = 0;
-  let requestedAssistant = $state("");
-  let assistantCatalog = $state<readonly CatalogAssistant[]>([]);
-  let catalogState = $state<"loading" | "ready" | "error">("loading");
-  const cloudTargetTeam = $derived(
-    cloudTeams.find((team) => team.team_id === cloudSelectedTeam),
-  );
+  let embeddedAssistants = $state<readonly CatalogAssistant[]>([]);
+  let embeddedCatalogState = $state<"loading" | "ready" | "error">("loading");
+  const assistantCatalog = $derived(embedded ? embeddedAssistants : assistants);
+  const catalogState = $derived(embedded ? embeddedCatalogState : providedCatalogState);
 
   function actionState(assistant: string): ActionState {
     return actionStates[assistant] ?? "idle";
@@ -103,16 +78,8 @@
     return assistantStoreActionForState(inventoryState, installedAssistantIds, assistant) === "uninstall";
   }
 
-  function cloudAssistantInstalled(assistant: string): boolean {
-    return cloudAssistantAction(
-      cloudInventoryState === "ready",
-      cloudInstalledAssistantIds,
-      assistant,
-    ) === "uninstall";
-  }
-
   function renderedAssistantInstalled(assistant: string): boolean {
-    return embedded ? localAssistantInstalled(assistant) : cloudAssistantInstalled(assistant);
+    return embedded && localAssistantInstalled(assistant);
   }
 
   function inventoryBlocksAction(assistant: string): boolean {
@@ -177,255 +144,19 @@
     return tr(failed ? "assistants_request_failed" : "assistants_request_sent", lang);
   }
 
-  function clearCloudSession() {
-    cloudGeneration += 1;
-    cloudPhase = "unauthenticated";
-    cloudInventoryState = "idle";
-    cloudTeams = [];
-    cloudSelectedTeam = "";
-    cloudInstalledAssistantIds = [];
-    cloudFeedback = "";
-    localStorage.removeItem("shimpz_current_team");
-    localStorage.removeItem("shimpz_current_team_name");
-  }
-
-  async function loadCloudInventory(teamId: string, generation: number): Promise<string[] | null> {
-    if (!cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) return null;
-    cloudInventoryState = "loading";
-    cloudInstalledAssistantIds = [];
-    try {
-      const response = await fetch(`/api/teams/${encodeURIComponent(teamId)}/assistants`, {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-      if (!cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) return null;
-      if (response.status === 401) {
-        clearCloudSession();
-        return null;
-      }
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const installed = parseCloudAssistantInventory(await response.json());
-      if (!cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) return null;
-      cloudInstalledAssistantIds = installed;
-      cloudInventoryState = "ready";
-      return installed;
-    } catch {
-      if (cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) {
-        cloudInstalledAssistantIds = [];
-        cloudInventoryState = "error";
-      }
-      return null;
-    }
-  }
-
-  async function bootCloudStore() {
-    if (!cloudStoreCanStart("cloud", window.top === window.self)) {
-      cloudPhase = "error";
-      return;
-    }
-    const generation = ++cloudGeneration;
-    cloudPhase = "checking";
-    cloudInventoryState = "idle";
-    cloudTeams = [];
-    cloudSelectedTeam = "";
-    cloudInstalledAssistantIds = [];
-    cloudFeedback = "";
-    try {
-      const meResponse = await fetch("/api/me", {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-      if (generation !== cloudGeneration) return;
-      if (meResponse.status === 401) {
-        clearCloudSession();
-        return;
-      }
-      if (!meResponse.ok) throw new Error(`HTTP ${meResponse.status}`);
-      const account = parseCloudAccount(await meResponse.json());
-      if (!account.authenticated) {
-        clearCloudSession();
-        return;
-      }
-
-      const teamResponse = await fetch("/api/teams", {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-      if (generation !== cloudGeneration) return;
-      if (teamResponse.status === 401) {
-        clearCloudSession();
-        return;
-      }
-      if (!teamResponse.ok) throw new Error(`HTTP ${teamResponse.status}`);
-      const teams = parseCloudTeams(await teamResponse.json());
-      if (generation !== cloudGeneration) return;
-      cloudTeams = teams;
-      if (teams.length === 0) {
-        cloudPhase = "empty";
-        return;
-      }
-      cloudPhase = "ready";
-      const remembered = selectCloudTeam(
-        teams,
-        localStorage.getItem("shimpz_current_team") ?? "",
-      );
-      if (!remembered) return;
-      cloudSelectedTeam = remembered;
-      const team = teams.find((candidate) => candidate.team_id === remembered);
-      localStorage.setItem("shimpz_current_team_name", team?.team_name ?? remembered);
-      await loadCloudInventory(remembered, generation);
-    } catch {
-      if (generation === cloudGeneration) cloudPhase = "error";
-    }
-  }
-
-  async function chooseCloudTeam(event: Event) {
-    if (cloudActionLatch) return;
-    const candidate = (event.currentTarget as HTMLSelectElement).value;
-    const selected = selectCloudTeam(cloudTeams, candidate);
-    cloudSelectedTeam = selected;
-    cloudInventoryState = "idle";
-    cloudInstalledAssistantIds = [];
-    cloudFeedback = "";
-    const generation = ++cloudGeneration;
-    if (!selected) {
-      localStorage.removeItem("shimpz_current_team");
-      localStorage.removeItem("shimpz_current_team_name");
-      return;
-    }
-    const team = cloudTeams.find((value) => value.team_id === selected);
-    localStorage.setItem("shimpz_current_team", selected);
-    localStorage.setItem("shimpz_current_team_name", team?.team_name ?? selected);
-    await loadCloudInventory(selected, generation);
-  }
-
-  async function retryCloudInventory() {
-    if (!cloudSelectedTeam || cloudActionLatch) return;
-    cloudFeedback = "";
-    const generation = ++cloudGeneration;
-    await loadCloudInventory(cloudSelectedTeam, generation);
-  }
-
-  async function mutateCloudAssistant(assistant: CatalogAssistant) {
-    const assistantId = assistant.id;
-    if (
-      !cloudStoreCanStart("cloud", window.top === window.self) ||
-      cloudActionLatch ||
-      !cloudSelectedTeam ||
-      cloudInventoryState !== "ready"
-    ) return;
-    const action = cloudAssistantAction(true, cloudInstalledAssistantIds, assistantId);
-    if (action === "blocked") return;
-    const teamId = cloudSelectedTeam;
-    const teamName = cloudTargetTeam?.team_name ?? teamId;
-    if (
-      action === "uninstall" &&
-      !window.confirm(
-        lang === "pt"
-          ? `Desinstalar ${assistantId} do Time ${teamName}?`
-          : `Uninstall ${assistantId} from Team ${teamName}?`,
-      )
-    ) {
-      return;
-    }
-
-    cloudActionLatch = true;
-    cloudPendingAction = action;
-    cloudFeedback = "";
-    const generation = cloudGeneration;
-    try {
-      const base = `/api/teams/${encodeURIComponent(teamId)}/assistants`;
-      const response = action === "install"
-        ? await fetch(base, {
-            method: "POST",
-            headers: { Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify({
-              assistant_id: assistantId,
-              source_digest: assistant.sourceDigest,
-            }),
-          })
-        : await fetch(`${base}/${encodeURIComponent(assistantId)}`, {
-            method: "DELETE",
-            headers: { Accept: "application/json" },
-          });
-      if (!cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) return;
-      if (response.status === 401) {
-        clearCloudSession();
-        return;
-      }
-    } catch {
-      // The authoritative refresh below decides what actually committed.
-    } finally {
-      if (cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) {
-        const installed = await loadCloudInventory(teamId, generation);
-        if (installed && cloudRequestIsCurrent(generation, cloudGeneration, teamId, cloudSelectedTeam)) {
-          const nextAction = cloudAssistantAction(true, installed, assistantId);
-          const committed = action === "install" ? nextAction === "uninstall" : nextAction === "install";
-          cloudFeedback = committed ? "success" : "error";
-        }
-      }
-      cloudActionLatch = false;
-      cloudPendingAction = "";
-    }
-  }
-
-  function cloudButtonLabel(assistant: string): string {
-    if (cloudActionLatch) {
-      return tr(cloudPendingAction === "uninstall" ? "assistants_cloud_uninstalling" : "assistants_cloud_installing", lang);
-    }
-    if (cloudPhase === "checking") return tr("assistants_cloud_loading", lang);
-    if (cloudPhase === "unauthenticated") return tr("assistants_cloud_sign_in", lang);
-    if (cloudPhase === "empty") return tr("assistants_cloud_create_team", lang);
-    if (cloudPhase === "error") return tr("assistants_cloud_retry", lang);
-    if (!cloudSelectedTeam) return tr("assistants_cloud_choose", lang);
-    if (cloudInventoryState === "loading" || cloudInventoryState === "idle") {
-      return tr("assistants_inventory_loading", lang);
-    }
-    if (cloudInventoryState === "error") return tr("assistants_cloud_retry_inventory", lang);
-    return tr(cloudAssistantInstalled(assistant) ? "assistants_cloud_uninstall" : "assistants_cloud_install", lang);
-  }
-
-  function cloudButtonDisabled(): boolean {
-    return cloudPhase === "checking" ||
-      cloudActionLatch ||
-      (cloudPhase === "ready" && (
-        !cloudSelectedTeam || cloudInventoryState === "loading" || cloudInventoryState === "idle"
-      ));
-  }
-
-  async function cloudPrimaryAction(assistant: CatalogAssistant) {
-    if (cloudPhase === "unauthenticated") {
-      await goto(closedAssistantLoginHref(lang, assistant.id));
-      return;
-    }
-    if (cloudPhase === "empty") {
-      await goto(closedAssistantTeamHref(lang, assistant.id));
-      return;
-    }
-    if (cloudPhase === "error") {
-      await bootCloudStore();
-      return;
-    }
-    if (cloudInventoryState === "error") {
-      await retryCloudInventory();
-      return;
-    }
-    await mutateCloudAssistant(assistant);
-  }
-
   async function loadAssistantCatalog() {
-    catalogState = "loading";
+    embeddedCatalogState = "loading";
     try {
       const response = await fetch("/api/assistants", {
         cache: "no-store",
         headers: { Accept: "application/json" },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      assistantCatalog = parseAssistantCatalog(await response.json());
-      catalogState = "ready";
+      embeddedAssistants = parseAssistantCatalog(await response.json());
+      embeddedCatalogState = "ready";
     } catch {
-      assistantCatalog = [];
-      catalogState = "error";
+      embeddedAssistants = [];
+      embeddedCatalogState = "error";
     }
   }
 
@@ -499,22 +230,9 @@
   }
 
   onMount(() => {
-    if (embedded) document.body.classList.add("assistant-store-embedded");
+    if (!embedded) return;
+    document.body.classList.add("assistant-store-embedded");
     void loadAssistantCatalog();
-    const mode = assistantStoreMode(embedded);
-    if (mode === "cloud") {
-      if (!cloudStoreCanStart(mode, window.top === window.self)) {
-        cloudPhase = "error";
-        return;
-      }
-      requestedAssistant = requestedAssistantFromSearch(window.location.search);
-      void bootCloudStore();
-      return () => {
-        cloudGeneration += 1;
-        document.body.classList.remove("assistant-store-embedded");
-      };
-    }
-
     window.addEventListener("message", receiveStoreMessage);
     let mounted = true;
     let resizeObserver: ResizeObserver | undefined;
@@ -554,15 +272,6 @@
       kicker={tr("assistants_preview", lang)}
       title={tr("assistants_title", lang)}
       lead={tr("assistants_lead", lang)} />
-
-    <aside class="local-setup" aria-labelledby="local-setup-title">
-      <div>
-        <p class="kicker">LOCAL // 60 SECONDS</p>
-        <h2 id="local-setup-title">{tr("assistants_local_setup", lang)}</h2>
-        <p>{tr("assistants_local_setup_help", lang)}</p>
-      </div>
-      <InstallCommand {lang} />
-    </aside>
   {/if}
 
   {#if embedded && contextState === "error"}
@@ -574,51 +283,10 @@
     </div>
   {/if}
 
-  {#if !embedded}
-    <section class="cloud-context" aria-labelledby="cloud-context-title">
-      <div class="cloud-context-copy">
-        <p class="kicker">CLOUD // OFFICIAL SPACE</p>
-        <h2 id="cloud-context-title">{tr("assistants_cloud_target_title", lang)}</h2>
-        {#if cloudPhase === "checking"}
-          <p>{tr("assistants_cloud_loading", lang)}</p>
-        {:else if cloudPhase === "unauthenticated"}
-          <p>{tr("assistants_cloud_sign_in_help", lang)}</p>
-        {:else if cloudPhase === "empty"}
-          <p>{tr("assistants_cloud_no_teams", lang)}</p>
-        {:else if cloudPhase === "error"}
-          <p class="cloud-error" role="alert">{tr("assistants_cloud_load_failed", lang)}</p>
-        {:else}
-          <p>{tr("assistants_cloud_target_help", lang)}</p>
-        {/if}
-      </div>
-      {#if cloudPhase === "ready"}
-        <label class="cloud-selector">
-          <span>{tr("assistants_cloud_target_label", lang)}</span>
-          <select
-            value={cloudSelectedTeam}
-            disabled={cloudActionLatch}
-            onchange={chooseCloudTeam}>
-            <option value="">{tr("assistants_cloud_choose", lang)}</option>
-            {#each cloudTeams as team (team.team_id)}
-              <option value={team.team_id}>{team.team_name}</option>
-            {/each}
-          </select>
-        </label>
-      {/if}
-      {#if cloudTargetTeam}
-        <p class="cloud-target-name">
-          <HudIcon name="team" size={17} />
-          <span>{tr("assistants_cloud_selected", lang)}</span>
-          <strong>{cloudTargetTeam.team_name}</strong>
-        </p>
-      {/if}
-    </section>
-  {/if}
-
   {#if catalogState === "error"}
     <div class="context-error" role="alert">
       <span>{tr("assistants_catalog_unavailable", lang)}</span>
-      <button type="button" onclick={loadAssistantCatalog}>
+      <button type="button" onclick={embedded ? loadAssistantCatalog : onRetry}>
         {tr("assistants_catalog_retry", lang)}
       </button>
     </div>
@@ -629,7 +297,6 @@
       <article
         id={`assistant-${assistant.id}`}
         class:installed={renderedAssistantInstalled(assistant.id)}
-        class:requested={!embedded && requestedAssistant === assistant.id}
         class="assistant-card">
         <div class="assistant-details">
           <div class="assistant-heading">
@@ -638,7 +305,13 @@
               src={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
             />
             <div class="assistant-identity">
-              <h2>{assistant.name}</h2>
+              <h2>
+                {#if embedded}
+                  {assistant.name}
+                {:else}
+                  <a class="assistant-link" href={closedAssistantStoreHref(lang, assistant.id)}>{assistant.name}</a>
+                {/if}
+              </h2>
               <p>{assistant.creators.join(", ")}</p>
             </div>
             <span class="free-badge">{tr("assistants_free", lang)}</span>
@@ -646,12 +319,8 @@
           <p class="assistant-summary">{assistant.summary}</p>
         </div>
 
-        <div
-          class:persistent={embedded
-            ? actionState(assistant.id) !== "idle"
-            : cloudActionLatch || Boolean(cloudFeedback)}
-          class="assistant-action">
-          {#if embedded}
+        {#if embedded}
+          <div class:persistent={actionState(assistant.id) !== "idle"} class="assistant-action">
             <button
               class:btn-primary={!localAssistantInstalled(assistant.id)}
               class:btn-danger={localAssistantInstalled(assistant.id)}
@@ -662,37 +331,17 @@
               <HudIcon name={localAssistantInstalled(assistant.id) ? "uninstall" : "add"} size={17} />
               {actionLabel(assistant.id)}
             </button>
-          {:else}
-            <button
-              class:btn-primary={!cloudAssistantInstalled(assistant.id)}
-              class:btn-danger={cloudAssistantInstalled(assistant.id)}
-              class="install-action"
-              type="button"
-              disabled={cloudButtonDisabled()}
-              onclick={() => cloudPrimaryAction(assistant)}>
-              <HudIcon name={cloudAssistantInstalled(assistant.id) ? "uninstall" : "add"} size={17} />
-              {cloudButtonLabel(assistant.id)}
-            </button>
-          {/if}
 
-          {#if actionState(assistant.id) === "sent" || actionState(assistant.id) === "error"}
-            <p
-              class:error={actionState(assistant.id) === "error"}
-              class="install-status"
-              role={actionState(assistant.id) === "error" ? "alert" : "status"}>
-              {actionStatus(assistant.id)}
-            </p>
-          {/if}
-
-          {#if !embedded && cloudFeedback}
-            <p
-              class:error={cloudFeedback === "error"}
-              class="install-status"
-              role={cloudFeedback === "error" ? "alert" : "status"}>
-              {tr(cloudFeedback === "success" ? "assistants_cloud_committed" : "assistants_cloud_failed", lang)}
-            </p>
-          {/if}
-        </div>
+            {#if actionState(assistant.id) === "sent" || actionState(assistant.id) === "error"}
+              <p
+                class:error={actionState(assistant.id) === "error"}
+                class="install-status"
+                role={actionState(assistant.id) === "error" ? "alert" : "status"}>
+                {actionStatus(assistant.id)}
+              </p>
+            {/if}
+          </div>
+        {/if}
       </article>
     {/each}
   </div>
@@ -730,11 +379,11 @@
   .assistant-card.installed {
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 58%, var(--color-border));
   }
-  .assistant-card.requested { scroll-margin-top: 7rem; }
   .assistant-details { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 1rem; }
   .assistant-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.8rem; }
   .assistant-identity { min-width: 0; }
   .assistant-identity h2 { overflow: hidden; margin: 0; font-size: 1.05rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+  .assistant-link::after { position: absolute; z-index: 1; content: ""; inset: 0; }
   .assistant-identity p { overflow: hidden; margin: 0.25rem 0 0; color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.62rem; text-overflow: ellipsis; white-space: nowrap; }
   .free-badge {
     align-self: start;
@@ -808,64 +457,8 @@
     text-transform: uppercase;
   }
 
-  .cloud-context {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem);
-    align-items: center;
-    gap: 1.25rem;
-    margin-top: 1.25rem;
-    border-left: 2px solid var(--color-cyan);
-    padding: 1rem;
-    background: linear-gradient(90deg, color-mix(in oklab, var(--color-cyan) 7%, #000), var(--color-card));
-    box-shadow: inset 0 0 0 1px var(--color-border);
-  }
-  .cloud-context-copy .kicker { margin: 0 0 0.3rem; }
-  .cloud-context-copy h2 { margin: 0; font-size: 1rem; }
-  .cloud-context-copy > p:last-child { margin: 0.35rem 0 0; color: var(--color-muted); font-size: 0.74rem; line-height: 1.5; }
-  .cloud-context-copy .cloud-error { color: var(--color-danger); }
-  .cloud-selector { display: grid; gap: 0.35rem; }
-  .cloud-selector > span { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-  .cloud-selector select {
-    width: 100%;
-    min-height: 2.75rem;
-    border: 1px solid var(--color-border-strong);
-    padding: 0 0.75rem;
-    background: #050708;
-    color: var(--color-fg);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-  }
-  .cloud-target-name {
-    display: flex;
-    grid-column: 1 / -1;
-    align-items: center;
-    gap: 0.45rem;
-    margin: -0.35rem 0 0;
-    color: var(--color-cyan);
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-  }
-  .cloud-target-name span { color: var(--color-muted-2); text-transform: uppercase; }
-  .cloud-target-name strong { overflow: hidden; color: var(--color-fg); text-overflow: ellipsis; white-space: nowrap; }
-
-  .local-setup {
-    display: grid;
-    grid-template-columns: minmax(15rem, 0.7fr) minmax(22rem, 1.3fr);
-    align-items: center;
-    gap: clamp(1.5rem, 5vw, 4rem);
-    margin-top: 1.25rem;
-    padding: clamp(1.2rem, 3vw, 2rem);
-    background: var(--color-card);
-    box-shadow: inset 0 0 0 1px var(--color-border);
-  }
-  .local-setup .kicker { margin: 0 0 0.35rem; }
-  .local-setup h2 { margin: 0; font-size: 1.2rem; }
-  .local-setup p:last-child { margin: 0.45rem 0 0; color: var(--color-muted); font-size: 0.8rem; line-height: 1.6; }
-
   @media (max-width: 720px) {
     .assistant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .cloud-context { grid-template-columns: 1fr; }
-    .local-setup { grid-template-columns: 1fr; }
   }
   @media (max-width: 540px) {
     .assistant-grid { grid-template-columns: 1fr; }

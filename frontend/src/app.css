@@ -312,8 +312,4 @@ body header.shimpz-page-intro { border-block-end: 0; }
     .caret::after { opacity: 1 }
     .card:hover { transform: none }
   }
-
-  @media (max-width: 520px) {
-    .wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); }
-  }
 }

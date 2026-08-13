@@ -15,18 +15,10 @@ function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** @param {unknown} embedded @returns {"self-hosted" | "cloud"} */
-export function assistantStoreMode(embedded) {
-  if (typeof embedded !== "boolean") throw new Error("invalid Assistant Store mode");
-  return embedded ? "self-hosted" : "cloud";
-}
-
-/** @param {unknown} mode @param {unknown} topLevel */
-export function cloudStoreCanStart(mode, topLevel) {
-  if ((mode !== "cloud" && mode !== "self-hosted") || typeof topLevel !== "boolean") {
-    throw new Error("invalid Assistant Store execution context");
-  }
-  return mode === "cloud" && topLevel;
+/** @param {unknown} topLevel */
+export function hostedAssistantStoreCanStart(topLevel) {
+  if (typeof topLevel !== "boolean") throw new Error("invalid Assistant Store execution context");
+  return topLevel;
 }
 
 /** @param {unknown} payload @returns {{ authenticated: boolean }} */

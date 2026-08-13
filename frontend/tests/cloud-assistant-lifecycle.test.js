@@ -5,13 +5,12 @@ import test from "node:test";
 import {
   CLOUD_ASSISTANT_LIMIT,
   CLOUD_TEAM_LIMIT,
-  assistantStoreMode,
   closedAssistantTeamHref,
   closedAssistantLoginHref,
   closedAssistantStoreHref,
   cloudAssistantAction,
   cloudRequestIsCurrent,
-  cloudStoreCanStart,
+  hostedAssistantStoreCanStart,
   parseCloudAccount,
   parseCloudAssistantInventory,
   parseCloudTeams,
@@ -20,14 +19,12 @@ import {
   selectCloudTeam,
 } from "../src/lib/cloudAssistantLifecycle.js";
 
-test("selects the Store runtime mode only from the dedicated route context", () => {
-  assert.equal(assistantStoreMode(true), "self-hosted");
-  assert.equal(assistantStoreMode(false), "cloud");
-  assert.equal(cloudStoreCanStart("cloud", true), true);
-  assert.equal(cloudStoreCanStart("cloud", false), false);
-  assert.equal(cloudStoreCanStart("self-hosted", true), false);
-  for (const value of [undefined, null, "false", 0]) assert.throws(() => assistantStoreMode(value));
-  assert.throws(() => cloudStoreCanStart("cloud", "yes"));
+test("starts the hosted Store lifecycle only at the top level", () => {
+  assert.equal(hostedAssistantStoreCanStart(true), true);
+  assert.equal(hostedAssistantStoreCanStart(false), false);
+  for (const value of [undefined, null, "false", 0]) {
+    assert.throws(() => hostedAssistantStoreCanStart(value));
+  }
 });
 
 test("projects a bounded canonical cloud Team selector", () => {

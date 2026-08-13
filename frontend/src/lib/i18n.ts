@@ -179,8 +179,21 @@ const D: Dict = {
   assistants_install_local: { en: "Install in local Admin", pt: "Instalar no Admin local" },
   assistants_uninstall_local: { en: "Uninstall", pt: "Desinstalar" },
   assistants_back_store: { en: "All Assistants", pt: "Todos os Assistants" },
-  assistants_detail_about: { en: "About this Assistant", pt: "Sobre este Assistant" },
   assistants_detail_actions: { en: "Declared Actions", pt: "Actions declarados" },
+  assistants_detail_published: { en: "Published Assistant", pt: "Assistant publicado" },
+  assistants_detail_not_found: { en: "Assistant not found", pt: "Assistant não encontrado" },
+  assistants_detail_not_found_help: {
+    en: "This Assistant is not present in the current public catalog.",
+    pt: "Este Assistant não está presente no catálogo público atual.",
+  },
+  assistants_catalog_loading: { en: "Loading Assistant…", pt: "Carregando Assistant…" },
+  assistants_install_title: { en: "Add to a hosted Team", pt: "Adicionar a um Time hospedado" },
+  assistants_integrations: { en: "Integrations", pt: "Integrações" },
+  assistants_human_requests: { en: "Human requests", pt: "Solicitações humanas" },
+  assistants_allowed_hosts: { en: "Outbound hosts", pt: "Hosts de saída" },
+  assistants_information: { en: "Information", pt: "Informações" },
+  assistants_repository: { en: "Source", pt: "Código-fonte" },
+  assistants_none: { en: "None declared", pt: "Nenhum declarado" },
   assistants_request_waiting: { en: "Contacting local Admin…", pt: "Contatando o Admin local…" },
   assistants_request_sent: {
     en: "Continue in the local Admin to confirm.",
@@ -226,13 +239,7 @@ const D: Dict = {
     en: "Retry connection",
     pt: "Tentar conexão novamente",
   },
-  assistants_cloud_target_title: { en: "Choose where this Assistant runs.", pt: "Escolha onde este Assistant roda." },
-  assistants_cloud_target_help: {
-    en: "The Store changes only the selected hosted Team. Your local Docker Space remains separate.",
-    pt: "A loja altera apenas o Time hospedado selecionado. Seu Space Docker local permanece separado.",
-  },
   assistants_cloud_target_label: { en: "Hosted Team", pt: "Time hospedado" },
-  assistants_cloud_selected: { en: "Target", pt: "Destino" },
   assistants_cloud_loading: { en: "Loading your cloud account…", pt: "Carregando sua conta cloud…" },
   assistants_cloud_sign_in: { en: "Sign in to install", pt: "Entrar para instalar" },
   assistants_cloud_sign_in_help: {
@@ -262,11 +269,6 @@ const D: Dict = {
   assistants_cloud_failed: {
     en: "The selected Team did not confirm this change. Try again.",
     pt: "O Time selecionado não confirmou esta alteração. Tente novamente.",
-  },
-  assistants_local_setup: { en: "Need a local Space first?", pt: "Ainda precisa de um Space local?" },
-  assistants_local_setup_help: {
-    en: "Install Shimpz, create your Admin password and return to Assistants. The Admin will ask which Team should receive Shimpz Cloudflare.",
-    pt: "Instale o Shimpz, crie sua senha do Admin e volte para Assistants. O Admin perguntará qual Time deve receber o Shimpz Cloudflare.",
   },
   assistants_model_kicker: { en: "Assistant model // v2", pt: "Modelo de Assistant // v2" },
   assistants_model_title: { en: "Useful by design. Bounded by contract.", pt: "Útil por design. Limitado por contrato." },
