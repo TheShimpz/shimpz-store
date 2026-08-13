@@ -536,7 +536,7 @@
   .action-results-status.no-results { color: var(--color-danger); }
   .action-results-status:focus { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
   .action-name { display: grid; min-width: 0; gap: 0.2rem; }
-  .action-name span { color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.52rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .action-name span { color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
   .action-name code { overflow-wrap: anywhere; color: var(--color-fg); font-size: 0.82rem; font-weight: 600; line-height: 1.4; }
   .action-meta { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
   .action-meta > div { min-width: 0; }

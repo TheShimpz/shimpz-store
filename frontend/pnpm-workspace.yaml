@@ -1,6 +1,6 @@
 allowBuilds:
   esbuild: true
-  '@shimpz/frontend@https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/37988a80fb7bfe71d5e32c03ed80a37fda9fd386': true
+  '@shimpz/frontend@https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/b332b0ca4d86d90578ebf9360ef518c270fa1c21': true
 
 overrides:
   cookie: 0.7.2
