@@ -1,5 +1,6 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
+const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
 const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const HUMAN_REQUEST_KINDS = new Set([
@@ -106,7 +107,8 @@ function parseAssistant(value) {
     !boundedText(record.name, 160) ||
     !boundedText(record.summary, 500) ||
     !boundedText(record.assistant_version, 80) ||
-    !boundedText(record.github, 500) ||
+    typeof record.github !== "string" ||
+    !GITHUB_RE.test(record.github) ||
     typeof record.source_digest !== "string" ||
     !SOURCE_DIGEST_RE.test(record.source_digest) ||
     typeof record.icon_digest !== "string" ||
@@ -122,6 +124,14 @@ function parseAssistant(value) {
   const providers = [...new Set(
     (/** @type {{ provider: string }[]} */ (record.integrations)).map(({ provider }) => provider),
   )].sort((left, right) => left.localeCompare(right, "en"));
+  const integrations = (/** @type {{ id: string, provider: string, scopes: string[] }[]} */ (record.integrations))
+    .map(({ id, provider, scopes }) => Object.freeze({ id, provider, scopes: Object.freeze([...scopes]) }));
+  const actions = (/** @type {{ id: string, integrations: string[], human_requests: string[] }[]} */ (record.actions))
+    .map(({ id, integrations: actionIntegrations, human_requests: humanRequests }) => Object.freeze({
+      id,
+      integrations: Object.freeze([...actionIntegrations]),
+      humanRequests: Object.freeze([...humanRequests]),
+    }));
   return Object.freeze({
     id: record.assistant_id,
     name: record.name,
@@ -129,6 +139,11 @@ function parseAssistant(value) {
     version: record.assistant_version,
     creators: Object.freeze([...(/** @type {string[]} */ (record.creators))]),
     providers: Object.freeze(providers),
+    github: record.github,
+    platforms: Object.freeze([...(/** @type {string[]} */ (record.platforms))]),
+    allowedHosts: Object.freeze([...(/** @type {string[]} */ (record.allowed_hosts))]),
+    integrations: Object.freeze(integrations),
+    actions: Object.freeze(actions),
     sourceDigest: record.source_digest,
     iconDigest: record.icon_digest,
   });
