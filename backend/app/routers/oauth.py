@@ -12,7 +12,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from app.concurrency import BoundedThreadPoolExecutor
-from app.config import OAUTH_QUEUE_MAX, OAUTH_WORKER_THREADS, PRIVATE_NO_STORE_HEADERS
+from app.config import MAX_OAUTH_BODY_BYTES, OAUTH_QUEUE_MAX, OAUTH_WORKER_THREADS, PRIVATE_NO_STORE_HEADERS
 from app.oauth_broker import OAuthBroker, OAuthBrokerError, OAuthOutOfBand, OAuthRedirect
 from app.payloads import ClientPayloadError, read_bounded_json
 
@@ -111,7 +111,7 @@ async def _body(request: Request, fields: frozenset[str]) -> dict:
         raise ClientPayloadError(403, "OAuth broker request is forbidden")
     if request.headers.get("content-length") is None:
         raise ClientPayloadError(411, "OAuth broker request length is required")
-    payload = await read_bounded_json(request, 32 * 1024)
+    payload = await read_bounded_json(request, MAX_OAUTH_BODY_BYTES)
     if set(payload) != fields:
         raise ClientPayloadError(400, "OAuth broker request is invalid")
     return payload
