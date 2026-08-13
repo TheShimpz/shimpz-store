@@ -279,61 +279,99 @@
 <section class="wrap assistant-detail" aria-labelledby="assistant-detail-title">
   <a class="back-link" href={u.assistants(lang)}>← {tr("assistants_back_store", lang)}</a>
 
-  <header class="assistant-hero">
-    <AssistantIcon
-      size={112}
-      src={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
-    />
-    <div class="assistant-intro">
-      <p class="kicker">{tr("assistants_detail_published", lang)}</p>
-      <h1 id="assistant-detail-title">{assistant.name}</h1>
-      <p class="creators">{assistant.creators.join(", ")}</p>
-      <p class="summary">{assistant.summary}</p>
-    </div>
-    <aside class="install-panel" aria-labelledby="install-title">
-      <div class="install-heading">
-        <div>
-          <p class="kicker">{tr("assistants_free", lang)}</p>
-          <h2 id="install-title">{tr("assistants_install_title", lang)}</h2>
-        </div>
-        {#if cloudAssistantInstalled()}<span class="installed-dot" aria-hidden="true"></span>{/if}
-      </div>
-      {#if cloudPhase === "ready"}
-        <label>
-          <span>{tr("assistants_cloud_target_label", lang)}</span>
-          <select value={cloudSelectedTeam} disabled={cloudActionLatch} onchange={chooseCloudTeam}>
-            <option value="">{tr("assistants_cloud_choose", lang)}</option>
-            {#each cloudTeams as team (team.team_id)}
-              <option value={team.team_id}>{team.team_name}</option>
-            {/each}
-          </select>
-        </label>
-      {:else if cloudPhase === "unauthenticated"}
-        <p>{tr("assistants_cloud_sign_in_help", lang)}</p>
-      {:else if cloudPhase === "empty"}
-        <p>{tr("assistants_cloud_no_teams", lang)}</p>
-      {:else if cloudPhase === "error"}
-        <p class="error" role="alert">{tr("assistants_cloud_load_failed", lang)}</p>
-      {/if}
-      <button
-        class:btn-primary={!cloudAssistantInstalled()}
-        class:btn-danger={cloudAssistantInstalled()}
-        type="button"
-        disabled={cloudButtonDisabled()}
-        onclick={cloudPrimaryAction}>
-        <HudIcon name={cloudAssistantInstalled() ? "uninstall" : "add"} size={17} />
-        {cloudButtonLabel()}
-      </button>
-      {#if cloudFeedback}
-        <p class:error={cloudFeedback === "error"} class="feedback" role={cloudFeedback === "error" ? "alert" : "status"}>
-          {tr(cloudFeedback === "success" ? "assistants_cloud_committed" : "assistants_cloud_failed", lang)}
-        </p>
-      {/if}
-    </aside>
-  </header>
-
   <div class="detail-layout">
-    <main>
+    <header class="assistant-hero">
+      <AssistantIcon
+        size={112}
+        src={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
+      />
+      <div class="assistant-intro">
+        <p class="kicker">{tr("assistants_detail_published", lang)}</p>
+        <h1 id="assistant-detail-title">{assistant.name}</h1>
+        <p class="creators">{assistant.creators.join(", ")}</p>
+        <p class="summary">{assistant.summary}</p>
+      </div>
+    </header>
+
+    <div class="detail-sidebar">
+      <aside class="install-panel sidebar-panel" aria-labelledby="install-title">
+        <div class="install-heading">
+          <div>
+            <p class="kicker">{tr("assistants_free", lang)}</p>
+            <h2 id="install-title">{tr("assistants_install_title", lang)}</h2>
+          </div>
+          {#if cloudAssistantInstalled()}<span class="installed-dot" aria-hidden="true"></span>{/if}
+        </div>
+        {#if cloudPhase === "ready"}
+          <label>
+            <span>{tr("assistants_cloud_target_label", lang)}</span>
+            <select value={cloudSelectedTeam} disabled={cloudActionLatch} onchange={chooseCloudTeam}>
+              <option value="">{tr("assistants_cloud_choose", lang)}</option>
+              {#each cloudTeams as team (team.team_id)}
+                <option value={team.team_id}>{team.team_name}</option>
+              {/each}
+            </select>
+          </label>
+        {:else if cloudPhase === "unauthenticated"}
+          <p>{tr("assistants_cloud_sign_in_help", lang)}</p>
+        {:else if cloudPhase === "empty"}
+          <p>{tr("assistants_cloud_no_teams", lang)}</p>
+        {:else if cloudPhase === "error"}
+          <p class="error" role="alert">{tr("assistants_cloud_load_failed", lang)}</p>
+        {/if}
+        <button
+          class:btn-primary={!cloudAssistantInstalled()}
+          class:btn-danger={cloudAssistantInstalled()}
+          type="button"
+          disabled={cloudButtonDisabled()}
+          onclick={cloudPrimaryAction}>
+          <HudIcon name={cloudAssistantInstalled() ? "uninstall" : "add"} size={17} />
+          {cloudButtonLabel()}
+        </button>
+        {#if cloudFeedback}
+          <p class:error={cloudFeedback === "error"} class="feedback" role={cloudFeedback === "error" ? "alert" : "status"}>
+            {tr(cloudFeedback === "success" ? "assistants_cloud_committed" : "assistants_cloud_failed", lang)}
+          </p>
+        {/if}
+      </aside>
+
+      <div class="facts">
+        <section class="sidebar-panel" aria-labelledby="access-title">
+          <h2 id="access-title">{tr("assistants_permissions", lang)}</h2>
+          <h3>{tr("assistants_integrations", lang)}</h3>
+          {#if assistant.integrations.length}
+            <ul>
+              {#each assistant.integrations as integration (integration.id)}
+                <li>
+                  <strong>{integration.provider}</strong>
+                  <span>{integration.scopes.length ? integration.scopes.join(", ") : tr("assistants_none", lang)}</span>
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <p>{tr("assistants_none", lang)}</p>
+          {/if}
+          <h3>{tr("assistants_allowed_hosts", lang)}</h3>
+          {#if assistant.allowedHosts.length}
+            <ul class="hosts">
+              {#each assistant.allowedHosts as host (host)}<li><code>{host}</code></li>{/each}
+            </ul>
+          {:else}
+            <p>{tr("assistants_none", lang)}</p>
+          {/if}
+        </section>
+        <section class="metadata sidebar-panel" aria-labelledby="info-title">
+          <h2 id="info-title">{tr("assistants_information", lang)}</h2>
+          <dl>
+            <div><dt>{tr("assistants_version", lang)}</dt><dd>{assistant.version}</dd></div>
+            <div><dt>{tr("assistants_architectures", lang)}</dt><dd>{assistant.platforms.join(", ")}</dd></div>
+            <div><dt>{tr("assistants_repository", lang)}</dt><dd><a href={assistant.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a></dd></div>
+          </dl>
+        </section>
+      </div>
+    </div>
+
+    <div class="actions-column">
       <section aria-labelledby="actions-title">
         <div class="section-heading">
           <h2 id="actions-title">{tr("assistants_detail_actions", lang)}</h2>
@@ -358,55 +396,20 @@
           {/each}
         </div>
       </section>
-    </main>
-
-    <aside class="facts" aria-labelledby="access-title">
-      <section>
-        <h2 id="access-title">{tr("assistants_permissions", lang)}</h2>
-        <h3>{tr("assistants_integrations", lang)}</h3>
-        {#if assistant.integrations.length}
-          <ul>
-            {#each assistant.integrations as integration (integration.id)}
-              <li>
-                <strong>{integration.provider}</strong>
-                <span>{integration.scopes.length ? integration.scopes.join(", ") : tr("assistants_none", lang)}</span>
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p>{tr("assistants_none", lang)}</p>
-        {/if}
-        <h3>{tr("assistants_allowed_hosts", lang)}</h3>
-        {#if assistant.allowedHosts.length}
-          <ul class="hosts">
-            {#each assistant.allowedHosts as host (host)}<li><code>{host}</code></li>{/each}
-          </ul>
-        {:else}
-          <p>{tr("assistants_none", lang)}</p>
-        {/if}
-      </section>
-      <section class="metadata">
-        <h2>{tr("assistants_information", lang)}</h2>
-        <dl>
-          <div><dt>{tr("assistants_version", lang)}</dt><dd>{assistant.version}</dd></div>
-          <div><dt>{tr("assistants_architectures", lang)}</dt><dd>{assistant.platforms.join(", ")}</dd></div>
-          <div><dt>{tr("assistants_repository", lang)}</dt><dd><a href={assistant.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a></dd></div>
-        </dl>
-      </section>
-    </aside>
+    </div>
   </div>
 </section>
 
 <style>
   .assistant-detail { padding-top: 2rem; }
   .back-link { display: inline-block; margin-bottom: 1.25rem; color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-  .assistant-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(18rem, 24rem); align-items: center; gap: clamp(1.25rem, 4vw, 3rem); padding-bottom: 2rem; border-bottom: 1px solid var(--color-border); }
+  .assistant-hero { display: grid; grid-column: 1; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: clamp(1.25rem, 4vw, 3rem); }
   .assistant-intro { min-width: 0; }
   .assistant-intro .kicker { margin: 0 0 0.45rem; }
   h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; }
   .creators { margin: 0.45rem 0 0; color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.78rem; }
   .summary { max-width: 48rem; margin: 1rem 0 0; color: var(--color-muted); font-size: 1rem; line-height: 1.6; }
-  .install-panel { padding: 1rem; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-border); }
+  .sidebar-panel { width: 100%; padding: 1rem; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-border); }
   .install-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
   .install-heading .kicker { margin: 0 0 0.25rem; color: var(--color-green); }
   .install-heading h2 { margin: 0; font-size: 1rem; }
@@ -418,7 +421,9 @@
   .install-panel > p.error, .feedback.error { color: var(--color-danger); }
   .install-panel button { width: 100%; min-height: 2.6rem; margin-top: 1rem; border: 0; cursor: pointer; font-size: 0.62rem; }
   .feedback { color: var(--color-green); }
-  .detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); gap: clamp(2rem, 6vw, 5rem); padding-top: 2.5rem; }
+  .detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); grid-template-rows: auto 1fr; column-gap: clamp(2rem, 6vw, 5rem); row-gap: 2.5rem; }
+  .detail-sidebar { display: grid; grid-column: 2; grid-row: 1 / span 2; align-content: start; gap: 1rem; }
+  .actions-column { grid-column: 1; }
   .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
   .section-heading h2, .facts h2 { margin: 0; font-size: 1.25rem; }
   .section-heading span { color: var(--color-cyan); font-family: var(--font-mono); }
@@ -431,7 +436,6 @@
   dt { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
   dd { min-width: 0; margin: 0.2rem 0 0; overflow-wrap: anywhere; font-size: 0.72rem; line-height: 1.5; }
   .facts { display: grid; align-content: start; gap: 1rem; }
-  .facts > section { padding: 1rem; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-border); }
   .facts h3 { margin: 1rem 0 0.35rem; color: var(--color-muted-2); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
   .facts p { margin: 0; color: var(--color-muted); font-size: 0.72rem; }
   .facts ul { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
@@ -443,11 +447,8 @@
   .metadata dl > div { display: grid; grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr); gap: 0.75rem; }
   .metadata a { color: var(--color-cyan); }
   @media (max-width: 900px) {
-    .assistant-hero { grid-template-columns: auto minmax(0, 1fr); }
-    .install-panel { grid-column: 1 / -1; }
-  }
-  @media (max-width: 720px) {
-    .detail-layout { grid-template-columns: 1fr; }
+    .detail-layout { grid-template-columns: 1fr; grid-template-rows: auto; column-gap: 0; row-gap: 2rem; }
+    .assistant-hero, .detail-sidebar, .actions-column { grid-column: 1; grid-row: auto; }
   }
   @media (max-width: 540px) {
     .assistant-hero { grid-template-columns: 1fr; align-items: start; }
