@@ -26,11 +26,6 @@ def _assistant_inventory_item(value: object) -> tuple[str, str] | None:
     return assistant, status
 
 
-def public_file_metadata(value: object) -> dict | None:
-    """Copy only opaque, non-path file metadata from the trusted controller response."""
-    return team_contract.project_file_metadata(value, include_usage=False)
-
-
 def public_file_upload(value: object, expected_team_id: str) -> dict | None:
     return team_contract.project_storage_response(
         value,

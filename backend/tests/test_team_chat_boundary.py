@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import ClassVar
 
-from app import authn, config, main, projections
+from app import authn, config, main
 from app.protocol.http.v1 import payload as team_contract
 from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
@@ -240,19 +240,3 @@ def test_storage_projection_keeps_cleanup_visible_after_a_future_plan_downgrade(
         "remaining_bytes": 0,
     }
     assert team_contract.project_storage_usage({"used_bytes": 8, "limit_bytes": 4, "remaining_bytes": 1}) is None
-
-
-def test_storage_projection_requires_the_shared_file_metadata_contract():
-    metadata = {
-        "id": FILE_ID,
-        "name": "note.txt",
-        "media_type": "text/plain",
-        "size": 5,
-        "sha256": FILE_SHA256,
-        "created_at": 1_700_000_000,
-    }
-    assert projections.public_file_metadata(metadata) == metadata
-    assert (
-        projections.public_file_metadata({key: value for key, value in metadata.items() if key != "created_at"}) is None
-    )
-    assert projections.public_file_metadata({**metadata, "size": team_contract.MAX_FILE_UPLOAD_BYTES + 1}) is None

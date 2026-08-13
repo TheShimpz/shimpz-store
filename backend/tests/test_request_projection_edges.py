@@ -60,7 +60,6 @@ def test_public_file_projections_delegate_to_the_closed_team_contract():
         "created_at": 1,
     }
     usage = {"used_bytes": 7, "limit_bytes": 8, "remaining_bytes": 1}
-    assert projections.public_file_metadata(metadata) == metadata
     assert projections.public_file_upload({"team_id": "team", "file": {**metadata, **usage}}, "team") == {
         "file": metadata,
         **usage,
