@@ -641,11 +641,7 @@
               <h2>{assistant.name}</h2>
               <p>{assistant.creators.join(", ")}</p>
             </div>
-            {#if renderedAssistantInstalled(assistant.id)}
-              <span class="installed-badge"><HudIcon name="check" size={13} />{tr("assistants_installed_local", lang)}</span>
-            {:else}
-              <span class="free-badge">{tr("assistants_free", lang)}</span>
-            {/if}
+            <span class="free-badge">{tr("assistants_free", lang)}</span>
           </div>
           <p class="assistant-summary">{assistant.summary}</p>
         </div>
@@ -721,7 +717,8 @@
     flex-direction: column;
     background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
     clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-    transition: background 0.18s ease, transform 0.18s var(--ease-shimpz);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s var(--ease-shimpz);
   }
   .assistant-card:hover, .assistant-card:focus-within {
     background: linear-gradient(180deg, color-mix(in oklab, var(--color-cyan) 5%, var(--color-card-2)), var(--color-card));
@@ -729,6 +726,9 @@
   }
   .assistant-card.installed:hover, .assistant-card.installed:focus-within {
     background: linear-gradient(180deg, color-mix(in oklab, var(--color-green) 5%, var(--color-card-2)), var(--color-card));
+  }
+  .assistant-card.installed {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 58%, var(--color-border));
   }
   .assistant-card.requested { scroll-margin-top: 7rem; }
   .assistant-details { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 1rem; }
@@ -747,24 +747,9 @@
     letter-spacing: 0.07em;
     text-transform: uppercase;
   }
-  .installed-badge {
-    display: inline-flex;
-    align-items: center;
-    align-self: start;
-    gap: 0.25rem;
-    border: 1px solid color-mix(in oklab, var(--color-green) 58%, var(--color-border));
-    padding: 0.22rem 0.4rem;
-    background: color-mix(in oklab, var(--color-green) 7%, #000);
-    color: var(--color-green);
-    font-family: var(--font-mono);
-    font-size: 0.54rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-  }
   .assistant-summary {
     display: -webkit-box;
-    margin: 1rem 0 0;
+    margin: 0.5rem 0 0;
     overflow: hidden;
     color: var(--color-muted);
     font-size: 0.84rem;
