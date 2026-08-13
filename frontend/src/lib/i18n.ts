@@ -180,6 +180,19 @@ const D: Dict = {
   assistants_uninstall_local: { en: "Uninstall", pt: "Desinstalar" },
   assistants_back_store: { en: "All Assistants", pt: "Todos os Assistants" },
   assistants_detail_actions: { en: "Declared Actions", pt: "Actions declarados" },
+  assistants_actions_search: { en: "Search Actions", pt: "Buscar Actions" },
+  assistants_actions_search_hint: {
+    en: "Action, Integration or request",
+    pt: "Action, integração ou solicitação",
+  },
+  assistants_actions_showing: { en: "Showing", pt: "Exibindo" },
+  assistants_actions_of: { en: "of", pt: "de" },
+  assistants_actions_no_matches: {
+    en: "No Actions match this search.",
+    pt: "Nenhum Action corresponde a esta busca.",
+  },
+  assistants_actions_show_more: { en: "Show more", pt: "Mostrar mais" },
+  assistants_actions_show_all: { en: "Show all", pt: "Mostrar todos" },
   assistants_detail_published: { en: "Published Assistant", pt: "Assistant publicado" },
   assistants_detail_not_found: { en: "Assistant not found", pt: "Assistant não encontrado" },
   assistants_detail_not_found_help: {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { AssistantIcon } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
@@ -25,6 +25,8 @@
   type CloudTeam = { team_id: string; team_name: string };
   type CatalogAssistant = ReturnType<typeof parseAssistantCatalog>[number];
 
+  const ACTION_BATCH_SIZE = 12;
+
   let { lang, assistant }: { lang: Locale; assistant: CatalogAssistant } = $props();
   let cloudPhase = $state<CloudPhase>("checking");
   let cloudInventoryState = $state<CloudInventoryState>("idle");
@@ -34,8 +36,49 @@
   let cloudActionLatch = $state(false);
   let cloudPendingAction = $state<ActionKind | "">("");
   let cloudFeedback = $state<"" | "success" | "error">("");
+  let actionQuery = $state("");
+  let visibleActionCount = $state(ACTION_BATCH_SIZE);
+  let showAllActions = $state(false);
+  let actionResultsStatus = $state<HTMLParagraphElement>();
   let cloudGeneration = 0;
   const cloudTargetTeam = $derived(cloudTeams.find((team) => team.team_id === cloudSelectedTeam));
+  const normalizedActionQuery = $derived(actionQuery.trim().toLowerCase());
+  const filteredActions = $derived(assistant.actions.filter((action) =>
+    !normalizedActionQuery ||
+    action.id.toLowerCase().includes(normalizedActionQuery) ||
+    action.integrations.some((integration) => integration.toLowerCase().includes(normalizedActionQuery)) ||
+    action.humanRequests.some((request) => request.toLowerCase().includes(normalizedActionQuery))
+  ));
+  const visibleActions = $derived(
+    showAllActions ? filteredActions : filteredActions.slice(0, visibleActionCount),
+  );
+  const actionSearchVisible = $derived(assistant.actions.length > ACTION_BATCH_SIZE);
+  const moreActionsAvailable = $derived(
+    !showAllActions && visibleActions.length < filteredActions.length,
+  );
+
+  function searchActions(event: Event) {
+    actionQuery = (event.currentTarget as HTMLInputElement).value;
+    visibleActionCount = ACTION_BATCH_SIZE;
+  }
+
+  async function focusActionResults() {
+    await tick();
+    actionResultsStatus?.focus();
+  }
+
+  async function showMoreDeclaredActions() {
+    visibleActionCount = Math.min(
+      visibleActionCount + ACTION_BATCH_SIZE,
+      filteredActions.length,
+    );
+    if (visibleActionCount === filteredActions.length) await focusActionResults();
+  }
+
+  async function showEveryDeclaredAction() {
+    showAllActions = true;
+    await focusActionResults();
+  }
 
   function cloudAssistantInstalled(): boolean {
     return cloudAssistantAction(
@@ -377,24 +420,83 @@
           <h2 id="actions-title">{tr("assistants_detail_actions", lang)}</h2>
           <span>{assistant.actions.length}</span>
         </div>
-        <div class="action-list">
-          {#each assistant.actions as action (action.id)}
-            <article class="action-card">
-              <p class="action-kind">{tr("assistants_action", lang)}</p>
-              <h3><code>{action.id}</code></h3>
-              <dl>
-                <div>
-                  <dt>{tr("assistants_integrations", lang)}</dt>
-                  <dd>{action.integrations.length ? action.integrations.join(", ") : tr("assistants_none", lang)}</dd>
-                </div>
-                <div>
-                  <dt>{tr("assistants_human_requests", lang)}</dt>
-                  <dd>{action.humanRequests.length ? action.humanRequests.join(", ") : tr("assistants_none", lang)}</dd>
-                </div>
-              </dl>
-            </article>
-          {/each}
-        </div>
+        {#if actionSearchVisible}
+          <div class="action-tools">
+            <label class="action-search" for="assistant-action-search">
+              <span>{tr("assistants_actions_search", lang)}</span>
+              <input
+                id="assistant-action-search"
+                type="search"
+                value={actionQuery}
+                placeholder={tr("assistants_actions_search_hint", lang)}
+                aria-controls="assistant-actions-list"
+                autocomplete="off"
+                spellcheck="false"
+                oninput={searchActions}
+              />
+            </label>
+            <p
+              class="action-results-status"
+              class:no-results={filteredActions.length === 0}
+              bind:this={actionResultsStatus}
+              aria-live="polite"
+              aria-atomic="true"
+              tabindex="-1"
+            >
+              {#if filteredActions.length}
+                {tr("assistants_actions_showing", lang)} {visibleActions.length}
+                {tr("assistants_actions_of", lang)} {filteredActions.length}
+              {:else}
+                {tr("assistants_actions_no_matches", lang)}
+              {/if}
+            </p>
+          </div>
+        {/if}
+        {#if visibleActions.length}
+          <div class="action-list-shell">
+            <div class="action-list-header" aria-hidden="true">
+              <span>{tr("assistants_action", lang)}</span>
+              <span>{tr("assistants_integrations", lang)}</span>
+              <span>{tr("assistants_human_requests", lang)}</span>
+            </div>
+            <ol id="assistant-actions-list" class="action-list" role="list">
+              {#each visibleActions as action (action.id)}
+                <li class="action-row">
+                  <dl>
+                    <div>
+                      <dt>{tr("assistants_action", lang)}</dt>
+                      <dd class="action-name"><code>{action.id}</code></dd>
+                    </div>
+                    <div>
+                      <dt>{tr("assistants_integrations", lang)}</dt>
+                      <dd class:empty-value={!action.integrations.length}>
+                        {action.integrations.length ? action.integrations.join(", ") : tr("assistants_none", lang)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{tr("assistants_human_requests", lang)}</dt>
+                      <dd class:empty-value={!action.humanRequests.length}>
+                        {action.humanRequests.length ? action.humanRequests.join(", ") : tr("assistants_none", lang)}
+                      </dd>
+                    </div>
+                  </dl>
+                </li>
+              {/each}
+            </ol>
+          </div>
+        {:else if actionSearchVisible}
+          <ol id="assistant-actions-list" class="action-list" role="list"></ol>
+        {/if}
+        {#if moreActionsAvailable}
+          <div class="action-reveal">
+            <button type="button" onclick={showMoreDeclaredActions}>
+              {tr("assistants_actions_show_more", lang)}
+            </button>
+            <button type="button" onclick={showEveryDeclaredAction}>
+              {tr("assistants_actions_show_all", lang)}
+            </button>
+          </div>
+        {/if}
       </section>
     </div>
   </div>
@@ -423,16 +525,32 @@
   .feedback { color: var(--color-green); }
   .detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); grid-template-rows: auto 1fr; column-gap: clamp(2rem, 6vw, 5rem); row-gap: 2.5rem; }
   .detail-sidebar { display: grid; grid-column: 2; grid-row: 1 / span 2; align-content: start; gap: 1rem; }
-  .actions-column { grid-column: 1; }
+  .actions-column { --action-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr); grid-column: 1; }
   .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
   .section-heading h2, .facts h2 { margin: 0; font-size: 1.25rem; }
   .section-heading span { color: var(--color-cyan); font-family: var(--font-mono); }
-  .action-list { display: grid; gap: 0.75rem; margin-top: 1rem; }
-  .action-card { padding: 1rem; background: linear-gradient(180deg, var(--color-card-2), var(--color-card)); box-shadow: inset 0 0 0 1px var(--color-border); }
-  .action-kind { margin: 0; color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-  .action-card h3 { margin: 0.25rem 0 0.85rem; font-size: 1rem; }
+  .action-tools { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
+  .action-search { display: grid; width: min(100%, 22rem); gap: 0.35rem; }
+  .action-search span, .action-list-header { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  .action-search input { width: 100%; min-height: 2.4rem; border: 1px solid var(--color-border-strong); padding: 0 0.75rem; background: #050708; color: var(--color-fg); font-family: var(--font-mono); font-size: 0.72rem; }
+  .action-search input:focus-visible, .action-reveal button:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+  .action-results-status { margin: 0 0 0.65rem; color: var(--color-muted); font-family: var(--font-mono); font-size: 0.68rem; }
+  .action-results-status.no-results { color: var(--color-danger); }
+  .action-results-status:focus { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+  .action-list-shell { margin-top: 1rem; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-border); }
+  .action-list-header, .action-row dl { display: grid; grid-template-columns: var(--action-columns); column-gap: 1rem; }
+  .action-list-header { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--color-border); }
+  .action-list { margin: 0; padding: 0; list-style: none; }
+  .action-row + .action-row { border-top: 1px solid var(--color-border); }
+  .action-row dl { padding: 0.72rem 0.85rem; }
+  .action-row dl > div { min-width: 0; }
+  .action-row dt { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .action-row dd { margin: 0; }
+  .action-name { font-size: 0.78rem; }
+  .empty-value { color: var(--color-muted-2); }
+  .action-reveal { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.75rem; }
+  .action-reveal button { min-height: 2.2rem; border: 1px solid var(--color-border-strong); padding: 0 0.9rem; background: var(--color-card-2); color: var(--color-cyan); cursor: pointer; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
   dl { margin: 0; }
-  .action-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
   dt { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
   dd { min-width: 0; margin: 0.2rem 0 0; overflow-wrap: anywhere; font-size: 0.72rem; line-height: 1.5; }
   .facts { display: grid; align-content: start; gap: 1rem; }
@@ -452,6 +570,13 @@
   }
   @media (max-width: 540px) {
     .assistant-hero { grid-template-columns: 1fr; align-items: start; }
-    .action-card dl { grid-template-columns: 1fr; }
+    .action-tools { display: grid; align-items: start; }
+    .action-search { width: 100%; }
+    .action-results-status { margin: 0; }
+    .action-list-header { display: none; }
+    .action-row dl { grid-template-columns: 1fr; gap: 0.6rem; padding: 0.85rem; }
+    .action-row dl > div { display: grid; grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr); gap: 0.75rem; }
+    .action-row dt { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+    .action-reveal { display: grid; grid-template-columns: 1fr 1fr; }
   }
 </style>
