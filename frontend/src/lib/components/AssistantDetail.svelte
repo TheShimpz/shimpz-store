@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { onMount, tick } from "svelte";
-  import { AssistantIcon } from "@shimpz/frontend";
+  import { AssistantIcon, SignalList } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import {
@@ -319,6 +319,30 @@
   });
 </script>
 
+{#snippet actionSignal(action: CatalogAssistant["actions"][number])}
+  <div class="action-name">
+    <span>{tr("assistants_action", lang)}</span>
+    <code>{action.id}</code>
+  </div>
+{/snippet}
+
+{#snippet actionMeta(action: CatalogAssistant["actions"][number])}
+  <dl class="action-meta">
+    <div>
+      <dt>{tr("assistants_integrations", lang)}</dt>
+      <dd class:empty-value={!action.integrations.length}>
+        {action.integrations.length ? action.integrations.join(", ") : tr("assistants_none", lang)}
+      </dd>
+    </div>
+    <div>
+      <dt>{tr("assistants_human_requests", lang)}</dt>
+      <dd class:empty-value={!action.humanRequests.length}>
+        {action.humanRequests.length ? action.humanRequests.join(", ") : tr("assistants_none", lang)}
+      </dd>
+    </div>
+  </dl>
+{/snippet}
+
 <section class="wrap assistant-detail" aria-labelledby="assistant-detail-title">
   <a class="back-link" href={u.assistants(lang)}>← {tr("assistants_back_store", lang)}</a>
 
@@ -452,41 +476,15 @@
             </p>
           </div>
         {/if}
-        {#if visibleActions.length}
-          <div class="action-list-shell">
-            <div class="action-list-header" aria-hidden="true">
-              <span>{tr("assistants_action", lang)}</span>
-              <span>{tr("assistants_integrations", lang)}</span>
-              <span>{tr("assistants_human_requests", lang)}</span>
-            </div>
-            <ol id="assistant-actions-list" class="action-list" role="list">
-              {#each visibleActions as action (action.id)}
-                <li class="action-row">
-                  <dl>
-                    <div>
-                      <dt>{tr("assistants_action", lang)}</dt>
-                      <dd class="action-name"><code>{action.id}</code></dd>
-                    </div>
-                    <div>
-                      <dt>{tr("assistants_integrations", lang)}</dt>
-                      <dd class:empty-value={!action.integrations.length}>
-                        {action.integrations.length ? action.integrations.join(", ") : tr("assistants_none", lang)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>{tr("assistants_human_requests", lang)}</dt>
-                      <dd class:empty-value={!action.humanRequests.length}>
-                        {action.humanRequests.length ? action.humanRequests.join(", ") : tr("assistants_none", lang)}
-                      </dd>
-                    </div>
-                  </dl>
-                </li>
-              {/each}
-            </ol>
-          </div>
-        {:else if actionSearchVisible}
-          <ol id="assistant-actions-list" class="action-list" role="list"></ol>
-        {/if}
+        <SignalList
+          id="assistant-actions-list"
+          style="margin-top: 1rem; --signal-list-cut: var(--cut); --signal-list-border: var(--color-border);"
+          items={visibleActions}
+          getKey={(action) => action.id}
+          signal={actionSignal}
+          meta={actionMeta}
+          aria-labelledby="actions-title"
+        />
         {#if moreActionsAvailable}
           <div class="action-reveal">
             <button type="button" onclick={showMoreDeclaredActions}>
@@ -525,28 +523,24 @@
   .feedback { color: var(--color-green); }
   .detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); grid-template-rows: auto 1fr; column-gap: clamp(2rem, 6vw, 5rem); row-gap: 2.5rem; }
   .detail-sidebar { display: grid; grid-column: 2; grid-row: 1 / span 2; align-content: start; gap: 1rem; }
-  .actions-column { --action-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr); grid-column: 1; }
+  .actions-column { grid-column: 1; }
   .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
   .section-heading h2, .facts h2 { margin: 0; font-size: 1.25rem; }
   .section-heading span { color: var(--color-cyan); font-family: var(--font-mono); }
   .action-tools { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
   .action-search { display: grid; width: min(100%, 22rem); gap: 0.35rem; }
-  .action-search span, .action-list-header { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  .action-search span { color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
   .action-search input { width: 100%; min-height: 2.4rem; border: 1px solid var(--color-border-strong); padding: 0 0.75rem; background: #050708; color: var(--color-fg); font-family: var(--font-mono); font-size: 0.72rem; }
   .action-search input:focus-visible, .action-reveal button:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
   .action-results-status { margin: 0 0 0.65rem; color: var(--color-muted); font-family: var(--font-mono); font-size: 0.68rem; }
   .action-results-status.no-results { color: var(--color-danger); }
   .action-results-status:focus { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
-  .action-list-shell { margin-top: 1rem; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-border); }
-  .action-list-header, .action-row dl { display: grid; grid-template-columns: var(--action-columns); column-gap: 1rem; }
-  .action-list-header { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--color-border); }
-  .action-list { margin: 0; padding: 0; list-style: none; }
-  .action-row + .action-row { border-top: 1px solid var(--color-border); }
-  .action-row dl { padding: 0.72rem 0.85rem; }
-  .action-row dl > div { min-width: 0; }
-  .action-row dt { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .action-row dd { margin: 0; }
-  .action-name { font-size: 0.78rem; }
+  .action-name { display: grid; min-width: 0; gap: 0.2rem; }
+  .action-name span { color: var(--color-cyan); font-family: var(--font-mono); font-size: 0.52rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .action-name code { overflow-wrap: anywhere; color: var(--color-fg); font-size: 0.82rem; font-weight: 600; line-height: 1.4; }
+  .action-meta { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .action-meta > div { min-width: 0; }
+  .action-meta dd { margin-top: 0.2rem; }
   .empty-value { color: var(--color-muted-2); }
   .action-reveal { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.75rem; }
   .action-reveal button { min-height: 2.2rem; border: 1px solid var(--color-border-strong); padding: 0 0.9rem; background: var(--color-card-2); color: var(--color-cyan); cursor: pointer; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -573,10 +567,10 @@
     .action-tools { display: grid; align-items: start; }
     .action-search { width: 100%; }
     .action-results-status { margin: 0; }
-    .action-list-header { display: none; }
-    .action-row dl { grid-template-columns: 1fr; gap: 0.6rem; padding: 0.85rem; }
-    .action-row dl > div { display: grid; grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr); gap: 0.75rem; }
-    .action-row dt { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
     .action-reveal { display: grid; grid-template-columns: 1fr 1fr; }
+  }
+
+  @container signal-list (max-width: 28rem) {
+    .action-meta { grid-template-columns: minmax(0, 1fr); gap: 0.65rem; }
   }
 </style>
