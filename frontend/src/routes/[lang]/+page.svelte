@@ -166,7 +166,7 @@
   .hero-space {
     padding-block: clamp(4.5rem, 9vw, 8rem);
   }
-  :global(.homepage-hero) {
+  :global(section[data-slot="editorial-hero"].homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 4.2vw, 4rem);
     --homepage-hero-column-gap: clamp(var(--shimpz-space-8), 6vw, var(--shimpz-space-16));
     position: relative;
@@ -243,7 +243,7 @@
   .feature-list h3 { margin: 0 0 .6rem; font-size: 1.05rem; line-height: 1.25; }
   .feature-list p { margin: 0; color: var(--color-muted); font-size: .9rem; line-height: 1.65; }
   @media (max-width: 760px) {
-    :global(.homepage-hero) {
+    :global(section[data-slot="editorial-hero"].homepage-hero) {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
       grid-template-columns: 1fr;
       row-gap: var(--shimpz-space-4);
