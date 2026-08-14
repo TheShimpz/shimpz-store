@@ -113,9 +113,9 @@ test("keeps every closed Action request kind renderable as localized interface d
     "input:select",
     "input:choice",
     "input:choices",
-    "auth:reauth",
-    "auth:second-factor",
-    "auth:phishing-resistant",
+    "auth:password",
+    "auth:totp",
+    "auth:passkey",
   ]);
 
   for (const locale of LOCALES) {

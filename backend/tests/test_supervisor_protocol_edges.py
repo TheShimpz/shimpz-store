@@ -113,7 +113,7 @@ def test_claims_reject_non_object_and_project_optional_bindings():
         supervisor.canonical_claims(None)
     value = _claims()
     value["model"] = {"provider": "openai", "key_sha256": "e" * 64}
-    value["assurance"] = {"kind": "auth:reauth", "challenge_id": "f" * 32}
+    value["assurance"] = {"kind": "auth:password", "challenge_id": "f" * 32}
     assert supervisor.canonical_claims(value) == value
     without_optional = _claims()
     assert supervisor.canonical_claims(without_optional) == without_optional

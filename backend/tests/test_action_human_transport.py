@@ -103,7 +103,7 @@ def test_websocket_auth_response_accepts_only_one_use_account_handle():
             "active": None,
             "pending_human": {
                 "challenge_id": "c" * 32,
-                "request": _human_request("auth:reauth"),
+                "request": _human_request("auth:password"),
             },
         }
         await _ws_dispatch(
@@ -144,7 +144,7 @@ def test_websocket_submits_exact_human_response_without_browser_type(monkeypatch
             "active": None,
             "pending_human": {
                 "challenge_id": "c" * 32,
-                "request": _human_request("auth:second-factor"),
+                "request": _human_request("auth:totp"),
             },
         }
         await _ws_dispatch(
@@ -267,9 +267,9 @@ def test_terminal_event_contract_projects_exact_public_human_challenge():
     "descriptor",
     [
         _human_request("approval"),
-        _human_request("auth:reauth"),
-        _human_request("auth:second-factor"),
-        _human_request("auth:phishing-resistant"),
+        _human_request("auth:password"),
+        _human_request("auth:totp"),
+        _human_request("auth:passkey"),
         *[
             _human_request(
                 kind,

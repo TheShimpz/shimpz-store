@@ -155,9 +155,9 @@ test("accepts all and only the eleven reviewed Action human request descriptors"
   ];
   const descriptors = [
     humanRequest("approval"),
-    humanRequest("auth:reauth"),
-    humanRequest("auth:second-factor"),
-    humanRequest("auth:phishing-resistant"),
+    humanRequest("auth:password"),
+    humanRequest("auth:totp"),
+    humanRequest("auth:passkey"),
     ...[
       ["input:text", 4_096],
       ["input:textarea", 16_000],

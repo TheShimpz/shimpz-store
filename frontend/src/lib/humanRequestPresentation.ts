@@ -16,7 +16,7 @@ export function humanRequestPrimaryLabel(kind: string, lang: Locale): string {
   return tr(
     kind === "approval"
       ? "human_approve"
-      : kind === "auth:phishing-resistant"
+      : kind === "auth:passkey"
         ? "human_passkey"
         : kind.startsWith("auth:")
           ? "human_authorize"
@@ -29,8 +29,8 @@ export function humanRequestFieldLabels(request: Record<string, any>, lang: Loca
   return {
     chooseOption: tr("human_choose", lang),
     selectionHint: `${tr("human_selection_hint", lang)} ${request.min_selections ?? 0}–${request.max_selections ?? 0}`,
-    reauthLabel: tr("human_password_label", lang),
-    secondFactorLabel: tr("human_totp_label", lang),
-    secondFactorPlaceholder: tr("human_totp_placeholder", lang),
+    passwordLabel: tr("human_password_label", lang),
+    totpLabel: tr("human_totp_label", lang),
+    totpPlaceholder: tr("human_totp_placeholder", lang),
   };
 }

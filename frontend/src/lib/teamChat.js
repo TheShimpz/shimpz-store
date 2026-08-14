@@ -13,9 +13,9 @@ const MAX_REPLY_CHARS = 60_000;
 const MAX_ERROR_DETAIL_CHARS = 800;
 export const CHAT_WS_SUBPROTOCOL = "shimpz.chat.v4";
 const AUTH_KINDS = new Set([
-  "auth:reauth",
-  "auth:second-factor",
-  "auth:phishing-resistant",
+  "auth:password",
+  "auth:totp",
+  "auth:passkey",
 ]);
 const TEXT_KIND_LIMITS = new Map([
   ["input:text", 4_096],

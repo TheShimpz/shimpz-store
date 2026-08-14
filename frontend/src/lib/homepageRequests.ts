@@ -137,21 +137,21 @@ export const HOMEPAGE_REQUESTS = [
     group: "input",
   },
   {
-    kind: "auth:reauth",
+    kind: "auth:password",
     label: { en: "Confirm your identity", pt: "Confirme sua identidade", es: "Confirma tu identidad", zh: "确认你的身份", fr: "Confirmer votre identité", de: "Identität bestätigen", ja: "本人確認", ar: "أكّد هويتك" },
-    signature: 'request_auth("reauth", title=..., description=...)',
+    signature: 'request_auth("password", title=..., description=...)',
     group: "auth",
   },
   {
-    kind: "auth:second-factor",
+    kind: "auth:totp",
     label: { en: "Enter a security code", pt: "Informe um código de segurança", es: "Introduce un código de seguridad", zh: "输入安全验证码", fr: "Saisir un code de sécurité", de: "Sicherheitscode eingeben", ja: "セキュリティコードを入力", ar: "أدخل رمز الأمان" },
-    signature: 'request_auth("second-factor", title=..., description=...)',
+    signature: 'request_auth("totp", title=..., description=...)',
     group: "auth",
   },
   {
-    kind: "auth:phishing-resistant",
+    kind: "auth:passkey",
     label: { en: "Use your passkey", pt: "Use sua passkey", es: "Usa tu passkey", zh: "使用你的通行密钥", fr: "Utiliser votre passkey", de: "Passkey verwenden", ja: "パスキーを使用", ar: "استخدم مفتاح المرور" },
-    signature: 'request_auth("phishing-resistant", title=..., description=...)',
+    signature: 'request_auth("passkey", title=..., description=...)',
     group: "auth",
   },
 ] as const satisfies readonly HomepageRequest[];

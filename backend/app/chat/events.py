@@ -20,9 +20,9 @@ from app.protocol.http.v1 import websocket as chat_ws_common
 
 _HUMAN_AUTH_KINDS = frozenset(
     {
-        "auth:reauth",
-        "auth:second-factor",
-        "auth:phishing-resistant",
+        "auth:password",
+        "auth:totp",
+        "auth:passkey",
     }
 )
 _HUMAN_LENGTH_KINDS = {

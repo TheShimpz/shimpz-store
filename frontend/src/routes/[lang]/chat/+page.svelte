@@ -252,15 +252,15 @@
 
   async function accountAssurance(challenge: any, supplied: any) {
     const kind = challenge.request.kind;
-    if (kind === "auth:reauth" || kind === "auth:second-factor") {
-      const path = kind === "auth:reauth" ? "password" : "totp";
-      const field = kind === "auth:reauth" ? "password" : "code";
+    if (kind === "auth:password" || kind === "auth:totp") {
+      const path = kind === "auth:password" ? "password" : "totp";
+      const field = kind === "auth:password" ? "password" : "code";
       const body = createActionAssuranceBody(selected, challenge.challenge_id, field, supplied);
       const payload = await postAssurance(path, body);
       body[field] = null;
       return parseActionAssuranceHandle(payload);
     }
-    if (kind !== "auth:phishing-resistant") throw new TypeError("unsupported assurance kind");
+    if (kind !== "auth:passkey") throw new TypeError("unsupported assurance kind");
     const optionsPayload = await postAssurance(
       "webauthn/options",
       createActionAssuranceBody(selected, challenge.challenge_id, null, null),

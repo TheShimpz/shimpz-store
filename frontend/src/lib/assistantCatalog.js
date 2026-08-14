@@ -12,9 +12,9 @@ const HUMAN_REQUEST_KINDS = new Set([
   "input:select",
   "input:choice",
   "input:choices",
-  "auth:reauth",
-  "auth:second-factor",
-  "auth:phishing-resistant",
+  "auth:password",
+  "auth:totp",
+  "auth:passkey",
 ]);
 const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "integrations",

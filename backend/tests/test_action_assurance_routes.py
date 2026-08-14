@@ -177,7 +177,7 @@ def test_action_assurance_accepts_bounded_account_owned_handle_expiry(
             "team_id": TEAM_ID,
             "challenge_id": CHALLENGE_ID,
             "password": "secret",
-            "kind": "auth:phishing-resistant",
+            "kind": "auth:passkey",
         },
     ],
 )

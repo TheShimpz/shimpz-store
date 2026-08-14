@@ -63,9 +63,9 @@ _WS_CONNECTION_ADMISSION = _WsConnectionAdmission(
 _AUTH_EXECUTOR = authn.EXECUTOR
 _HUMAN_AUTH_KINDS = frozenset(
     {
-        "auth:reauth",
-        "auth:second-factor",
-        "auth:phishing-resistant",
+        "auth:password",
+        "auth:totp",
+        "auth:passkey",
     }
 )
 

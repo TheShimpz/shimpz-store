@@ -24,9 +24,9 @@ _HUMAN_REQUEST_KINDS = {
     "input:select",
     "input:choice",
     "input:choices",
-    "auth:reauth",
-    "auth:second-factor",
-    "auth:phishing-resistant",
+    "auth:password",
+    "auth:totp",
+    "auth:passkey",
 }
 _ASSISTANT_FIELDS = {
     "assistant_id",

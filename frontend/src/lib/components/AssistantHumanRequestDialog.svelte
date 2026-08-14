@@ -61,6 +61,7 @@
     bind:open
     {kicker}
     title={request.title}
+    lead={request.description}
     titleId="human-request-title"
     size="md"
     oncancel={deny}
