@@ -19,7 +19,6 @@ test("freezes the exact first-person English homepage narrative", () => {
   assert.equal(content.taskPlaceholder, "Type your first task and see what I can do.");
   assert.equal(content.taskLabel, "Your first task");
   assert.equal(content.taskSubmit, "Start");
-  assert.equal(content.watchMeWork, "See how I ask");
   assert.deepEqual(content.humanRequests, {
     heading: "I ask before I act.",
       body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant and Action.",
@@ -61,7 +60,6 @@ test("provides a complete native homepage narrative for every supported locale",
       content.title,
       content.lead,
       content.meetAssistants,
-      content.watchMeWork,
       content.taskPlaceholder,
       content.taskLabel,
       content.taskSubmit,

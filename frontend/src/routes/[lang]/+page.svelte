@@ -5,7 +5,7 @@
     EditorialHero,
     EditorialSection,
     ShimpzBrand,
-    TextField,
+    TextAreaField,
   } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
@@ -13,8 +13,10 @@
   import ApprovalRequestsShowcase from "$lib/components/ApprovalRequestsShowcase.svelte";
   import HomepageCatalog from "$lib/components/HomepageCatalog.svelte";
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
+  import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { homepage } from "$lib/homepage";
+  import { tr } from "$lib/i18n";
   import { MAX_PENDING_TASK_CHARS, savePendingTask } from "$lib/pendingTask.js";
   import { u } from "$lib/url";
 
@@ -43,6 +45,12 @@
     }
     void goto(u.chat(lang));
   }
+
+  function handleFirstTaskKeydown(event: KeyboardEvent) {
+    if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    if (firstTask.trim()) (event.currentTarget as HTMLTextAreaElement).form?.requestSubmit();
+  }
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -55,7 +63,7 @@
 
 {#snippet heroActions()}
   <form class="hero-task" onsubmit={startFirstTask}>
-    <TextField
+    <TextAreaField
       id="homepage-first-task"
       class="hero-task-field"
       label={content.taskLabel}
@@ -64,15 +72,18 @@
       maxlength={MAX_PENDING_TASK_CHARS}
       autocomplete="off"
       disabled={!taskReady}
+      rows={3}
       error={taskError || undefined}
       bind:value={firstTask}
+      onkeydown={handleFirstTaskKeydown}
     />
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
   </form>
-  <div class="hero-links">
-    <ActionLink href={u.assistants(lang)} variant="primary">{content.meetAssistants} →</ActionLink>
-    <ActionLink href="#demo" variant="ghost">{content.watchMeWork} →</ActionLink>
-  </div>
+  <ul class="hero-differentials" data-slot="homepage-differentials">
+    <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)} ↗</a></li>
+    <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)} ↗</a></li>
+  </ul>
+  <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
 {/snippet}
 
 {#snippet usersAction()}
@@ -162,7 +173,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
     column-gap: var(--homepage-hero-column-gap);
-    row-gap: clamp(var(--shimpz-space-6), 3vw, var(--shimpz-space-8));
+    row-gap: var(--shimpz-space-4);
     align-items: start;
   }
   :global(.homepage-hero > header) { grid-column: 1; grid-row: 1; }
@@ -183,8 +194,32 @@
     gap: var(--shimpz-space-3);
     align-items: start;
   }
-  .hero-links { display: flex; flex-wrap: wrap; gap: var(--shimpz-space-3); }
-  .hero-task :global(.shimpz-field input::placeholder) {
+  :global(.homepage-hero [data-slot="editorial-hero-actions"]) {
+    display: grid;
+    gap: var(--shimpz-space-4);
+  }
+  .hero-differentials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--shimpz-space-4) var(--shimpz-space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hero-differentials a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--shimpz-space-2);
+    color: var(--color-fg);
+    font: 600 0.72rem/1.2 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+  .hero-differentials a:hover,
+  .hero-differentials a:focus-visible { color: var(--color-cyan); }
+  .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
+  .hero-task :global(.shimpz-field textarea::placeholder) {
     color: var(--shimpz-color-text-muted);
     opacity: 1;
   }
@@ -211,7 +246,7 @@
     :global(.homepage-hero) {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
       grid-template-columns: 1fr;
-      row-gap: var(--shimpz-space-8);
+      row-gap: var(--shimpz-space-4);
     }
     :global(.homepage-hero > header) { grid-column: 1; grid-row: auto; }
     :global(.homepage-hero > .body.has-media) {

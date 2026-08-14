@@ -22,7 +22,6 @@ export type HomepageContent = {
   title: string;
   lead: string;
   meetAssistants: string;
-  watchMeWork: string;
   taskPlaceholder: string;
   taskLabel: string;
   taskSubmit: string;
@@ -55,7 +54,6 @@ const CONTENT = {
     title: "Hi, I'm Shimpz.",
     lead: "I execute the work so you can focus on what matters.",
     meetAssistants: "Meet my assistants",
-    watchMeWork: "See how I ask",
     taskPlaceholder: "Type your first task and see what I can do.",
     taskLabel: "Your first task",
     taskSubmit: "Start",
@@ -106,7 +104,6 @@ const CONTENT = {
     title: "Olá, eu sou o Shimpz.",
     lead: "Eu executo o trabalho para que você possa se concentrar no que importa.",
     meetAssistants: "Conheça meus assistentes",
-    watchMeWork: "Veja como eu pergunto",
     taskPlaceholder: "Digite sua primeira tarefa e veja o que eu posso fazer.",
     taskLabel: "Sua primeira tarefa",
     taskSubmit: "Começar",
@@ -157,7 +154,6 @@ const CONTENT = {
     title: "Hola, soy Shimpz.",
     lead: "Ejecuto el trabajo para que puedas centrarte en lo que importa.",
     meetAssistants: "Conoce a mis asistentes",
-    watchMeWork: "Mira cómo pregunto",
     taskPlaceholder: "Escribe tu primera tarea y descubre lo que puedo hacer.",
     taskLabel: "Tu primera tarea",
     taskSubmit: "Empezar",
@@ -208,7 +204,6 @@ const CONTENT = {
     title: "Bonjour, je suis Shimpz.",
     lead: "J’exécute le travail pour que vous puissiez vous concentrer sur l’essentiel.",
     meetAssistants: "Découvrez mes assistants",
-    watchMeWork: "Voyez comment je demande",
     taskPlaceholder: "Saisissez votre première tâche et découvrez ce que je peux faire.",
     taskLabel: "Votre première tâche",
     taskSubmit: "Commencer",
@@ -259,7 +254,6 @@ const CONTENT = {
     title: "Hi, ich bin Shimpz.",
     lead: "Ich führe die Arbeit aus, damit du dich auf das Wesentliche konzentrieren kannst.",
     meetAssistants: "Lerne meine Assistants kennen",
-    watchMeWork: "Sieh, wie ich nachfrage",
     taskPlaceholder: "Gib deine erste Aufgabe ein und sieh, was ich tun kann.",
     taskLabel: "Deine erste Aufgabe",
     taskSubmit: "Starten",
@@ -310,7 +304,6 @@ const CONTENT = {
     title: "你好，我是 Shimpz。",
     lead: "我来执行工作，让你专注于真正重要的事。",
     meetAssistants: "认识我的 Assistant",
-    watchMeWork: "看看我如何询问",
     taskPlaceholder: "输入你的第一个任务，看看我能做什么。",
     taskLabel: "你的第一个任务",
     taskSubmit: "开始",
@@ -361,7 +354,6 @@ const CONTENT = {
     title: "こんにちは、Shimpzです。",
     lead: "大切なことに集中できるよう、私が作業を実行します。",
     meetAssistants: "私の Assistant を見る",
-    watchMeWork: "私の確認方法を見る",
     taskPlaceholder: "最初のタスクを入力して、私にできることを試してください。",
     taskLabel: "最初のタスク",
     taskSubmit: "始める",
@@ -412,7 +404,6 @@ const CONTENT = {
     title: "مرحبًا، أنا Shimpz.",
     lead: "أنفّذ العمل لتتمكن من التركيز على ما يهم.",
     meetAssistants: "تعرّف إلى Assistants الخاصة بي",
-    watchMeWork: "شاهد كيف أطلب قرارك",
     taskPlaceholder: "اكتب مهمتك الأولى وشاهد ما يمكنني فعله.",
     taskLabel: "مهمتك الأولى",
     taskSubmit: "ابدأ",
