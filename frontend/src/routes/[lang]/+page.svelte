@@ -79,9 +79,9 @@
     />
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
   </form>
-  <ul class="hero-differentials" data-slot="homepage-differentials">
-    <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)} ↗</a></li>
-    <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)} ↗</a></li>
+  <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
+    <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
+    <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
   </ul>
   <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
 {/snippet}
