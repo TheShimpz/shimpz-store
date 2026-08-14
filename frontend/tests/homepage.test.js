@@ -14,8 +14,11 @@ import { tr } from "../src/lib/i18n.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
-  assert.equal(content.title, "Give me a goal and my assistants do the work on your computer");
-  assert.equal(content.lead, "No agents. No code. Just a team. Assistants that already work — with the LLM you choose.");
+  assert.equal(content.title, "Hi, I'm Shimpz.");
+  assert.equal(content.lead, "I execute the work so you can focus on what matters.");
+  assert.equal(content.taskPlaceholder, "Type your first task and see what I can do.");
+  assert.equal(content.taskLabel, "Your first task");
+  assert.equal(content.taskSubmit, "Start");
   assert.equal(content.watchMeWork, "See how I ask");
   assert.deepEqual(content.humanRequests, {
     heading: "I ask before I act.",
@@ -59,6 +62,10 @@ test("provides a complete native homepage narrative for every supported locale",
       content.lead,
       content.meetAssistants,
       content.watchMeWork,
+      content.taskPlaceholder,
+      content.taskLabel,
+      content.taskSubmit,
+      content.taskStorageError,
       content.humanRequests.heading,
       content.humanRequests.body,
       content.humanRequests.sdkSummary,
@@ -96,6 +103,7 @@ test("provides a complete native homepage narrative for every supported locale",
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
+      assert.notEqual(content.taskPlaceholder, english.taskPlaceholder, `${locale} localizes the task prompt`);
       assert.notEqual(content.humanRequests.body, english.humanRequests.body, `${locale} localizes the Action request narrative`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);

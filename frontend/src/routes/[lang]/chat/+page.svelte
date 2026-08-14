@@ -21,6 +21,7 @@
     serializeActionAssuranceCredential,
   } from "$lib/actionAssurance.js";
   import { tr } from "$lib/i18n";
+  import { takePendingTask } from "$lib/pendingTask.js";
   import {
     MODEL_PROVIDERS,
     defaultModelFor,
@@ -424,7 +425,9 @@
 
   async function changeTeam(next: string, updateUrl = true) {
     if (inferenceBusy || !teams.some((team) => team.team_id === next) || next === selected) return;
+    const preservedDraft = draft;
     resetTeamSession();
+    draft = preservedDraft;
     selected = next;
     if (updateUrl) {
       await goto(u.chat(lang, next), { keepFocus: true, noScroll: true });
@@ -504,6 +507,13 @@
         : teams[0].team_id;
     if (requested !== selected) history.replaceState(history.state, "", u.chat(lang, selected));
     await loadTeamContext();
+    if (!draft) {
+      try {
+        draft = takePendingTask(sessionStorage);
+      } catch {
+        // Chat remains available when browser storage becomes unavailable after navigation.
+      }
+    }
     phase = "ready";
   }
 

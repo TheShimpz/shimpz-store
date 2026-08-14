@@ -1,16 +1,21 @@
 <script lang="ts">
   import {
     ActionLink,
+    Button,
     EditorialHero,
     EditorialSection,
     ShimpzBrand,
+    TextField,
   } from "@shimpz/frontend";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
   import type { Locale } from "$lib/catalog";
   import ApprovalRequestsShowcase from "$lib/components/ApprovalRequestsShowcase.svelte";
   import HomepageCatalog from "$lib/components/HomepageCatalog.svelte";
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { homepage } from "$lib/homepage";
+  import { MAX_PENDING_TASK_CHARS, savePendingTask } from "$lib/pendingTask.js";
   import { u } from "$lib/url";
 
   let { data } = $props();
@@ -19,6 +24,25 @@
 
   const userIcons: HudIconName[] = ["check", "team", "local"];
   const developerIcons: HudIconName[] = ["check", "session", "shield"];
+  let firstTask = $state("");
+  let taskError = $state("");
+  let taskReady = $state(false);
+
+  onMount(() => {
+    taskReady = true;
+  });
+
+  function startFirstTask(event: SubmitEvent) {
+    event.preventDefault();
+    taskError = "";
+    try {
+      if (!savePendingTask(sessionStorage, firstTask)) return;
+    } catch {
+      taskError = content.taskStorageError;
+      return;
+    }
+    void goto(u.chat(lang));
+  }
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -30,8 +54,25 @@
 {/snippet}
 
 {#snippet heroActions()}
-  <ActionLink href={u.assistants(lang)} variant="primary">{content.meetAssistants} →</ActionLink>
-  <ActionLink href="#demo" variant="ghost">{content.watchMeWork} →</ActionLink>
+  <form class="hero-task" onsubmit={startFirstTask}>
+    <TextField
+      id="homepage-first-task"
+      class="hero-task-field"
+      label={content.taskLabel}
+      visuallyHiddenLabel
+      placeholder={content.taskPlaceholder}
+      maxlength={MAX_PENDING_TASK_CHARS}
+      autocomplete="off"
+      disabled={!taskReady}
+      error={taskError || undefined}
+      bind:value={firstTask}
+    />
+    <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
+  </form>
+  <div class="hero-links">
+    <ActionLink href={u.assistants(lang)} variant="primary">{content.meetAssistants} →</ActionLink>
+    <ActionLink href="#demo" variant="ghost">{content.watchMeWork} →</ActionLink>
+  </div>
 {/snippet}
 
 {#snippet usersAction()}
@@ -111,7 +152,9 @@
 
 <style>
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
-  .hero-space { padding-block: clamp(4rem, 8vw, 7rem); }
+  .hero-space {
+    padding-block: clamp(4.5rem, 9vw, 8rem);
+  }
   :global(.homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 4.2vw, 4rem);
     --homepage-hero-column-gap: clamp(var(--shimpz-space-8), 6vw, var(--shimpz-space-16));
@@ -132,6 +175,18 @@
     width: calc((100% - var(--homepage-hero-column-gap)) / 2);
     min-width: 0;
     transform: translateY(-50%);
+  }
+  .hero-task {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+    gap: var(--shimpz-space-3);
+    align-items: start;
+  }
+  .hero-links { display: flex; flex-wrap: wrap; gap: var(--shimpz-space-3); }
+  .hero-task :global(.shimpz-field input::placeholder) {
+    color: var(--shimpz-color-text-muted);
+    opacity: 1;
   }
   .surface-band { border-block: 1px solid var(--color-border); background: var(--color-surface); }
   .section-space { padding-block: clamp(5rem, 10vw, 9rem); }
@@ -182,6 +237,8 @@
       width: min(70vw, 16rem);
       height: min(70vw, 16rem);
     }
+    .hero-task { grid-template-columns: 1fr; }
+    .hero-task :global(.shimpz-button) { width: 100%; }
     .feature-list { grid-template-columns: 1fr; }
     .feature-list li { min-height: auto; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .feature-list li:last-child { border-block-end: 0; }

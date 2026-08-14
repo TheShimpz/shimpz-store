@@ -23,6 +23,10 @@ export type HomepageContent = {
   lead: string;
   meetAssistants: string;
   watchMeWork: string;
+  taskPlaceholder: string;
+  taskLabel: string;
+  taskSubmit: string;
+  taskStorageError: string;
   humanRequests: HomepageHumanRequests;
   usersHeading: string;
   usersBody: string;
@@ -46,12 +50,16 @@ export type HomepageContent = {
 
 const CONTENT = {
   en: {
-    seoTitle: "Give me a goal and my assistants do the work on your computer · Shimpz",
-    seoDescription: "Give me a goal and I orchestrate reviewed assistants on your computer, with the LLM you choose.",
-    title: "Give me a goal and my assistants do the work on your computer",
-    lead: "No agents. No code. Just a team. Assistants that already work — with the LLM you choose.",
+    seoTitle: "Shimpz · Reviewed assistants that work on your computer",
+    seoDescription: "Shimpz coordinates reviewed assistants on your computer, with the LLM you choose, so you can focus on what matters.",
+    title: "Hi, I'm Shimpz.",
+    lead: "I execute the work so you can focus on what matters.",
     meetAssistants: "Meet my assistants",
     watchMeWork: "See how I ask",
+    taskPlaceholder: "Type your first task and see what I can do.",
+    taskLabel: "Your first task",
+    taskSubmit: "Start",
+    taskStorageError: "I couldn't keep this task in your browser. Try again.",
     humanRequests: {
       heading: "I ask before I act.",
       body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant and Action.",
@@ -93,12 +101,16 @@ const CONTENT = {
     developersCta: "Read the spec",
   },
   pt: {
-    seoTitle: "Dê-me um objetivo e meus assistentes fazem o trabalho no seu computador · Shimpz",
-    seoDescription: "Dê-me um objetivo e eu orquestro assistentes revisados no seu computador, com a LLM que você escolher.",
-    title: "Dê-me um objetivo e meus assistentes fazem o trabalho no seu computador",
-    lead: "Sem agents. Sem código. Só um time. Assistentes que já funcionam — com a LLM que você escolher.",
+    seoTitle: "Shimpz · Assistentes revisados que trabalham no seu computador",
+    seoDescription: "O Shimpz coordena assistentes revisados no seu computador, com a LLM que você escolher, para que você se concentre no que importa.",
+    title: "Olá, eu sou o Shimpz.",
+    lead: "Eu executo o trabalho para que você possa se concentrar no que importa.",
     meetAssistants: "Conheça meus assistentes",
     watchMeWork: "Veja como eu pergunto",
+    taskPlaceholder: "Digite sua primeira tarefa e veja o que eu posso fazer.",
+    taskLabel: "Sua primeira tarefa",
+    taskSubmit: "Começar",
+    taskStorageError: "Não consegui manter esta tarefa no seu navegador. Tente novamente.",
     humanRequests: {
       heading: "Eu pergunto antes de agir.",
       body: "Quando um Assistente precisa da sua decisão, de um valor ausente ou de uma nova autenticação, eu pauso a Action e pergunto diretamente a você. Cada solicitação fica vinculada àquele Assistente e àquela Action exatos.",
@@ -140,12 +152,16 @@ const CONTENT = {
     developersCta: "Leia a spec",
   },
   es: {
-    seoTitle: "Dame un objetivo y mis asistentes hacen el trabajo en tu ordenador · Shimpz",
-    seoDescription: "Dame un objetivo y orquesto asistentes revisados en tu ordenador, con el LLM que elijas.",
-    title: "Dame un objetivo y mis asistentes hacen el trabajo en tu ordenador",
-    lead: "Sin agentes. Sin código. Solo un team. Asistentes que ya funcionan — con el LLM que elijas.",
+    seoTitle: "Shimpz · Asistentes revisados que trabajan en tu ordenador",
+    seoDescription: "Shimpz coordina asistentes revisados en tu ordenador, con el LLM que elijas, para que te centres en lo que importa.",
+    title: "Hola, soy Shimpz.",
+    lead: "Ejecuto el trabajo para que puedas centrarte en lo que importa.",
     meetAssistants: "Conoce a mis asistentes",
     watchMeWork: "Mira cómo pregunto",
+    taskPlaceholder: "Escribe tu primera tarea y descubre lo que puedo hacer.",
+    taskLabel: "Tu primera tarea",
+    taskSubmit: "Empezar",
+    taskStorageError: "No pude guardar esta tarea en tu navegador. Inténtalo de nuevo.",
     humanRequests: {
       heading: "Pregunto antes de actuar.",
       body: "Cuando un Assistant necesita tu decisión, un dato que falta o una autenticación reciente, pauso su Action y te pregunto directamente. Cada solicitud queda vinculada a ese Assistant y esa Action exactos.",
@@ -187,12 +203,16 @@ const CONTENT = {
     developersCta: "Lee la spec",
   },
   fr: {
-    seoTitle: "Donnez-moi un objectif et mes assistants font le travail sur votre ordinateur · Shimpz",
-    seoDescription: "Donnez-moi un objectif et j’orchestre des assistants vérifiés sur votre ordinateur, avec le LLM de votre choix.",
-    title: "Donnez-moi un objectif et mes assistants font le travail sur votre ordinateur",
-    lead: "Pas d’agents. Pas de code. Juste une team. Des assistants déjà opérationnels — avec le LLM de votre choix.",
+    seoTitle: "Shimpz · Des assistants vérifiés qui travaillent sur votre ordinateur",
+    seoDescription: "Shimpz coordonne des assistants vérifiés sur votre ordinateur, avec le LLM de votre choix, pour vous laisser vous concentrer sur l’essentiel.",
+    title: "Bonjour, je suis Shimpz.",
+    lead: "J’exécute le travail pour que vous puissiez vous concentrer sur l’essentiel.",
     meetAssistants: "Découvrez mes assistants",
     watchMeWork: "Voyez comment je demande",
+    taskPlaceholder: "Saisissez votre première tâche et découvrez ce que je peux faire.",
+    taskLabel: "Votre première tâche",
+    taskSubmit: "Commencer",
+    taskStorageError: "Je n’ai pas pu conserver cette tâche dans votre navigateur. Réessayez.",
     humanRequests: {
       heading: "Je demande avant d’agir.",
       body: "Lorsqu’un Assistant a besoin de votre décision, d’une valeur manquante ou d’une authentification récente, je mets son Action en pause et je vous interroge directement. Chaque demande est liée à cet Assistant et à cette Action précis.",
@@ -234,12 +254,16 @@ const CONTENT = {
     developersCta: "Lire la spec",
   },
   de: {
-    seoTitle: "Gib mir ein Ziel und meine Assistants erledigen die Arbeit auf deinem Computer · Shimpz",
-    seoDescription: "Gib mir ein Ziel und ich orchestriere geprüfte Assistants auf deinem Computer, mit dem LLM deiner Wahl.",
-    title: "Gib mir ein Ziel und meine Assistants erledigen die Arbeit auf deinem Computer",
-    lead: "Keine Agents. Kein Code. Nur ein Team. Assistants, die bereits funktionieren — mit dem LLM deiner Wahl.",
+    seoTitle: "Shimpz · Geprüfte Assistants, die auf deinem Computer arbeiten",
+    seoDescription: "Shimpz koordiniert geprüfte Assistants auf deinem Computer mit dem LLM deiner Wahl, damit du dich auf das Wesentliche konzentrieren kannst.",
+    title: "Hi, ich bin Shimpz.",
+    lead: "Ich führe die Arbeit aus, damit du dich auf das Wesentliche konzentrieren kannst.",
     meetAssistants: "Lerne meine Assistants kennen",
     watchMeWork: "Sieh, wie ich nachfrage",
+    taskPlaceholder: "Gib deine erste Aufgabe ein und sieh, was ich tun kann.",
+    taskLabel: "Deine erste Aufgabe",
+    taskSubmit: "Starten",
+    taskStorageError: "Ich konnte diese Aufgabe nicht in deinem Browser speichern. Versuche es erneut.",
     humanRequests: {
       heading: "Ich frage, bevor ich handle.",
       body: "Wenn ein Assistant deine Entscheidung, einen fehlenden Wert oder eine frische Authentifizierung benötigt, pausiere ich seine Action und frage dich direkt. Jede Anfrage ist an genau diesen Assistant und diese Action gebunden.",
@@ -281,12 +305,16 @@ const CONTENT = {
     developersCta: "Spec lesen",
   },
   zh: {
-    seoTitle: "给我一个目标，我的 Assistant 就会在你的电脑上完成工作 · Shimpz",
-    seoDescription: "给我一个目标，我会在你的电脑上编排经过审核的 Assistant，并使用你选择的 LLM。",
-    title: "给我一个目标，我的 Assistant 就会在你的电脑上完成工作",
-    lead: "无需 Agent。无需代码。只需一个 Team。开箱即用的 Assistant — 搭配你选择的 LLM。",
+    seoTitle: "Shimpz · 在你的电脑上工作的审核版 Assistant",
+    seoDescription: "Shimpz 使用你选择的 LLM，在你的电脑上协调经过审核的 Assistant，让你专注于真正重要的事。",
+    title: "你好，我是 Shimpz。",
+    lead: "我来执行工作，让你专注于真正重要的事。",
     meetAssistants: "认识我的 Assistant",
     watchMeWork: "看看我如何询问",
+    taskPlaceholder: "输入你的第一个任务，看看我能做什么。",
+    taskLabel: "你的第一个任务",
+    taskSubmit: "开始",
+    taskStorageError: "我无法在你的浏览器中保存此任务。请重试。",
     humanRequests: {
       heading: "行动之前，我会先询问你。",
       body: "当 Assistant 需要你的决定、缺失的值或新的身份验证时，我会暂停它的 Action 并直接询问你。每个请求都与确切的 Assistant 和 Action 绑定。",
@@ -328,12 +356,16 @@ const CONTENT = {
     developersCta: "阅读 Spec",
   },
   ja: {
-    seoTitle: "目標を教えてくれれば、私の Assistant があなたのコンピューターで作業します · Shimpz",
-    seoDescription: "目標を教えてください。選んだ LLM を使い、レビュー済みの Assistant をあなたのコンピューター上で編成します。",
-    title: "目標を教えてくれれば、私の Assistant があなたのコンピューターで作業します",
-    lead: "Agent もコードも不要。必要なのは Team だけ。選んだ LLM で、すでに動く Assistant を使えます。",
+    seoTitle: "Shimpz · あなたのコンピューターで働くレビュー済み Assistant",
+    seoDescription: "Shimpz は選んだ LLM を使ってレビュー済みの Assistant をあなたのコンピューター上で連携させ、大切なことに集中できるようにします。",
+    title: "こんにちは、Shimpzです。",
+    lead: "大切なことに集中できるよう、私が作業を実行します。",
     meetAssistants: "私の Assistant を見る",
     watchMeWork: "私の確認方法を見る",
+    taskPlaceholder: "最初のタスクを入力して、私にできることを試してください。",
+    taskLabel: "最初のタスク",
+    taskSubmit: "始める",
+    taskStorageError: "このタスクをブラウザーに保持できませんでした。もう一度お試しください。",
     humanRequests: {
       heading: "行動する前に、私はあなたに確認します。",
       body: "Assistant があなたの判断、不足している値、または新しい認証を必要とするとき、私はその Action を一時停止して直接確認します。各リクエストは、正確な Assistant と Action に結び付けられます。",
@@ -375,12 +407,16 @@ const CONTENT = {
     developersCta: "Spec を読む",
   },
   ar: {
-    seoTitle: "أعطني هدفًا وستنجز Assistants الخاصة بي العمل على حاسوبك · Shimpz",
-    seoDescription: "أعطني هدفًا وسأنسّق Assistants خضعت للمراجعة على حاسوبك، باستخدام LLM الذي تختاره.",
-    title: "أعطني هدفًا وستنجز Assistants الخاصة بي العمل على حاسوبك",
-    lead: "لا Agents. لا كود. فقط Team. Assistants تعمل بالفعل — مع LLM الذي تختاره.",
+    seoTitle: "Shimpz · Assistants خضعت للمراجعة وتعمل على حاسوبك",
+    seoDescription: "ينسّق Shimpz Assistants خضعت للمراجعة على حاسوبك باستخدام LLM الذي تختاره، لتتمكن من التركيز على ما يهم.",
+    title: "مرحبًا، أنا Shimpz.",
+    lead: "أنفّذ العمل لتتمكن من التركيز على ما يهم.",
     meetAssistants: "تعرّف إلى Assistants الخاصة بي",
     watchMeWork: "شاهد كيف أطلب قرارك",
+    taskPlaceholder: "اكتب مهمتك الأولى وشاهد ما يمكنني فعله.",
+    taskLabel: "مهمتك الأولى",
+    taskSubmit: "ابدأ",
+    taskStorageError: "تعذر الاحتفاظ بهذه المهمة في متصفحك. حاول مرة أخرى.",
     humanRequests: {
       heading: "أسألك قبل أن أتصرف.",
       body: "عندما تحتاج Assistant إلى قرارك أو قيمة ناقصة أو مصادقة حديثة، أوقف Action الخاصة بها مؤقتًا وأسألك مباشرة. يرتبط كل طلب بتلك Assistant وAction المحددتين بدقة.",
