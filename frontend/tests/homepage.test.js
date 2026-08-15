@@ -15,7 +15,7 @@ import { tr } from "../src/lib/i18n.ts";
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
   assert.equal(content.intro, "Hello, I'm Shimpz!");
-  assert.equal(content.title, "I execute the work so you can focus on what matters.");
+  assert.equal(content.title, "I do the work so you can focus on what matters.");
   assert.equal(content.lead, "Type your first task below and see what I can do:");
   assert.equal(content.taskPlaceholder, "Describe the result you need...");
   assert.deepEqual(content.taskExamples, [

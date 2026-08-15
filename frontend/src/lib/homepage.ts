@@ -44,7 +44,7 @@ const CONTENT = {
     seoTitle: "Shimpz · Reviewed assistants that work on your computer",
     seoDescription: "Shimpz coordinates reviewed assistants on your computer, with the LLM you choose, so you can focus on what matters.",
     intro: "Hello, I'm Shimpz!",
-    title: "I execute the work so you can focus on what matters.",
+    title: "I do the work so you can focus on what matters.",
     lead: "Type your first task below and see what I can do:",
     meetAssistants: "Meet my assistants",
     taskPlaceholder: "Describe the result you need...",
