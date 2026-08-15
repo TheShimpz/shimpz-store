@@ -11,6 +11,7 @@
   import { onMount, tick } from "svelte";
   import type { Locale } from "$lib/catalog";
   import HomepageCatalog from "$lib/components/HomepageCatalog.svelte";
+  import HomepageMeshBackground from "$lib/components/HomepageMeshBackground.svelte";
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
@@ -230,77 +231,84 @@
   </ActionLink>
 {/snippet}
 
-<div class="editorial-wrap hero-space">
-  <EditorialHero
-    class="homepage-hero"
-    kicker={content.intro}
-    title={content.title}
-    lead={content.lead}
-    titleId="hero-title"
-    media={heroMedia}
-    actions={heroActions}
-  />
-</div>
+<div class="homepage-shell">
+  <HomepageMeshBackground />
+  <div class="homepage-content" data-slot="homepage-content">
+    <div class="editorial-wrap hero-space">
+      <EditorialHero
+        class="homepage-hero"
+        kicker={content.intro}
+        title={content.title}
+        lead={content.lead}
+        titleId="hero-title"
+        media={heroMedia}
+        actions={heroActions}
+      />
+    </div>
 
-<div class="surface-band evidence-band" data-slot="homepage-evidence-band">
-  <div class="editorial-wrap evidence-section">
-    <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-      <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
-      <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
-    </ul>
-    <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+    <div class="surface-band evidence-band" data-slot="homepage-evidence-band">
+      <div class="editorial-wrap evidence-section">
+        <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
+          <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
+          <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
+        </ul>
+        <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+      </div>
+    </div>
+
+    <div class="editorial-wrap section-space">
+      <EditorialSection
+        title={content.usersHeading}
+        lead={content.usersBody}
+        titleId="users-title"
+        actions={usersAction}
+      >
+        <ol class="feature-list user-features" data-slot="homepage-user-features">
+          {#each content.userFeatures as feature, index (feature.title)}
+            <li>
+              <div class="feature-mark">
+                <span>0{index + 1}</span>
+                <HudIcon name={userIcons[index]} size={26} />
+              </div>
+              <div><h3>{feature.title}</h3><p>{feature.body}</p></div>
+            </li>
+          {/each}
+        </ol>
+      </EditorialSection>
+    </div>
+
+    <div class="surface-band">
+      <div class="editorial-wrap">
+        <HomepageCatalog {content} catalogHref={u.assistants(lang)} />
+      </div>
+    </div>
+
+    <div class="editorial-wrap section-space">
+      <EditorialSection
+        title={content.developersHeading}
+        lead={content.developersBody}
+        titleId="developers-title"
+        actions={developersAction}
+      >
+        <ol class="feature-list developer-features" data-slot="homepage-developer-features">
+          {#each content.developerFeatures as feature, index (feature.title)}
+            <li>
+              <div class="feature-mark">
+                <span>0{index + 1}</span>
+                <HudIcon name={developerIcons[index]} size={26} />
+              </div>
+              <div><h3>{feature.title}</h3><p>{feature.body}</p></div>
+            </li>
+          {/each}
+        </ol>
+      </EditorialSection>
+    </div>
   </div>
-</div>
-
-<div class="editorial-wrap section-space">
-  <EditorialSection
-    title={content.usersHeading}
-    lead={content.usersBody}
-    titleId="users-title"
-    actions={usersAction}
-  >
-    <ol class="feature-list user-features" data-slot="homepage-user-features">
-      {#each content.userFeatures as feature, index (feature.title)}
-        <li>
-          <div class="feature-mark">
-            <span>0{index + 1}</span>
-            <HudIcon name={userIcons[index]} size={26} />
-          </div>
-          <div><h3>{feature.title}</h3><p>{feature.body}</p></div>
-        </li>
-      {/each}
-    </ol>
-  </EditorialSection>
-</div>
-
-<div class="surface-band">
-  <div class="editorial-wrap">
-    <HomepageCatalog {content} catalogHref={u.assistants(lang)} />
-  </div>
-</div>
-
-<div class="editorial-wrap section-space">
-  <EditorialSection
-    title={content.developersHeading}
-    lead={content.developersBody}
-    titleId="developers-title"
-    actions={developersAction}
-  >
-    <ol class="feature-list developer-features" data-slot="homepage-developer-features">
-      {#each content.developerFeatures as feature, index (feature.title)}
-        <li>
-          <div class="feature-mark">
-            <span>0{index + 1}</span>
-            <HudIcon name={developerIcons[index]} size={26} />
-          </div>
-          <div><h3>{feature.title}</h3><p>{feature.body}</p></div>
-        </li>
-      {/each}
-    </ol>
-  </EditorialSection>
 </div>
 
 <style>
+  .homepage-shell { position: relative; isolation: isolate; }
+  .homepage-content { position: relative; z-index: 1; }
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
   .hero-space {
     padding-block: clamp(2.75rem, 5vw, 4.5rem);

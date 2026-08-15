@@ -38,5 +38,6 @@
 />
 
 <style>
+  :global([data-slot="site-footer"]) { position: relative; z-index: 1; }
   i { width: .42rem; height: .42rem; background: var(--color-green); border-radius: 50%; box-shadow: 0 0 8px rgba(5,255,161,.55); }
 </style>
