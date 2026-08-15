@@ -19,20 +19,6 @@
 <div class="homepage-shell">
   <HomepageMeshBackground />
   <div class="homepage-content" data-slot="homepage-content">
-    <div class="evidence-band" data-slot="homepage-evidence-band">
-      <div class="editorial-wrap evidence-section">
-        <div class="evidence-install-row">
-          <div class="evidence-install-content">
-            <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-              <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
-              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_secure", lang)}</a></li>
-            </ul>
-            <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="editorial-wrap hero-space">
       <section data-slot="editorial-hero" class="homepage-hero">
         <header>
@@ -54,6 +40,20 @@
         </div>
       </section>
     </div>
+
+    <div class="evidence-band" data-slot="homepage-evidence-band">
+      <div class="editorial-wrap evidence-section">
+        <div class="evidence-install-row">
+          <div class="evidence-install-content">
+            <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
+              <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
+              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_secure", lang)}</a></li>
+            </ul>
+            <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -62,7 +62,7 @@
   .homepage-content { position: relative; z-index: 1; }
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
   .hero-space {
-    padding-block: clamp(1rem, 2vw, 1.5rem) clamp(2.5rem, 5vw, 4.5rem);
+    padding-block: clamp(1rem, 2vw, 1.5rem);
   }
   .homepage-hero {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
@@ -106,7 +106,7 @@
   .copy { min-width: 0; }
   .actions { display: flex; justify-content: center; }
   .evidence-section {
-    padding-block: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 2vw, 1.5rem);
+    padding-block: clamp(1rem, 2vw, 1.5rem);
   }
   .evidence-install-row {
     display: grid;
