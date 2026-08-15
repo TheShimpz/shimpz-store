@@ -113,6 +113,7 @@
     transform: scale(2);
     animation: symbol-glitch 4.8s 210ms infinite steps(1, end);
   }
+  :global([data-slot="site-header"] [data-slot="shimpz-brand-wordmark"]) { font-size: 1.84rem; }
   @keyframes symbol-glitch {
     0%, 86%, 91%, 100% { transform: translate(0) scale(2); filter: none; }
     87% { transform: translate(-2px, 1px) scale(2); filter: drop-shadow(2px 0 var(--color-pink)); }

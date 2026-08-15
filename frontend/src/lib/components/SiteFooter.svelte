@@ -41,4 +41,5 @@
     margin-inline: 2.25rem;
     transform: scale(3);
   }
+  :global([data-slot="site-footer"] [data-slot="shimpz-brand-wordmark"]) { display: none; }
 </style>
