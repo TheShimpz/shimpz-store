@@ -6,7 +6,7 @@
   let canvas: HTMLCanvasElement;
   let renderState: RenderState = $state("initializing");
 
-  const frameIntervalMs = 500;
+  const timeFactor = 0.25;
 
   const vertexShaderSource = `#version 300 es
 precision mediump float;
@@ -91,7 +91,7 @@ void main() {
   uv.x *= uResolution.x / uResolution.y;
   uv *= 0.72;
 
-  float time = uTime * 0.08;
+  float time = uTime * ${timeFactor};
   float waveAmplitude = 0.12 + 0.035 * noise2D(vec2(time, 17.3));
   uv += vec2(
     waveAmplitude * sin(uv.y * 2.8 + time),
@@ -204,7 +204,6 @@ void main() {
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const startTime = performance.now();
     let animationFrame = 0;
-    let animationTimer = 0;
     let contextLost = false;
 
     const resize = () => {
@@ -228,19 +227,14 @@ void main() {
 
     const stop = () => {
       if (animationFrame) cancelAnimationFrame(animationFrame);
-      if (animationTimer) clearTimeout(animationTimer);
       animationFrame = 0;
-      animationTimer = 0;
     };
 
     const animate = (timestamp: number) => {
       animationFrame = 0;
       if (contextLost || motionPreference.matches || document.hidden) return;
       draw(timestamp);
-      animationTimer = window.setTimeout(() => {
-        animationTimer = 0;
-        animationFrame = requestAnimationFrame(animate);
-      }, frameIntervalMs);
+      animationFrame = requestAnimationFrame(animate);
     };
 
     const syncAnimation = () => {
@@ -256,12 +250,7 @@ void main() {
         return;
       }
       renderState = "running";
-      const timestamp = performance.now();
-      draw(timestamp);
-      animationTimer = window.setTimeout(() => {
-        animationTimer = 0;
-        animationFrame = requestAnimationFrame(animate);
-      }, frameIntervalMs);
+      animate(performance.now());
     };
 
     const handleResize = () => {
