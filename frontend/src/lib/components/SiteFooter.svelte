@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ShimpzBrand } from "@shimpz/frontend";
+  import { SiteFooter as PublicSiteFooter } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
@@ -7,47 +7,42 @@
   let { lang }: { lang: Locale } = $props();
 </script>
 
-<footer data-slot="site-footer" class="site-footer">
-  <div data-slot="site-footer-inner" class="inner">
-    <div data-slot="site-footer-monument" class="monument" dir="ltr" aria-hidden="true">
-      {#each [..."SHIMPZ"] as letter}<span>{letter}</span>{/each}
-    </div>
-    <div class="mark">
-      <ShimpzBrand variant="symbol" href={u.home(lang)} ariaLabel={tr("brand_home", lang)} />
-    </div>
+{#snippet links()}
+  <div data-slot="site-footer-group">
+    <p data-slot="site-footer-group-title">{tr("footer_group_project", lang)}</p>
+    <a href={u.openSource(lang)}>{tr("nav_open_source", lang)}</a>
+    <a href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} ↗</a>
+    <a href="https://github.com/TheShimpz" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
   </div>
-</footer>
+  <div data-slot="site-footer-group">
+    <p data-slot="site-footer-group-title">{tr("footer_group_company", lang)}</p>
+    <a href={u.about(lang)}>{tr("nav_about", lang)}</a>
+    <a href="/privacy">{tr("privacy", lang)}</a>
+    <a href="/terms">{tr("terms", lang)}</a>
+  </div>
+{/snippet}
+
+{#snippet meta()}
+  <i aria-hidden="true"></i>
+  <span>{tr("footer_meta", lang)}</span>
+{/snippet}
+
+<PublicSiteFooter
+  brandHref={u.home(lang)}
+  brandAriaLabel={tr("brand_home", lang)}
+  linksLabel={tr("footer_links", lang)}
+  statement={tr("footer", lang)}
+  contentWidth="editorial"
+  {links}
+  {meta}
+/>
 
 <style>
-  .site-footer {
+  :global([data-slot="site-footer"].shimpz-site-footer) {
     position: relative;
     z-index: 1;
-    margin-block-start: clamp(5rem, 10vw, 8rem);
     background: transparent;
   }
-  .inner {
-    width: min(calc(100% - 2rem), var(--shimpz-editorial-width));
-    min-height: clamp(24rem, 44vw, 36rem);
-    padding-block: clamp(3rem, 7vw, 6rem) 2rem;
-    margin-inline: auto;
-  }
-  .monument {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    color: var(--color-fg);
-    font: 760 clamp(4rem, 18cqi, 15rem)/0.78 var(--font-sans);
-    letter-spacing: -0.08em;
-    opacity: 0.3;
-  }
-  .mark {
-    display: flex;
-    justify-content: center;
-    margin-block-start: clamp(4rem, 8vw, 7rem);
-  }
-  .mark :global([data-slot="shimpz-brand-mark"]) {
-    width: 9rem;
-    height: 9rem;
-  }
+  :global([data-slot="site-footer-monument"]) { opacity: 0.3; }
+  i { width: .42rem; height: .42rem; background: var(--color-green); border-radius: 50%; box-shadow: 0 0 8px rgba(5,255,161,.55); }
 </style>
