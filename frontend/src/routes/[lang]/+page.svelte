@@ -140,8 +140,7 @@
   .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
   .evidence-band { background: transparent; }
-  :global(body:has(.homepage-shell) button),
-  :global(body:has(.homepage-shell) .shimpz-action-link) {
+  :global(body:has(.homepage-shell) .homepage-glitch-target) {
     animation: button-glitch 4.8s 140ms infinite steps(1, end);
   }
   @media (max-width: 900px) {
@@ -174,8 +173,7 @@
   @media (prefers-reduced-motion: reduce) {
     .glitch-title::before,
     .glitch-title::after,
-    :global(body:has(.homepage-shell) button),
-    :global(body:has(.homepage-shell) .shimpz-action-link) { animation: none; }
+    :global(body:has(.homepage-shell) .homepage-glitch-target) { animation: none; }
   }
   @media (forced-colors: active) {
     h1,

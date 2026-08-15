@@ -80,7 +80,7 @@
 {/snippet}
 
 {#snippet actions()}
-  <ActionLink href={u.install(lang)} variant="primary" size="compact">{tr("nav_install", lang)}</ActionLink>
+  <ActionLink class="homepage-glitch-target" href={u.install(lang)} variant="primary" size="compact">{tr("nav_install", lang)}</ActionLink>
   <AccountMenu {lang} />
   <div class="language-switch" data-sveltekit-noscroll onclickcapture={rememberLanguageScroll}>
     <DropdownMenu
@@ -109,5 +109,15 @@
   :global([data-slot="site-header"] [data-slot="shimpz-brand-mark"]) {
     margin-inline: 1.125rem;
     transform: scale(2);
+    animation: symbol-glitch 4.8s 210ms infinite steps(1, end);
+  }
+  @keyframes symbol-glitch {
+    0%, 86%, 91%, 100% { transform: translate(0) scale(2); filter: none; }
+    87% { transform: translate(-2px, 1px) scale(2); filter: drop-shadow(2px 0 var(--color-pink)); }
+    88% { transform: translate(2px, -1px) scale(2); filter: drop-shadow(-2px 0 var(--color-cyan)); }
+    89% { transform: translate(-1px, 0) scale(2); filter: drop-shadow(1px 0 var(--color-pink)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global([data-slot="site-header"] [data-slot="shimpz-brand-mark"]) { animation: none; }
   }
 </style>

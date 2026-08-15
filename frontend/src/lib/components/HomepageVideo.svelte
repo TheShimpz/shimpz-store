@@ -19,7 +19,7 @@
         aria-hidden="true"
       />
       <div class="scanlines" aria-hidden="true"></div>
-      <button type="button" aria-label="Play example video" onclick={() => playing = true}>
+      <button class="homepage-glitch-target" type="button" aria-label="Play example video" onclick={() => playing = true}>
         <span class="play-icon" aria-hidden="true"></span>
         <span>PLAY // DEMO</span>
       </button>
