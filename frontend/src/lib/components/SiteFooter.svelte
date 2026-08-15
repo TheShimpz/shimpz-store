@@ -59,8 +59,9 @@
     :global([data-slot="site-footer"] nav) {
       display: grid;
       width: 100%;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: clamp(1rem, 6vw, 2rem);
+      grid-template-columns: max-content max-content;
+      justify-content: space-evenly;
+      gap: 0;
     }
 
     :global([data-slot="site-footer-group"]) {
