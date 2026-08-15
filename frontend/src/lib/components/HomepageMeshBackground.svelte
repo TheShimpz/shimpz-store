@@ -112,6 +112,7 @@ void main() {
   vec3 mutedCyan = vec3(0.0, 0.42, 0.54);
   vec3 color = mix(black, deepBlue, signal);
   color = mix(color, mutedCyan, smoothstep(0.62, 1.0, signal) * 0.45);
+  color *= 0.70;
 
   float alpha = smoothstep(0.10, 0.80, signal) * 0.66;
   outColor = vec4(color, alpha);
