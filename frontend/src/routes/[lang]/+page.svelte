@@ -101,7 +101,7 @@
   }
   .glitch-title::after {
     animation: glitch-pink 4.8s 70ms infinite steps(1, end);
-    text-shadow: 3px 0 var(--color-pink);
+    text-shadow: 3px 0 var(--color-magenta);
   }
   .body,
   .copy { min-width: 0; }
@@ -141,49 +141,6 @@
   .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
   .evidence-band { background: transparent; }
-  :global(body:has(.homepage-shell) .homepage-glitch-target) {
-    position: relative;
-    isolation: isolate;
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-target::before),
-  :global(body:has(.homepage-shell) .homepage-glitch-target::after) {
-    content: "";
-    position: absolute;
-    z-index: 2;
-    inset: -1px;
-    border: 1px solid currentColor;
-    opacity: 0;
-    pointer-events: none;
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-target::before) {
-    animation: glitch-cyan 4.8s 140ms infinite steps(1, end);
-    border-color: var(--color-cyan);
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-target::after) {
-    animation: glitch-pink 4.8s 210ms infinite steps(1, end);
-    border-color: var(--color-pink);
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-label) {
-    position: relative;
-    display: inline-block;
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-label::before),
-  :global(body:has(.homepage-shell) .homepage-glitch-label::after) {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-label::before) {
-    animation: glitch-cyan 4.8s 140ms infinite steps(1, end);
-    text-shadow: -2px 0 var(--color-cyan);
-  }
-  :global(body:has(.homepage-shell) .homepage-glitch-label::after) {
-    animation: glitch-pink 4.8s 210ms infinite steps(1, end);
-    text-shadow: 2px 0 var(--color-pink);
-  }
   @media (max-width: 900px) {
     .homepage-hero {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
@@ -207,11 +164,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .glitch-title::before,
-    .glitch-title::after,
-    :global(body:has(.homepage-shell) .homepage-glitch-target::before),
-    :global(body:has(.homepage-shell) .homepage-glitch-target::after),
-    :global(body:has(.homepage-shell) .homepage-glitch-label::before),
-    :global(body:has(.homepage-shell) .homepage-glitch-label::after) { animation: none; }
+    .glitch-title::after { animation: none; }
   }
   @media (forced-colors: active) {
     h1,

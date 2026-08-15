@@ -54,6 +54,7 @@
     bind:element={copyButton}
     class={['copy-button', copyState === "error" && "error"]}
     variant="secondary"
+    glitch
     type="button"
     onclick={copyCommand}
     aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}

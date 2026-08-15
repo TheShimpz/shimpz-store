@@ -21,9 +21,9 @@
         aria-hidden="true"
       />
       <div class="scanlines" aria-hidden="true"></div>
-      <Button class="video-button homepage-glitch-target" type="button" variant="secondary" aria-label="Play example video" onclick={() => playing = true}>
+      <Button class="video-button" type="button" variant="secondary" glitch aria-label="Play example video" onclick={() => playing = true}>
         <span class="play-icon" aria-hidden="true"></span>
-        <span class="homepage-glitch-label" data-text="PLAY // DEMO">PLAY // DEMO</span>
+        <span>PLAY // DEMO</span>
       </Button>
       <span class="video-label" aria-hidden="true">YOUTUBE // PLACEHOLDER</span>
     {/if}
@@ -34,7 +34,7 @@
   .video-frame {
     width: min(100%, 47rem);
     padding: 1px;
-    background: linear-gradient(120deg, var(--color-cyan), var(--color-pink));
+    background: linear-gradient(120deg, var(--color-cyan), var(--color-magenta));
     clip-path: polygon(0 0, calc(100% - 1.1rem) 0, 100% 1.1rem, 100% 100%, 1.1rem 100%, 0 calc(100% - 1.1rem));
   }
   .video-stage {
@@ -83,7 +83,7 @@
   }
   :global(.video-button:hover),
   :global(.video-button:focus-visible) {
-    border-color: var(--color-pink);
+    border-color: var(--color-magenta);
     color: var(--color-fg);
     box-shadow: 0 0 1.4rem rgb(0 229 255 / 0.22);
   }
