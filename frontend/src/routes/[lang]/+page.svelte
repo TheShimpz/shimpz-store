@@ -352,6 +352,12 @@
     white-space: nowrap;
   }
   .hero-task :global(.task-prompt-toggle:focus-visible) {
+    --button-bg: var(--shimpz-color-surface-raised);
+    position: fixed;
+    z-index: 10;
+    inset-block-start: auto;
+    inset-block-end: var(--shimpz-space-4);
+    inset-inline-end: var(--shimpz-space-4);
     inline-size: auto;
     block-size: auto;
     min-block-size: var(--shimpz-control-height-compact);
