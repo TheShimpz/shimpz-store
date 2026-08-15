@@ -87,7 +87,7 @@
 </section>
 
 <style>
-  .catalog { padding-block: clamp(5rem, 10vw, 9rem); }
+  .catalog { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
   h2 {
     max-width: var(--shimpz-type-section-measure);
     margin: 0;

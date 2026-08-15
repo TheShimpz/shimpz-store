@@ -303,7 +303,7 @@
 <style>
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
   .hero-space {
-    padding-block: clamp(5.5rem, 10vw, 9rem);
+    padding-block: clamp(2.75rem, 5vw, 4.5rem);
   }
   :global(section[data-slot="editorial-hero"].homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
@@ -380,7 +380,7 @@
     text-align: start;
     white-space: pre-wrap;
   }
-  .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(4rem, 8vw, 7rem); }
+  .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(2rem, 4vw, 3.5rem); }
   .hero-differentials {
     display: flex;
     flex-wrap: wrap;
@@ -412,7 +412,7 @@
     color: transparent;
   }
   .surface-band { border-block: 1px solid var(--color-border); background: var(--color-surface); }
-  .section-space { padding-block: clamp(5rem, 10vw, 9rem); }
+  .section-space { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
   .hero-brand {
     display: flex;
     align-items: center;
