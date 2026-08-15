@@ -44,6 +44,11 @@
   :global([data-slot="site-footer"] [data-slot="shimpz-brand-wordmark"]) { display: none; }
 
   @media (max-width: 620px) {
+    :global([data-slot="site-footer"] .utility) {
+      gap: 1rem;
+      margin-block-start: 1.5rem;
+    }
+
     :global([data-slot="site-footer"] .shimpz-brand) {
       width: 100%;
       min-height: 13.5rem;
@@ -61,6 +66,8 @@
     :global([data-slot="site-footer-group"]) {
       width: 100%;
       min-width: 0;
+      justify-items: end;
+      text-align: right;
     }
 
     :global([data-slot="site-footer-group-title"]) {
