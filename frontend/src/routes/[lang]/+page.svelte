@@ -11,7 +11,12 @@
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
   const content = $derived(homepage(lang));
-  const titleText = $derived(content.titleLines.join(lang === "zh" || lang === "ja" ? "" : " "));
+  const titleSeparator = $derived(lang === "zh" || lang === "ja" ? "" : " ");
+  const titleLines = $derived([
+    `${content.title.accent}${content.title.remainder ? `${titleSeparator}${content.title.remainder}` : ""}`,
+    content.title.secondLine,
+  ] as const);
+  const titleText = $derived(titleLines.join(titleSeparator));
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -22,13 +27,9 @@
     <div class="editorial-wrap hero-space">
       <section data-slot="editorial-hero" class="homepage-hero">
         <header>
-          <h1 id="hero-title" class="glitch-title" data-text={content.titleLines.join("\n")} aria-label={titleText}>
-            {#if lang === "en"}
-              <span class="headline-line"><span class="title-accent">I do the work</span> so you can{" "}</span>
-              <span class="headline-line">focus on what matters.</span>
-            {:else}
-              {#each content.titleLines as line, index}<span class="headline-line">{line}{index === 0 && lang !== "zh" && lang !== "ja" ? " " : ""}</span>{/each}
-            {/if}
+          <h1 id="hero-title" class="glitch-title" data-text={titleLines.join("\n")} aria-label={titleText}>
+            <span class="headline-line"><span class="title-accent">{content.title.accent}</span>{#if content.title.remainder}{titleSeparator}{content.title.remainder}{/if}</span>
+            <span class="headline-line">{content.title.secondLine}</span>
           </h1>
         </header>
         <div class="body">
@@ -148,7 +149,8 @@
     }
   }
   @media (max-width: 620px) {
-    .homepage-hero { --shimpz-type-display-size: clamp(1rem, 4.6vw, 1.65rem); }
+    .homepage-hero { --shimpz-type-display-size: clamp(2rem, 9.2vw, 3.3rem); }
+    .headline-line { white-space: normal; }
   }
   @keyframes glitch-cyan {
     0%, 86%, 91%, 100% { opacity: 0; transform: translate(0); clip-path: inset(0); }
