@@ -64,8 +64,8 @@
       gap: 0;
     }
 
-    :global([data-slot="site-footer-group"]) {
-      width: 100%;
+    :global([data-slot="site-footer"] nav [data-slot="site-footer-group"]) {
+      width: auto;
       min-width: 0;
       justify-items: end;
       text-align: right;
