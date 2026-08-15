@@ -233,6 +233,7 @@
 <div class="editorial-wrap hero-space">
   <EditorialHero
     class="homepage-hero"
+    kicker={content.intro}
     title={content.title}
     lead={content.lead}
     titleId="hero-title"
@@ -315,6 +316,7 @@
     align-items: center;
   }
   :global(.homepage-hero > header) { grid-column: 2; grid-row: 1; align-self: end; }
+  :global(.homepage-hero > header > .kicker) { text-transform: none; }
   :global(.homepage-hero > .body.has-media) { display: contents; }
   :global(.homepage-hero > .body.has-media > .copy) { grid-column: 2; grid-row: 2; align-self: start; }
   :global(.homepage-hero > .body.has-media > [data-slot="editorial-hero-media"]) {

@@ -14,6 +14,7 @@ import { tr } from "../src/lib/i18n.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
+  assert.equal(content.intro, "Hello, I'm Shimpz!");
   assert.equal(content.title, "I execute the work so you can focus on what matters.");
   assert.equal(content.lead, "Type your first task below and see what I can do:");
   assert.equal(content.taskPlaceholder, "Describe the result you need...");
@@ -53,6 +54,7 @@ test("provides a complete native homepage narrative for every supported locale",
     for (const value of [
       content.seoTitle,
       content.seoDescription,
+      content.intro,
       content.title,
       content.lead,
       content.meetAssistants,
@@ -95,6 +97,7 @@ test("provides a complete native homepage narrative for every supported locale",
     assert.ok(content.taskPlaceholder.endsWith("..."), `${locale} task placeholder ends with an ellipsis`);
     assert.ok(content.taskExamples.every((example) => example.endsWith("...")), `${locale} task examples end with ellipses`);
     if (locale !== "en") {
+      assert.notEqual(content.intro, english.intro, `${locale} localizes the product introduction`);
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
       assert.notEqual(content.taskPlaceholder, english.taskPlaceholder, `${locale} localizes the task prompt`);
