@@ -2,7 +2,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatCatalogCount, homepage } from "../src/lib/homepage.ts";
+import {
+  formatCatalogCount,
+  homepage,
+  HOMEPAGE_TASK_HOLD_MS,
+  HOMEPAGE_TASK_TYPING_DELAY_MS,
+} from "../src/lib/homepage.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 import { humanRequestContextParts } from "../src/lib/humanRequestContext.ts";
 import { tr } from "../src/lib/i18n.ts";
@@ -10,12 +15,17 @@ import { tr } from "../src/lib/i18n.ts";
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
   assert.equal(content.title, "I execute the work so you can focus on what matters.");
-  assert.equal(content.lead, "Hi, I'm Shimpz. Type your first task on the field below and see what I can do:");
-  assert.equal(content.taskPlaceholder, "Type your first task and see what I can do.");
+  assert.equal(content.lead, "Type your first task below and see what I can do:");
+  assert.equal(content.taskPlaceholder, "Describe the result you need...");
   assert.deepEqual(content.taskExamples, [
-    "Help me organize my next project milestone.",
-    "Turn this goal into a clear action plan.",
+    "Turn these campaign results into my next actions...",
+    "Map how our lead forms, CRM, and reports should connect...",
+    "Build next week's campaign task plan...",
   ]);
+  assert.equal(content.taskAnimationPause, "Pause examples");
+  assert.equal(content.taskAnimationResume, "Resume examples");
+  assert.equal(HOMEPAGE_TASK_TYPING_DELAY_MS, 27);
+  assert.equal(HOMEPAGE_TASK_HOLD_MS, 900);
   assert.equal(content.taskLabel, "Your first task");
   assert.equal(content.taskSubmit, "Start");
   assert.equal(content.usersHeading, "What I do for you");
@@ -48,6 +58,8 @@ test("provides a complete native homepage narrative for every supported locale",
       content.meetAssistants,
       content.taskPlaceholder,
       ...content.taskExamples,
+      content.taskAnimationPause,
+      content.taskAnimationResume,
       content.taskLabel,
       content.taskSubmit,
       content.taskStorageError,
@@ -78,13 +90,17 @@ test("provides a complete native homepage narrative for every supported locale",
     assert.ok(content.catalogCountZeroTemplate.includes("{noun}"), `${locale} zero catalog count retains {noun}`);
     assert.ok(content.catalogCountSingularTemplate.includes("{count}"), `${locale} singular catalog count retains {count}`);
     assert.ok(content.catalogCountSingularTemplate.includes("{noun}"), `${locale} singular catalog count retains {noun}`);
-    assert.equal(content.taskExamples.length, 2, `${locale} provides two task examples`);
-    assert.notEqual(content.taskExamples[0], content.taskExamples[1], `${locale} task examples are distinct`);
+    assert.equal(content.taskExamples.length, 3, `${locale} provides three task examples`);
+    assert.equal(new Set(content.taskExamples).size, 3, `${locale} task examples are distinct`);
+    assert.ok(content.taskPlaceholder.endsWith("..."), `${locale} task placeholder ends with an ellipsis`);
+    assert.ok(content.taskExamples.every((example) => example.endsWith("...")), `${locale} task examples end with ellipses`);
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
       assert.notEqual(content.taskPlaceholder, english.taskPlaceholder, `${locale} localizes the task prompt`);
       assert.notDeepEqual(content.taskExamples, english.taskExamples, `${locale} localizes the task examples`);
+      assert.notEqual(content.taskAnimationPause, english.taskAnimationPause, `${locale} localizes the pause control`);
+      assert.notEqual(content.taskAnimationResume, english.taskAnimationResume, `${locale} localizes the resume control`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }
