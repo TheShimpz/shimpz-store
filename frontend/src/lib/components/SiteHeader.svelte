@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
-  import { ActionLink, DropdownMenu, SiteHeader as PublicSiteHeader, SiteNavLink } from "@shimpz/frontend";
+  import { DropdownMenu, SiteHeader as PublicSiteHeader } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import AccountMenu from "$lib/components/AccountMenu.svelte";
   import { tr } from "$lib/i18n";
@@ -72,17 +72,10 @@
 </script>
 
 {#snippet navigation()}
-  <SiteNavLink href={u.assistants(lang)} active={path.includes("/assistants")}>{tr("nav_assistants", lang)}</SiteNavLink>
-  <SiteNavLink href={u.services(lang)} active={path.includes("/services")}>{tr("nav_services", lang)}</SiteNavLink>
-  <SiteNavLink href={u.creators(lang)} active={path.includes("/creators")}>{tr("nav_creators", lang)}</SiteNavLink>
-  <SiteNavLink href={u.security(lang)} active={path.includes("/security")}>{tr("nav_security", lang)}</SiteNavLink>
-  <SiteNavLink href="https://docs.shimpz.com" target="_blank" rel="noopener noreferrer">{tr("nav_docs", lang)} <span aria-hidden="true">↗</span></SiteNavLink>
+  <span data-header-navigation-empty hidden></span>
 {/snippet}
 
 {#snippet actions()}
-  <ActionLink class="homepage-glitch-target" href={u.install(lang)} variant="primary" size="compact">
-    <span class="homepage-glitch-label" data-text={tr("nav_install", lang)}>{tr("nav_install", lang)}</span>
-  </ActionLink>
   <AccountMenu {lang} />
   <div class="language-switch" data-sveltekit-noscroll onclickcapture={rememberLanguageScroll}>
     <DropdownMenu
@@ -108,6 +101,10 @@
 <style>
   .language-switch { display: contents; }
   :global([data-slot="site-header"].shimpz-site-header) { background: transparent; }
+  :global([data-slot="site-header"] nav:has([data-header-navigation-empty])) { display: none; }
+  @media (min-width: 961px) {
+    :global([data-slot="site-header"] [data-slot="site-header-actions"]) { grid-column: 3; }
+  }
   :global([data-slot="site-header"] [data-slot="shimpz-brand-mark"]) {
     margin-inline: 1.125rem;
     transform: scale(2);
