@@ -9,9 +9,13 @@ import { tr } from "../src/lib/i18n.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
-  assert.equal(content.title, "Hi, I'm Shimpz.");
-  assert.equal(content.lead, "I execute the work so you can focus on what matters.");
+  assert.equal(content.title, "I execute the work so you can focus on what matters.");
+  assert.equal(content.lead, "Hi, I'm Shimpz. Type your first task on the field below and see what I can do:");
   assert.equal(content.taskPlaceholder, "Type your first task and see what I can do.");
+  assert.deepEqual(content.taskExamples, [
+    "Help me organize my next project milestone.",
+    "Turn this goal into a clear action plan.",
+  ]);
   assert.equal(content.taskLabel, "Your first task");
   assert.equal(content.taskSubmit, "Start");
   assert.equal(content.usersHeading, "What I do for you");
@@ -43,6 +47,7 @@ test("provides a complete native homepage narrative for every supported locale",
       content.lead,
       content.meetAssistants,
       content.taskPlaceholder,
+      ...content.taskExamples,
       content.taskLabel,
       content.taskSubmit,
       content.taskStorageError,
@@ -73,10 +78,13 @@ test("provides a complete native homepage narrative for every supported locale",
     assert.ok(content.catalogCountZeroTemplate.includes("{noun}"), `${locale} zero catalog count retains {noun}`);
     assert.ok(content.catalogCountSingularTemplate.includes("{count}"), `${locale} singular catalog count retains {count}`);
     assert.ok(content.catalogCountSingularTemplate.includes("{noun}"), `${locale} singular catalog count retains {noun}`);
+    assert.equal(content.taskExamples.length, 2, `${locale} provides two task examples`);
+    assert.notEqual(content.taskExamples[0], content.taskExamples[1], `${locale} task examples are distinct`);
     if (locale !== "en") {
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
       assert.notEqual(content.taskPlaceholder, english.taskPlaceholder, `${locale} localizes the task prompt`);
+      assert.notDeepEqual(content.taskExamples, english.taskExamples, `${locale} localizes the task examples`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }

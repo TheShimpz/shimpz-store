@@ -9,6 +9,7 @@ export type HomepageContent = {
   lead: string;
   meetAssistants: string;
   taskPlaceholder: string;
+  taskExamples: readonly [string, string];
   taskLabel: string;
   taskSubmit: string;
   taskStorageError: string;
@@ -36,10 +37,11 @@ const CONTENT = {
   en: {
     seoTitle: "Shimpz · Reviewed assistants that work on your computer",
     seoDescription: "Shimpz coordinates reviewed assistants on your computer, with the LLM you choose, so you can focus on what matters.",
-    title: "Hi, I'm Shimpz.",
-    lead: "I execute the work so you can focus on what matters.",
+    title: "I execute the work so you can focus on what matters.",
+    lead: "Hi, I'm Shimpz. Type your first task on the field below and see what I can do:",
     meetAssistants: "Meet my assistants",
     taskPlaceholder: "Type your first task and see what I can do.",
+    taskExamples: ["Help me organize my next project milestone.", "Turn this goal into a clear action plan."],
     taskLabel: "Your first task",
     taskSubmit: "Start",
     taskStorageError: "I couldn't keep this task in your browser. Try again.",
@@ -73,10 +75,11 @@ const CONTENT = {
   pt: {
     seoTitle: "Shimpz · Assistentes revisados que trabalham no seu computador",
     seoDescription: "O Shimpz coordena assistentes revisados no seu computador, com a LLM que você escolher, para que você se concentre no que importa.",
-    title: "Olá, eu sou o Shimpz.",
-    lead: "Eu executo o trabalho para que você possa se concentrar no que importa.",
+    title: "Eu executo o trabalho para que você possa se concentrar no que importa.",
+    lead: "Olá, eu sou o Shimpz. Digite sua primeira tarefa no campo abaixo e veja o que eu posso fazer:",
     meetAssistants: "Conheça meus assistentes",
     taskPlaceholder: "Digite sua primeira tarefa e veja o que eu posso fazer.",
+    taskExamples: ["Ajude-me a organizar o próximo marco do meu projeto.", "Transforme este objetivo em um plano de ação claro."],
     taskLabel: "Sua primeira tarefa",
     taskSubmit: "Começar",
     taskStorageError: "Não consegui manter esta tarefa no seu navegador. Tente novamente.",
@@ -110,10 +113,11 @@ const CONTENT = {
   es: {
     seoTitle: "Shimpz · Asistentes revisados que trabajan en tu ordenador",
     seoDescription: "Shimpz coordina asistentes revisados en tu ordenador, con el LLM que elijas, para que te centres en lo que importa.",
-    title: "Hola, soy Shimpz.",
-    lead: "Ejecuto el trabajo para que puedas centrarte en lo que importa.",
+    title: "Hago el trabajo para que puedas concentrarte en lo que importa.",
+    lead: "Hola, soy Shimpz. Escribe tu primera tarea en el campo de abajo y descubre lo que puedo hacer:",
     meetAssistants: "Conoce a mis asistentes",
     taskPlaceholder: "Escribe tu primera tarea y descubre lo que puedo hacer.",
+    taskExamples: ["Ayúdame a organizar el próximo hito de mi proyecto.", "Convierte este objetivo en un plan de acción claro."],
     taskLabel: "Tu primera tarea",
     taskSubmit: "Empezar",
     taskStorageError: "No pude guardar esta tarea en tu navegador. Inténtalo de nuevo.",
@@ -147,10 +151,11 @@ const CONTENT = {
   fr: {
     seoTitle: "Shimpz · Des assistants vérifiés qui travaillent sur votre ordinateur",
     seoDescription: "Shimpz coordonne des assistants vérifiés sur votre ordinateur, avec le LLM de votre choix, pour vous laisser vous concentrer sur l’essentiel.",
-    title: "Bonjour, je suis Shimpz.",
-    lead: "J’exécute le travail pour que vous puissiez vous concentrer sur l’essentiel.",
+    title: "J’exécute le travail pour que vous puissiez vous concentrer sur l’essentiel.",
+    lead: "Bonjour, je suis Shimpz. Saisissez votre première tâche dans le champ ci-dessous et découvrez ce que je peux faire :",
     meetAssistants: "Découvrez mes assistants",
     taskPlaceholder: "Saisissez votre première tâche et découvrez ce que je peux faire.",
+    taskExamples: ["Aidez-moi à organiser la prochaine étape de mon projet.", "Transformez cet objectif en un plan d’action clair."],
     taskLabel: "Votre première tâche",
     taskSubmit: "Commencer",
     taskStorageError: "Je n’ai pas pu conserver cette tâche dans votre navigateur. Réessayez.",
@@ -184,10 +189,11 @@ const CONTENT = {
   de: {
     seoTitle: "Shimpz · Geprüfte Assistants, die auf deinem Computer arbeiten",
     seoDescription: "Shimpz koordiniert geprüfte Assistants auf deinem Computer mit dem LLM deiner Wahl, damit du dich auf das Wesentliche konzentrieren kannst.",
-    title: "Hi, ich bin Shimpz.",
-    lead: "Ich führe die Arbeit aus, damit du dich auf das Wesentliche konzentrieren kannst.",
+    title: "Ich erledige die Arbeit, damit du dich auf das Wesentliche konzentrieren kannst.",
+    lead: "Hi, ich bin Shimpz. Gib deine erste Aufgabe in das Feld unten ein und sieh, was ich tun kann:",
     meetAssistants: "Lerne meine Assistants kennen",
     taskPlaceholder: "Gib deine erste Aufgabe ein und sieh, was ich tun kann.",
+    taskExamples: ["Hilf mir, den nächsten Meilenstein meines Projekts zu planen.", "Mach aus diesem Ziel einen klaren Aktionsplan."],
     taskLabel: "Deine erste Aufgabe",
     taskSubmit: "Starten",
     taskStorageError: "Ich konnte diese Aufgabe nicht in deinem Browser speichern. Versuche es erneut.",
@@ -221,10 +227,11 @@ const CONTENT = {
   zh: {
     seoTitle: "Shimpz · 在你的电脑上工作的审核版 Assistant",
     seoDescription: "Shimpz 使用你选择的 LLM，在你的电脑上协调经过审核的 Assistant，让你专注于真正重要的事。",
-    title: "你好，我是 Shimpz。",
-    lead: "我来执行工作，让你专注于真正重要的事。",
+    title: "我来执行工作，让你专注于真正重要的事。",
+    lead: "你好，我是 Shimpz。在下方字段中输入你的第一个任务，看看我能做什么：",
     meetAssistants: "认识我的 Assistant",
     taskPlaceholder: "输入你的第一个任务，看看我能做什么。",
+    taskExamples: ["帮我规划项目的下一个里程碑。", "把这个目标变成清晰的行动计划。"],
     taskLabel: "你的第一个任务",
     taskSubmit: "开始",
     taskStorageError: "我无法在你的浏览器中保存此任务。请重试。",
@@ -258,10 +265,11 @@ const CONTENT = {
   ja: {
     seoTitle: "Shimpz · あなたのコンピューターで働くレビュー済み Assistant",
     seoDescription: "Shimpz は選んだ LLM を使ってレビュー済みの Assistant をあなたのコンピューター上で連携させ、大切なことに集中できるようにします。",
-    title: "こんにちは、Shimpzです。",
-    lead: "大切なことに集中できるよう、私が作業を実行します。",
+    title: "大切なことに集中できるよう、仕事は私が実行します。",
+    lead: "こんにちは、Shimpzです。下の入力欄に最初のタスクを入力して、私にできることを試してください：",
     meetAssistants: "私の Assistant を見る",
     taskPlaceholder: "最初のタスクを入力して、私にできることを試してください。",
+    taskExamples: ["プロジェクトの次のマイルストーンを整理して。", "この目標を明確な行動計画にして。"],
     taskLabel: "最初のタスク",
     taskSubmit: "始める",
     taskStorageError: "このタスクをブラウザーに保持できませんでした。もう一度お試しください。",
@@ -295,10 +303,11 @@ const CONTENT = {
   ar: {
     seoTitle: "Shimpz · Assistants خضعت للمراجعة وتعمل على حاسوبك",
     seoDescription: "ينسّق Shimpz Assistants خضعت للمراجعة على حاسوبك باستخدام LLM الذي تختاره، لتتمكن من التركيز على ما يهم.",
-    title: "مرحبًا، أنا Shimpz.",
-    lead: "أنفّذ العمل لتتمكن من التركيز على ما يهم.",
+    title: "أنفّذ العمل لتتمكن من التركيز على ما يهم.",
+    lead: "مرحبًا، أنا Shimpz. اكتب مهمتك الأولى في الحقل أدناه وشاهد ما يمكنني فعله:",
     meetAssistants: "تعرّف إلى Assistants الخاصة بي",
     taskPlaceholder: "اكتب مهمتك الأولى وشاهد ما يمكنني فعله.",
+    taskExamples: ["ساعدني في تنظيم المرحلة التالية من مشروعي.", "حوّل هذا الهدف إلى خطة عمل واضحة."],
     taskLabel: "مهمتك الأولى",
     taskSubmit: "ابدأ",
     taskStorageError: "تعذر الاحتفاظ بهذه المهمة في متصفحك. حاول مرة أخرى.",

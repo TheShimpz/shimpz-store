@@ -29,10 +29,65 @@
   let taskError = $state("");
   let taskReady = $state(false);
   let taskField: HTMLTextAreaElement | undefined = $state();
+  let animatedTaskPrompt = $state("");
+  let taskPromptVisible = $state(false);
+  let taskInteracted = false;
+  let cancelTaskPromptAnimation = () => {};
 
   onMount(() => {
     taskReady = true;
     void tick().then(() => taskField?.focus({ preventScroll: true }));
+  });
+
+  $effect(() => {
+    const examples = content.taskExamples;
+    const stablePrompt = content.taskPlaceholder;
+    if (!taskReady || taskInteracted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      taskPromptVisible = false;
+      return;
+    }
+
+    const segmenter = new Intl.Segmenter(lang, { granularity: "grapheme" });
+    const graphemes = (value: string) => Array.from(segmenter.segment(value), ({ segment }) => segment);
+    const stable = graphemes(stablePrompt);
+    const first = graphemes(examples[0]);
+    const second = graphemes(examples[1]);
+    const frames = [
+      ...stable.map((_, index) => stable.slice(0, stable.length - index - 1).join("")),
+      ...first.map((_, index) => first.slice(0, index + 1).join("")),
+      ...first.map((_, index) => first.slice(0, first.length - index - 1).join("")),
+      ...second.map((_, index) => second.slice(0, index + 1).join("")),
+    ];
+    const firstCompleteIndex = stable.length + first.length - 1;
+    const pauseAfterFirst = 350;
+    const stepDelay = Math.max(12, Math.min(40, Math.floor((4_000 - pauseAfterFirst) / frames.length)));
+    let frameIndex = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+
+    animatedTaskPrompt = stablePrompt;
+    taskPromptVisible = true;
+
+    const advance = () => {
+      if (cancelled) return;
+      animatedTaskPrompt = frames[frameIndex];
+      const delay = frameIndex === firstCompleteIndex ? pauseAfterFirst : stepDelay;
+      frameIndex += 1;
+      if (frameIndex < frames.length) timer = setTimeout(advance, delay);
+    };
+    timer = setTimeout(advance, stepDelay);
+
+    const cancel = () => {
+      cancelled = true;
+      if (timer !== undefined) clearTimeout(timer);
+      taskPromptVisible = false;
+    };
+    cancelTaskPromptAnimation = cancel;
+
+    return () => {
+      cancel();
+      if (cancelTaskPromptAnimation === cancel) cancelTaskPromptAnimation = () => {};
+    };
   });
 
   function startFirstTask(event: SubmitEvent) {
@@ -52,6 +107,11 @@
     event.preventDefault();
     if (firstTask.trim()) (event.currentTarget as HTMLTextAreaElement).form?.requestSubmit();
   }
+
+  function handleFirstTaskInput() {
+    taskInteracted = true;
+    cancelTaskPromptAnimation();
+  }
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
@@ -64,21 +124,32 @@
 
 {#snippet heroActions()}
   <form class="hero-task" onsubmit={startFirstTask}>
-    <TextAreaField
-      id="homepage-first-task"
-      class="hero-task-field"
-      label={content.taskLabel}
-      visuallyHiddenLabel
-      placeholder={content.taskPlaceholder}
-      maxlength={MAX_PENDING_TASK_CHARS}
-      autocomplete="off"
-      disabled={!taskReady}
-      rows={2}
-      error={taskError || undefined}
-      bind:element={taskField}
-      bind:value={firstTask}
-      onkeydown={handleFirstTaskKeydown}
-    />
+    <div class="hero-task-prompt">
+      <TextAreaField
+        id="homepage-first-task"
+        class="hero-task-field"
+        label={content.taskLabel}
+        visuallyHiddenLabel
+        placeholder={content.taskPlaceholder}
+        maxlength={MAX_PENDING_TASK_CHARS}
+        autocomplete="off"
+        disabled={!taskReady}
+        rows={2}
+        error={taskError || undefined}
+        bind:element={taskField}
+        bind:value={firstTask}
+        oninput={handleFirstTaskInput}
+        onkeydown={handleFirstTaskKeydown}
+      />
+      {#if taskPromptVisible}
+        <span
+          class="task-prompt-typing"
+          data-slot="homepage-task-typing"
+          aria-hidden="true"
+          dir="auto"
+        >{animatedTaskPrompt}</span>
+      {/if}
+    </div>
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
   </form>
 {/snippet}
@@ -195,6 +266,21 @@
     gap: var(--shimpz-space-3);
     align-items: start;
   }
+  .hero-task-prompt { position: relative; min-width: 0; }
+  .task-prompt-typing {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: 0.65rem;
+    inset-inline: 0.7rem;
+    max-height: 3rem;
+    overflow: hidden;
+    color: var(--shimpz-color-text-muted);
+    font: 400 1rem/1.5 var(--shimpz-font-sans);
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    text-align: start;
+    white-space: pre-wrap;
+  }
   .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(4rem, 8vw, 7rem); }
   .hero-differentials {
     display: flex;
@@ -221,6 +307,10 @@
   .hero-task :global(.shimpz-field textarea::placeholder) {
     color: var(--shimpz-color-text-muted);
     opacity: 1;
+  }
+  .hero-task-prompt:has(> [data-slot="homepage-task-typing"])
+    :global(.shimpz-field textarea::placeholder) {
+    color: transparent;
   }
   .surface-band { border-block: 1px solid var(--color-border); background: var(--color-surface); }
   .section-space { padding-block: clamp(5rem, 10vw, 9rem); }
