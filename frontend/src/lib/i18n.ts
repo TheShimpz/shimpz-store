@@ -21,12 +21,8 @@ const D: Dict = {
   nav_open_source: { en: "Open source", pt: "Código aberto", es: "Código abierto", zh: "开源", fr: "Open source", de: "Open Source", ja: "オープンソース", ar: "مفتوح المصدر" },
   nav_about: { en: "About", pt: "Sobre", es: "Acerca de", zh: "关于", fr: "À propos", de: "Über uns", ja: "Shimpz について", ar: "حول Shimpz" },
   open_shimpz: { en: "Open Shimpz", pt: "Abrir Shimpz", es: "Abrir Shimpz", zh: "打开 Shimpz", fr: "Ouvrir Shimpz", de: "Shimpz öffnen", ja: "Shimpz を開く", ar: "افتح Shimpz" },
-  footer_meta: { en: "Open-source organization", pt: "Organização de código aberto", es: "Organización de código abierto", zh: "开源组织", fr: "Organisation open source", de: "Open-Source-Organisation", ja: "オープンソース組織", ar: "منظمة مفتوحة المصدر" },
   skip_content: { en: "Skip to content", pt: "Pular para o conteúdo", es: "Saltar al contenido", zh: "跳到内容", fr: "Aller au contenu", de: "Zum Inhalt springen", ja: "コンテンツへ移動", ar: "انتقل إلى المحتوى" },
   language: { en: "Language", pt: "Idioma", es: "Idioma", zh: "语言", fr: "Langue", de: "Sprache", ja: "言語", ar: "اللغة" },
-  footer_links: { en: "Footer links", pt: "Links do rodapé", es: "Enlaces del pie", zh: "页脚链接", fr: "Liens de pied de page", de: "Fußzeilenlinks", ja: "フッターリンク", ar: "روابط التذييل" },
-  footer_group_project: { en: "Project", pt: "Projeto", es: "Proyecto", zh: "项目", fr: "Projet", de: "Projekt", ja: "プロジェクト", ar: "المشروع" },
-  footer_group_company: { en: "Company", pt: "Empresa", es: "Empresa", zh: "公司", fr: "Entreprise", de: "Unternehmen", ja: "会社", ar: "الشركة" },
   privacy: { en: "Privacy", pt: "Privacidade", es: "Privacidad", zh: "隐私", fr: "Confidentialité", de: "Datenschutz", ja: "プライバシー", ar: "الخصوصية" },
   terms: { en: "Terms", pt: "Termos", es: "Términos", zh: "条款", fr: "Conditions", de: "Bedingungen", ja: "利用規約", ar: "الشروط" },
   close: { en: "Close", pt: "Fechar" },
@@ -491,16 +487,6 @@ const D: Dict = {
   human_passkey: { en: "Use passkey", pt: "Usar passkey", es: "Usar passkey", zh: "使用通行密钥", fr: "Utiliser la passkey", de: "Passkey verwenden", ja: "パスキーを使用", ar: "استخدم مفتاح المرور" },
   human_preview: { en: "Non-interactive interface example", pt: "Exemplo não interativo da interface", es: "Ejemplo no interactivo de la interfaz", zh: "非交互式界面示例", fr: "Exemple d’interface non interactif", de: "Nicht interaktives Oberflächenbeispiel", ja: "操作できないインターフェース例", ar: "مثال غير تفاعلي للواجهة" },
   model_provider_account_cta: { en: "Open model providers", pt: "Abrir provedores de modelo" },
-  footer: {
-    en: "Teams stay isolated · permissions stay explicit",
-    pt: "Times continuam isolados · permissões continuam explícitas",
-    es: "Teams aislados · permisos explícitos",
-    zh: "Teams 保持隔离 · 权限始终明确",
-    fr: "Teams isolées · autorisations explicites",
-    de: "Teams bleiben isoliert · Berechtigungen bleiben explizit",
-    ja: "Teams は隔離 · 権限は明示的",
-    ar: "Teams معزولة · الصلاحيات صريحة",
-  },
 };
 
 export const tr = (key: string, l: Locale): string => D[key]?.[l] ?? D[key]?.en ?? key;
