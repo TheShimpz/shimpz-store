@@ -8,9 +8,8 @@
     TextAreaField,
   } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type { Locale } from "$lib/catalog";
-  import ApprovalRequestsShowcase from "$lib/components/ApprovalRequestsShowcase.svelte";
   import HomepageCatalog from "$lib/components/HomepageCatalog.svelte";
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
@@ -29,9 +28,11 @@
   let firstTask = $state("");
   let taskError = $state("");
   let taskReady = $state(false);
+  let taskField: HTMLTextAreaElement | undefined = $state();
 
   onMount(() => {
     taskReady = true;
+    void tick().then(() => taskField?.focus({ preventScroll: true }));
   });
 
   function startFirstTask(event: SubmitEvent) {
@@ -72,18 +73,14 @@
       maxlength={MAX_PENDING_TASK_CHARS}
       autocomplete="off"
       disabled={!taskReady}
-      rows={3}
+      rows={2}
       error={taskError || undefined}
+      bind:element={taskField}
       bind:value={firstTask}
       onkeydown={handleFirstTaskKeydown}
     />
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
   </form>
-  <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-    <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
-    <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
-  </ul>
-  <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
 {/snippet}
 
 {#snippet usersAction()}
@@ -107,9 +104,13 @@
   />
 </div>
 
-<div class="surface-band demo-band" data-slot="homepage-action-requests-band">
-  <div class="editorial-wrap">
-    <ApprovalRequestsShowcase content={content.humanRequests} {lang} />
+<div class="surface-band evidence-band" data-slot="homepage-evidence-band">
+  <div class="editorial-wrap evidence-section">
+    <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
+      <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
+      <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
+    </ul>
+    <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
   </div>
 </div>
 
@@ -164,7 +165,7 @@
 <style>
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
   .hero-space {
-    padding-block: clamp(4.5rem, 9vw, 8rem);
+    padding-block: clamp(5.5rem, 10vw, 9rem);
   }
   :global(section[data-slot="editorial-hero"].homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 4.2vw, 4rem);
@@ -194,10 +195,7 @@
     gap: var(--shimpz-space-3);
     align-items: start;
   }
-  :global(.homepage-hero [data-slot="editorial-hero-actions"]) {
-    display: grid;
-    gap: var(--shimpz-space-4);
-  }
+  .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(4rem, 8vw, 7rem); }
   .hero-differentials {
     display: flex;
     flex-wrap: wrap;
@@ -219,6 +217,7 @@
   .hero-differentials a:hover,
   .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
+  .hero-task :global(.shimpz-field textarea) { min-height: 0; }
   .hero-task :global(.shimpz-field textarea::placeholder) {
     color: var(--shimpz-color-text-muted);
     opacity: 1;
@@ -231,10 +230,10 @@
     justify-content: center;
   }
   .hero-brand :global([data-slot="shimpz-brand-mark"]) {
-    width: clamp(16rem, 44vw, 30rem);
-    height: clamp(16rem, 44vw, 30rem);
+    width: clamp(16rem, 33vw, 30rem);
+    height: clamp(16rem, 33vw, 30rem);
   }
-  .demo-band { background: var(--color-bg); }
+  .evidence-band { background: var(--color-bg); }
   .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
   .feature-list li { display: grid; min-height: 15rem; align-content: space-between; gap: 2rem; padding: 1.4rem; border-inline-end: 1px solid var(--color-border); }
   .feature-list li:last-child { border-inline-end: 0; }

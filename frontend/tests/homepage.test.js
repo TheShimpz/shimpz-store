@@ -3,11 +3,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { formatCatalogCount, homepage } from "../src/lib/homepage.ts";
-import {
-  HOMEPAGE_REQUESTS,
-  homepageRequestChallenge,
-  homepageRequestLabel,
-} from "../src/lib/homepageRequests.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 import { humanRequestContextParts } from "../src/lib/humanRequestContext.ts";
 import { tr } from "../src/lib/i18n.ts";
@@ -19,19 +14,6 @@ test("freezes the exact first-person English homepage narrative", () => {
   assert.equal(content.taskPlaceholder, "Type your first task and see what I can do.");
   assert.equal(content.taskLabel, "Your first task");
   assert.equal(content.taskSubmit, "Start");
-  assert.deepEqual(content.humanRequests, {
-    heading: "I ask before I act.",
-      body: "When an Assistant needs your decision, a missing value, or fresh authentication, I pause its Action and ask you directly. Every request is bound to that exact Assistant and Action.",
-    sdkSummary: "My SDK gives Creators three calls and 11 closed request kinds. Assistants cannot invent forms or authentication ceremonies at runtime.",
-    sdkCta: "Explore my SDK on GitHub",
-    menuLabel: "Action human request kinds",
-    interfaceLabel: "Real interface",
-    groupNotes: {
-      approval: "I record your decision for one described action. Approval is attributable, one-use, and bound to the exact request.",
-      input: "I render one closed, bounded field. input:password is only for a third-party secret deliberately delivered to the named Assistant — never your Shimpz password.",
-      auth: "I run the trusted authentication ceremony. Passwords, authenticator codes, and passkey evidence never enter Assistant code.",
-    },
-  });
   assert.equal(content.usersHeading, "What I do for you");
   assert.equal(content.usersBody, "Give me a goal and I'll put the right assistants on it. I orchestrate, they execute — all on your machine.");
   assert.deepEqual(content.userFeatures, [
@@ -64,13 +46,6 @@ test("provides a complete native homepage narrative for every supported locale",
       content.taskLabel,
       content.taskSubmit,
       content.taskStorageError,
-      content.humanRequests.heading,
-      content.humanRequests.body,
-      content.humanRequests.sdkSummary,
-      content.humanRequests.sdkCta,
-      content.humanRequests.menuLabel,
-      content.humanRequests.interfaceLabel,
-      ...Object.values(content.humanRequests.groupNotes),
       content.developersHeading,
       content.developersBody,
       content.developersCta,
@@ -102,49 +77,18 @@ test("provides a complete native homepage narrative for every supported locale",
       assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
       assert.notEqual(content.lead, english.lead, `${locale} does not reuse the English lead`);
       assert.notEqual(content.taskPlaceholder, english.taskPlaceholder, `${locale} localizes the task prompt`);
-      assert.notEqual(content.humanRequests.body, english.humanRequests.body, `${locale} localizes the Action request narrative`);
       assert.notEqual(content.developersBody, english.developersBody, `${locale} localizes the developer narrative`);
       assert.notEqual(content.usersBody, english.usersBody, `${locale} localizes the user narrative`);
     }
   }
 });
 
-test("keeps every closed Action request kind renderable as localized interface data", () => {
-  assert.deepEqual(HOMEPAGE_REQUESTS.map(({ kind }) => kind), [
-    "approval",
-    "input:text",
-    "input:textarea",
-    "input:password",
-    "input:phone",
-    "input:select",
-    "input:choice",
-    "input:choices",
-    "auth:password",
-    "auth:totp",
-    "auth:passkey",
-  ]);
-
-  for (const locale of LOCALES) {
-    for (const request of HOMEPAGE_REQUESTS) {
-      const label = homepageRequestLabel(request, locale);
-      const challenge = homepageRequestChallenge(request, locale);
-      assert.ok(label.trim().length > 0, `${locale} ${request.kind} has a human-readable label`);
-      if (locale !== "en") {
-        assert.notEqual(label, homepageRequestLabel(request, "en"), `${locale} ${request.kind} has a native label`);
-      }
-      assert.equal(challenge.request.kind, request.kind);
-      assert.equal(challenge.request.title, label);
-      assert.ok(challenge.request.label.trim().length > 0);
-      assert.notEqual(challenge.request.label, challenge.request.title);
-      assert.ok(challenge.request.description.trim().length > 0);
-      assert.ok(challenge.action.summary.trim().length > 0);
-      assert.equal("image" in request, false, `${request.kind} is rendered instead of screenshotted`);
-    }
-  }
-});
-
 test("preserves localized context order while emphasizing only Assistant identity data", () => {
-  const challenge = homepageRequestChallenge(HOMEPAGE_REQUESTS[0], "en");
+  const challenge = {
+    expires_in: 300,
+    assistant: { name: "Example Assistant", version: "1.0.0" },
+    action: { id: "review-action" },
+  };
   for (const locale of LOCALES) {
     const parts = humanRequestContextParts(tr("human_context", locale), challenge);
     assert.equal(parts.map(({ text }) => text).join(""), tr("human_context", locale)
