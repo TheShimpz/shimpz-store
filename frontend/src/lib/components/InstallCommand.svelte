@@ -76,7 +76,7 @@
     align-items: center;
     gap: 0.8rem;
     padding: 0.75rem 0.8rem 0.75rem 1.1rem;
-    background: #000000;
+    background: transparent;
     box-shadow: inset 0 0 0 1px var(--color-border-strong);
     clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
   }
