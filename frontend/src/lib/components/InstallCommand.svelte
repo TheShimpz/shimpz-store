@@ -136,7 +136,7 @@
   .script-link:hover,
   .script-link:focus-visible { color: var(--color-cyan); }
 
-  :global([dir="rtl"]) .script-link { letter-spacing: 0; }
+  :global([dir="rtl"]) .script-link { letter-spacing: normal; }
 
   svg {
     width: 1rem;

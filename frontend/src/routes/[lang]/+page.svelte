@@ -141,6 +141,7 @@
   .hero-differentials a:hover,
   .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
+  :global([dir="rtl"]) .hero-differentials a { letter-spacing: normal; }
   .evidence-band { background: transparent; }
   @media (max-width: 900px) {
     .homepage-hero {
