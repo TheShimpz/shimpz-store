@@ -103,7 +103,7 @@
     taskPromptVisible = true;
     taskPromptPaused = false;
 
-    // An indefinite loop requires the user-visible pause control rendered after the form submit button.
+    // An indefinite loop keeps a keyboard-accessible pause control that reveals itself on focus.
     const advance = () => {
       if (cancelled || paused) return;
       const frame = frames[frameIndex];
@@ -327,6 +327,7 @@
     align-self: center;
   }
   .hero-task {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
@@ -338,8 +339,32 @@
   .hero-task :global(.task-prompt-toggle) {
     --button-color: var(--color-fg);
     --button-hover-color: var(--color-cyan);
-    grid-column: 1 / -1;
-    justify-self: end;
+    position: absolute;
+    inset-block-start: calc(100% + var(--shimpz-space-3));
+    inset-inline-end: 0;
+    inline-size: 1px;
+    block-size: 1px;
+    min-block-size: 0;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .hero-task :global(.task-prompt-toggle:focus-visible) {
+    inline-size: auto;
+    block-size: auto;
+    min-block-size: var(--shimpz-control-height-compact);
+    overflow: visible;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--button-border);
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--shimpz-cut)) 0,
+      100% var(--shimpz-cut),
+      100% 100%,
+      0 100%
+    );
   }
   .task-prompt-typing {
     position: absolute;
