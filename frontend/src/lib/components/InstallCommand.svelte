@@ -47,6 +47,14 @@
   });
 </script>
 
+{#snippet copyIcon()}
+  {#if copyState === "copied"}
+    <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+  {:else}
+    <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" /><path d="M16 8V5H5v11h3" /></svg>
+  {/if}
+{/snippet}
+
 <div class="command-shell">
   <span class="prompt" aria-hidden="true">$</span>
   <code>{command}</code>
@@ -54,17 +62,14 @@
     bind:element={copyButton}
     class={['copy-button', copyState === "error" && "error"]}
     variant="secondary"
+    size="lg"
+    icon={copyIcon}
     glitch
     type="button"
     onclick={copyCommand}
     aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
   >
-    {#if copyState === "copied"}
-      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
-    {:else}
-      <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" /><path d="M16 8V5H5v11h3" /></svg>
-    {/if}
-    <span>{tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}</span>
+    {tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
   </Button>
   <span class="sr-status" aria-live="polite">
     {copyState === "copied" ? tr("home_copied", lang) : copyState === "error" ? tr("home_copy_failed", lang) : ""}
@@ -102,22 +107,8 @@
   }
 
   :global(.copy-button) {
-    display: inline-flex;
     min-width: 6.4rem;
-    min-height: 2.65rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.65rem 0.8rem;
-    border: 0;
-    background: var(--color-elevated);
     box-shadow: inset 0 0 0 1px var(--color-border-strong);
-    color: var(--color-cyan);
-    cursor: pointer;
-    font-size: 0.64rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   :global(.copy-button:hover) { box-shadow: inset 0 0 0 1px var(--color-cyan); }

@@ -5,6 +5,10 @@
   let playing = $state(false);
 </script>
 
+{#snippet playIcon()}
+  <span class="play-icon"></span>
+{/snippet}
+
 <div class="video-frame" data-slot="homepage-video">
   <div class="video-stage">
     {#if playing}
@@ -21,9 +25,8 @@
         aria-hidden="true"
       />
       <div class="scanlines" aria-hidden="true"></div>
-      <Button class="video-button" type="button" variant="secondary" glitch aria-label="Play example video" onclick={() => playing = true}>
-        <span class="play-icon" aria-hidden="true"></span>
-        <span>PLAY // DEMO</span>
+      <Button class="video-button" type="button" variant="secondary" size="xl" icon={playIcon} glitch aria-label="Play example video" onclick={() => playing = true}>
+        PLAY // DEMO
       </Button>
       <span class="video-label" aria-hidden="true">YOUTUBE // PLACEHOLDER</span>
     {/if}
@@ -69,16 +72,9 @@
     --shimpz-control-cut: 0.75rem;
     position: relative;
     z-index: 1;
-    display: inline-flex;
-    min-height: 3.5rem;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.8rem 1.2rem;
     border: 1px solid var(--color-cyan);
     background: rgb(0 8 12 / 0.88);
     color: var(--color-cyan);
-    cursor: pointer;
-    font: 700 0.72rem/1 var(--font-mono);
     letter-spacing: 0.12em;
   }
   :global(.video-button:hover),
