@@ -38,8 +38,8 @@
   }
   :global([data-slot="site-footer-monument"]) { opacity: 0.3; }
   :global([data-slot="site-footer"] [data-slot="shimpz-brand-mark"]) {
-    margin-inline: 2.25rem;
-    transform: scale(3);
+    margin-inline: 5.625rem;
+    transform: scale(6);
   }
   :global([data-slot="site-footer"] [data-slot="shimpz-brand-wordmark"]) { display: none; }
 </style>
