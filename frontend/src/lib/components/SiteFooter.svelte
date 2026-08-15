@@ -4,7 +4,7 @@
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
 
-  let { lang }: { lang: Locale } = $props();
+  let { lang, statement }: { lang: Locale; statement?: string } = $props();
 </script>
 
 {#snippet links()}
@@ -27,6 +27,7 @@
   brandAriaLabel={tr("brand_home", lang)}
   linksLabel={tr("footer_links", lang)}
   contentWidth="editorial"
+  {statement}
   {links}
 />
 

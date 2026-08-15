@@ -30,7 +30,6 @@
             <span class="headline-line"><span class="title-accent">{content.title.accent}</span>{#if content.title.remainder}{titleSeparator}{content.title.remainder}{/if}</span>
             <span class="headline-line">{content.title.secondLine}</span>
           </h1>
-          <p class="hero-privacy">{tr("home_privacy_line", lang)}</p>
         </header>
         <div class="body">
           <div class="copy">
@@ -74,7 +73,7 @@
     row-gap: clamp(3rem, 5vw, 5rem);
     text-align: center;
   }
-  .homepage-hero > header { position: relative; width: min(100%, 64rem); min-width: 0; }
+  .homepage-hero > header { width: min(100%, 64rem); min-width: 0; }
   .homepage-hero > .body { width: min(100%, 47rem); min-width: 0; }
   h1 {
     position: relative;
@@ -85,15 +84,6 @@
     text-wrap: balance;
   }
   .headline-line { display: block; white-space: nowrap; }
-  .hero-privacy {
-    position: absolute;
-    inset-block-start: calc(100% + var(--shimpz-space-2));
-    inset-inline: 0;
-    margin: 0;
-    color: var(--color-muted);
-    font: 500 calc(var(--shimpz-type-display-size) * 0.4)/1.3 var(--font-sans);
-    text-align: center;
-  }
   .title-accent { color: var(--color-cyan); }
   .glitch-title::before,
   .glitch-title::after {
