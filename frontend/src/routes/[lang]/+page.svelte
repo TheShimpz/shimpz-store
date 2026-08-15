@@ -25,24 +25,6 @@
 <div class="homepage-shell">
   <HomepageMeshBackground />
   <div class="homepage-content" data-slot="homepage-content">
-    <div class="editorial-wrap hero-space">
-      <section data-slot="editorial-hero" class="homepage-hero">
-        <header>
-          <p class="kicker">{content.intro}</p>
-          <h1 id="hero-title" class="glitch-title" data-text={content.title}>
-            {#if lang === "en"}<span class="title-accent">I do the work</span>{" "}<span>so you can focus on what matters.</span>{:else}{content.title}{/if}
-          </h1>
-        </header>
-        <div class="body">
-          <div class="copy">
-            <div data-slot="editorial-hero-actions" class="actions">
-              <HomepageVideo />
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-
     <div class="evidence-band" data-slot="homepage-evidence-band">
       <div class="editorial-wrap evidence-section">
         <div class="evidence-install-row">
@@ -58,6 +40,22 @@
       </div>
     </div>
 
+    <div class="editorial-wrap hero-space">
+      <section data-slot="editorial-hero" class="homepage-hero">
+        <header>
+          <h1 id="hero-title" class="glitch-title" data-text={content.title}>
+            {#if lang === "en"}<span class="title-accent">I do the work</span>{" "}<span>so you can focus on what matters.</span>{:else}{content.title}{/if}
+          </h1>
+        </header>
+        <div class="body">
+          <div class="copy">
+            <div data-slot="editorial-hero-actions" class="actions">
+              <HomepageVideo />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -76,13 +74,6 @@
   }
   .homepage-hero > header,
   .homepage-hero > .body { width: min(100%, 47rem); min-width: 0; }
-  .kicker {
-    margin: 0 0 var(--shimpz-space-4);
-    color: var(--color-cyan);
-    font: 600 0.68rem/1.4 var(--font-mono);
-    letter-spacing: 0.16em;
-    text-transform: none;
-  }
   h1 {
     position: relative;
     max-inline-size: var(--shimpz-type-display-measure);
@@ -121,7 +112,7 @@
     justify-content: center;
     width: min(100%, 58rem);
     margin-inline: auto;
-    gap: clamp(2rem, 5vw, 4rem);
+    gap: clamp(1rem, 2vw, 1.5rem);
   }
   .evidence-install-content { display: grid; min-width: 0; gap: var(--shimpz-space-4); }
   .hero-differentials {
@@ -155,6 +146,10 @@
     height: clamp(7.5rem, 12vw, 10rem);
   }
   .evidence-band { background: transparent; }
+  :global(body:has(.homepage-shell) button),
+  :global(body:has(.homepage-shell) .shimpz-action-link) {
+    animation: button-glitch 4.8s 140ms infinite steps(1, end);
+  }
   @media (max-width: 900px) {
     .homepage-hero {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
@@ -176,9 +171,17 @@
     89% { opacity: 0.5; transform: translate(-2px, 1px); clip-path: inset(18% 0 58% 0); }
     90% { opacity: 0.66; transform: translate(1px, 0); clip-path: inset(43% 0 31% 0); }
   }
+  @keyframes button-glitch {
+    0%, 86%, 91%, 100% { transform: translate(0); filter: none; }
+    87% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 var(--color-pink)); }
+    88% { transform: translate(2px, -1px); filter: drop-shadow(-2px 0 var(--color-cyan)); }
+    89% { transform: translate(-1px, 0); filter: drop-shadow(1px 0 var(--color-pink)); }
+  }
   @media (prefers-reduced-motion: reduce) {
     .glitch-title::before,
-    .glitch-title::after { animation: none; }
+    .glitch-title::after,
+    :global(body:has(.homepage-shell) button),
+    :global(body:has(.homepage-shell) .shimpz-action-link) { animation: none; }
   }
   @media (forced-colors: active) {
     h1,
