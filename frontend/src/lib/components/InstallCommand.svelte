@@ -55,28 +55,38 @@
   {/if}
 {/snippet}
 
-<div class="command-shell">
-  <span class="prompt" aria-hidden="true">$</span>
-  <code>{command}</code>
-  <Button
-    bind:element={copyButton}
-    class={['copy-button', copyState === "error" && "error"]}
-    variant="secondary"
-    size="lg"
-    icon={copyIcon}
-    glitch
-    type="button"
-    onclick={copyCommand}
-    aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
-  >
-    {tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
-  </Button>
-  <span class="sr-status" aria-live="polite">
-    {copyState === "copied" ? tr("home_copied", lang) : copyState === "error" ? tr("home_copy_failed", lang) : ""}
-  </span>
+<div class="install-command">
+  <div class="command-shell">
+    <span class="prompt" aria-hidden="true">$</span>
+    <code>{command}</code>
+    <Button
+      bind:element={copyButton}
+      class={['copy-button', copyState === "error" && "error"]}
+      variant="secondary"
+      size="lg"
+      icon={copyIcon}
+      glitch
+      type="button"
+      onclick={copyCommand}
+      aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
+    >
+      {tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
+    </Button>
+    <span class="sr-status" aria-live="polite">
+      {copyState === "copied" ? tr("home_copied", lang) : copyState === "error" ? tr("home_copy_failed", lang) : ""}
+    </span>
+  </div>
+  <a class="script-link" href="https://install.shimpz.com" target="_blank" rel="noopener noreferrer">
+    {tr("home_read_script", lang)} <span aria-hidden="true">↗</span>
+  </a>
 </div>
 
 <style>
+  .install-command {
+    display: grid;
+    gap: var(--shimpz-space-3);
+  }
+
   .command-shell {
     display: grid;
     min-height: 4.25rem;
@@ -113,6 +123,18 @@
 
   :global(.copy-button:hover) { box-shadow: inset 0 0 0 1px var(--color-cyan); }
   :global(.copy-button.error) { color: var(--color-danger); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-danger) 70%, var(--color-border)); }
+
+  .script-link {
+    justify-self: center;
+    color: var(--color-muted);
+    font: 600 0.68rem/1.2 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .script-link:hover,
+  .script-link:focus-visible { color: var(--color-cyan); }
 
   svg {
     width: 1rem;

@@ -48,8 +48,8 @@
           <div class="evidence-install-content">
             <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
               <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
-              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_secure", lang)}</a></li>
-              <li><a href={u.install(lang)}><span aria-hidden="true">//</span>{tr("home_dockerized", lang)}</a></li>
+              <li><a href={u.install(lang)}><span aria-hidden="true">//</span>{tr("home_self_hosted", lang)}</a></li>
+              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_sandboxed", lang)}</a></li>
             </ul>
             <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
           </div>
