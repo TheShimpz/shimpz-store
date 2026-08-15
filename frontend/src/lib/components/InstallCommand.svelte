@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "@shimpz/frontend";
   import { onDestroy } from "svelte";
   import type { Locale } from "$lib/catalog";
   import { tr } from "$lib/i18n";
@@ -7,7 +8,7 @@
   let { lang }: { lang: Locale } = $props();
   let copyState = $state<"idle" | "copied" | "error">("idle");
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
-  let copyButton: HTMLButtonElement;
+  let copyButton = $state<HTMLButtonElement>();
 
   function fallbackCopy(): boolean {
     const textarea = document.createElement("textarea");
@@ -49,9 +50,10 @@
 <div class="command-shell">
   <span class="prompt" aria-hidden="true">$</span>
   <code>{command}</code>
-  <button
-    bind:this={copyButton}
-    class:error={copyState === "error"}
+  <Button
+    bind:element={copyButton}
+    class={['copy-button', copyState === "error" && "error"]}
+    variant="secondary"
     type="button"
     onclick={copyCommand}
     aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
@@ -62,7 +64,7 @@
       <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" /><path d="M16 8V5H5v11h3" /></svg>
     {/if}
     <span>{tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}</span>
-  </button>
+  </Button>
   <span class="sr-status" aria-live="polite">
     {copyState === "copied" ? tr("home_copied", lang) : copyState === "error" ? tr("home_copy_failed", lang) : ""}
   </span>
@@ -83,7 +85,7 @@
 
   .prompt,
   code,
-  button {
+  :global(.copy-button) {
     font-family: var(--font-mono);
   }
 
@@ -98,7 +100,7 @@
     white-space: nowrap;
   }
 
-  button {
+  :global(.copy-button) {
     display: inline-flex;
     min-width: 6.4rem;
     min-height: 2.65rem;
@@ -117,8 +119,8 @@
     text-transform: uppercase;
   }
 
-  button:hover { box-shadow: inset 0 0 0 1px var(--color-cyan); }
-  button.error { color: var(--color-danger); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-danger) 70%, var(--color-border)); }
+  :global(.copy-button:hover) { box-shadow: inset 0 0 0 1px var(--color-cyan); }
+  :global(.copy-button.error) { color: var(--color-danger); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-danger) 70%, var(--color-border)); }
 
   svg {
     width: 1rem;
@@ -147,6 +149,6 @@
       padding: 1rem;
     }
 
-    button { grid-column: 1 / -1; width: 100%; }
+    :global(.copy-button) { grid-column: 1 / -1; width: 100%; }
   }
 </style>

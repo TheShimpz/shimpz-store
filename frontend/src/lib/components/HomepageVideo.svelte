@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button } from "@shimpz/frontend";
+
   const videoId = "M7lc1UVf-VE";
   let playing = $state(false);
 </script>
@@ -19,10 +21,10 @@
         aria-hidden="true"
       />
       <div class="scanlines" aria-hidden="true"></div>
-      <button class="homepage-glitch-target" type="button" aria-label="Play example video" onclick={() => playing = true}>
+      <Button class="video-button homepage-glitch-target" type="button" variant="secondary" aria-label="Play example video" onclick={() => playing = true}>
         <span class="play-icon" aria-hidden="true"></span>
         <span class="homepage-glitch-label" data-text="PLAY // DEMO">PLAY // DEMO</span>
-      </button>
+      </Button>
       <span class="video-label" aria-hidden="true">YOUTUBE // PLACEHOLDER</span>
     {/if}
   </div>
@@ -63,7 +65,8 @@
     background: repeating-linear-gradient(to bottom, transparent 0 3px, rgb(0 229 255 / 0.07) 3px 4px);
     pointer-events: none;
   }
-  button {
+  :global(.video-button) {
+    --shimpz-control-cut: 0.75rem;
     position: relative;
     z-index: 1;
     display: inline-flex;
@@ -74,18 +77,17 @@
     border: 1px solid var(--color-cyan);
     background: rgb(0 8 12 / 0.88);
     color: var(--color-cyan);
-    clip-path: polygon(0 0, calc(100% - 0.75rem) 0, 100% 0.75rem, 100% 100%, 0.75rem 100%, 0 calc(100% - 0.75rem));
     cursor: pointer;
     font: 700 0.72rem/1 var(--font-mono);
     letter-spacing: 0.12em;
   }
-  button:hover,
-  button:focus-visible {
+  :global(.video-button:hover),
+  :global(.video-button:focus-visible) {
     border-color: var(--color-pink);
     color: var(--color-fg);
     box-shadow: 0 0 1.4rem rgb(0 229 255 / 0.22);
   }
-  button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 3px; }
+  :global(.video-button:focus-visible) { outline: 2px solid var(--color-fg); outline-offset: 3px; }
   .play-icon {
     width: 0;
     height: 0;
