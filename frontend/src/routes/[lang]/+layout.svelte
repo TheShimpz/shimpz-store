@@ -4,12 +4,18 @@
   import type { Locale } from "$lib/catalog";
   import SiteFooter from "$lib/components/SiteFooter.svelte";
   import SiteHeader from "$lib/components/SiteHeader.svelte";
+  import { localeDirection } from "$lib/locales";
 
   let { data, children } = $props();
   const lang = $derived(data.lang as Locale);
   const pathname = $derived($page.url.pathname);
   const path = $derived(pathname + (browser ? $page.url.search : ""));
   const embedded = $derived(pathname.replace(/\/$/, "") === `/${lang}/assistants/embed`);
+
+  $effect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = localeDirection(lang);
+  });
 </script>
 
 {#if !embedded}<SiteHeader {lang} {path} />{/if}

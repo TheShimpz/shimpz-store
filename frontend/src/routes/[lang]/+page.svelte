@@ -25,7 +25,7 @@
   <HomepageMeshBackground />
   <div class="homepage-content" data-slot="homepage-content">
     <div class="editorial-wrap hero-space">
-      <section data-slot="editorial-hero" class="homepage-hero">
+      <section data-slot="editorial-hero" lang={lang} class="homepage-hero">
         <header>
           <h1 id="hero-title" class="glitch-title" data-text={titleLines.join("\n")} aria-label={titleText}>
             <span class="headline-line"><span class="title-accent">{content.title.accent}</span>{#if content.title.remainder}{titleSeparator}{content.title.remainder}{/if}</span>
@@ -94,7 +94,7 @@
     color: var(--color-fg);
     opacity: 0;
     pointer-events: none;
-    white-space: pre-line;
+    white-space: pre;
   }
   .glitch-title::before {
     animation: glitch-cyan 4.8s infinite steps(1, end);
@@ -150,8 +150,12 @@
     }
   }
   @media (max-width: 620px) {
-    .homepage-hero { --shimpz-type-display-size: clamp(2rem, 9.2vw, 3.3rem); }
-    .headline-line { white-space: normal; }
+    .homepage-hero { --shimpz-type-display-size: clamp(1rem, 7vw, 3.3rem); }
+    .homepage-hero:lang(pt),
+    .homepage-hero:lang(es) { --shimpz-type-display-size: clamp(1rem, 5.6vw, 3.3rem); }
+    .homepage-hero:lang(fr) { --shimpz-type-display-size: clamp(1rem, 5.2vw, 3.3rem); }
+    .homepage-hero:lang(de),
+    .homepage-hero:lang(ja) { --shimpz-type-display-size: clamp(1rem, 4.9vw, 3.3rem); }
   }
   @keyframes glitch-cyan {
     0%, 86%, 91%, 100% { opacity: 0; transform: translate(0); clip-path: inset(0); }
