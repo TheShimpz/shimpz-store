@@ -8,6 +8,7 @@ const D: Dict = {
   home_copy: { en: "Copy", pt: "Copiar", es: "Copiar", zh: "复制", fr: "Copier", de: "Kopieren", ja: "コピー", ar: "نسخ" },
   home_copied: { en: "Copied", pt: "Copiado", es: "Copiado", zh: "已复制", fr: "Copié", de: "Kopiert", ja: "コピー済み", ar: "تم النسخ" },
   home_copy_failed: { en: "Try again", pt: "Tentar novamente", es: "Intentar de nuevo", zh: "重试", fr: "Réessayer", de: "Erneut versuchen", ja: "再試行", ar: "حاول مجددًا" },
+  home_secure: { en: "Secure", pt: "Seguro", es: "Seguro", zh: "安全", fr: "Sécurisé", de: "Sicher", ja: "安全", ar: "آمن" },
   nav_services: { en: "Services", pt: "Services", es: "Servicios", zh: "服务", fr: "Services", de: "Dienste", ja: "サービス", ar: "الخدمات" },
   nav_assistants: { en: "Assistants", pt: "Assistentes", es: "Asistentes", zh: "助手", fr: "Assistants", de: "Assistenten", ja: "アシスタント", ar: "المساعدون" },
   nav_main: { en: "Main", pt: "Principal", es: "Principal", zh: "主导航", fr: "Principale", de: "Hauptnavigation", ja: "メイン", ar: "الرئيسية" },

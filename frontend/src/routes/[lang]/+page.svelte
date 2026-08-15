@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { ShimpzBrand } from "@shimpz/frontend";
   import type { Locale } from "$lib/catalog";
   import HomepageMeshBackground from "$lib/components/HomepageMeshBackground.svelte";
   import HomepageVideo from "$lib/components/HomepageVideo.svelte";
@@ -12,15 +11,10 @@
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
   const content = $derived(homepage(lang));
+  const titleText = $derived(content.titleLines.join(lang === "zh" || lang === "ja" ? "" : " "));
 </script>
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
-
-{#snippet brandSymbol(slot = "homepage-brand-monument")}
-  <div class="hero-brand" data-slot={slot}>
-    <ShimpzBrand variant="symbol" decorative />
-  </div>
-{/snippet}
 
 <div class="homepage-shell">
   <HomepageMeshBackground />
@@ -28,11 +22,10 @@
     <div class="evidence-band" data-slot="homepage-evidence-band">
       <div class="editorial-wrap evidence-section">
         <div class="evidence-install-row">
-          {@render brandSymbol("homepage-install-brand")}
           <div class="evidence-install-content">
             <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
               <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
-              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("nav_security", lang)}</a></li>
+              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_secure", lang)}</a></li>
             </ul>
             <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
           </div>
@@ -43,8 +36,13 @@
     <div class="editorial-wrap hero-space">
       <section data-slot="editorial-hero" class="homepage-hero">
         <header>
-          <h1 id="hero-title" class="glitch-title" data-text={content.title}>
-            {#if lang === "en"}<span class="title-accent">I do the work</span>{" "}<span>so you can focus on what matters.</span>{:else}{content.title}{/if}
+          <h1 id="hero-title" class="glitch-title" data-text={content.titleLines.join("\n")} aria-label={titleText}>
+            {#if lang === "en"}
+              <span class="headline-line"><span class="title-accent">I do the work</span> so you can{" "}</span>
+              <span class="headline-line">focus on what matters.</span>
+            {:else}
+              {#each content.titleLines as line, index}<span class="headline-line">{line}{index === 0 && lang !== "zh" && lang !== "ja" ? " " : ""}</span>{/each}
+            {/if}
           </h1>
         </header>
         <div class="body">
@@ -63,7 +61,9 @@
   .homepage-shell { position: relative; isolation: isolate; }
   .homepage-content { position: relative; z-index: 1; }
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
-  .hero-space { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
+  .hero-space {
+    padding-block: clamp(1rem, 2vw, 1.5rem) clamp(2.5rem, 5vw, 4.5rem);
+  }
   .homepage-hero {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
     --shimpz-type-display-measure: 30ch;
@@ -72,17 +72,17 @@
     row-gap: var(--shimpz-space-4);
     text-align: center;
   }
-  .homepage-hero > header,
+  .homepage-hero > header { width: min(100%, 64rem); min-width: 0; }
   .homepage-hero > .body { width: min(100%, 47rem); min-width: 0; }
   h1 {
     position: relative;
-    max-inline-size: var(--shimpz-type-display-measure);
     margin: 0 auto;
     color: var(--color-fg);
     font: 680 var(--shimpz-type-display-size)/var(--shimpz-type-display-leading) var(--font-sans);
     letter-spacing: var(--shimpz-type-display-tracking);
     text-wrap: balance;
   }
+  .headline-line { display: block; white-space: nowrap; }
   .title-accent { color: var(--color-cyan); }
   .glitch-title::before,
   .glitch-title::after {
@@ -92,6 +92,7 @@
     color: var(--color-fg);
     opacity: 0;
     pointer-events: none;
+    white-space: pre-line;
   }
   .glitch-title::before {
     animation: glitch-cyan 4.8s infinite steps(1, end);
@@ -104,20 +105,22 @@
   .body,
   .copy { min-width: 0; }
   .actions { display: flex; justify-content: center; }
-  .evidence-section { padding-block: clamp(2rem, 4vw, 3.5rem); }
+  .evidence-section {
+    padding-block: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 2vw, 1.5rem);
+  }
   .evidence-install-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 44rem);
+    grid-template-columns: minmax(0, 35.2rem);
     align-items: center;
     justify-content: center;
-    width: min(100%, 58rem);
+    width: min(100%, 35.2rem);
     margin-inline: auto;
-    gap: clamp(1rem, 2vw, 1.5rem);
   }
   .evidence-install-content { display: grid; min-width: 0; gap: var(--shimpz-space-4); }
   .hero-differentials {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: var(--shimpz-space-4) var(--shimpz-space-6);
     margin: 0;
     padding: 0;
@@ -136,15 +139,6 @@
   .hero-differentials a:hover,
   .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
-  .hero-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .hero-brand :global([data-slot="shimpz-brand-mark"]) {
-    width: clamp(7.5rem, 12vw, 10rem);
-    height: clamp(7.5rem, 12vw, 10rem);
-  }
   .evidence-band { background: transparent; }
   :global(body:has(.homepage-shell) button),
   :global(body:has(.homepage-shell) .shimpz-action-link) {
@@ -157,7 +151,7 @@
     }
   }
   @media (max-width: 620px) {
-    .evidence-install-row { grid-template-columns: 1fr; }
+    .homepage-hero { --shimpz-type-display-size: clamp(1rem, 4.6vw, 1.65rem); }
   }
   @keyframes glitch-cyan {
     0%, 86%, 91%, 100% { opacity: 0; transform: translate(0); clip-path: inset(0); }

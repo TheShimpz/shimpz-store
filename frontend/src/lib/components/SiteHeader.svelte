@@ -105,4 +105,8 @@
 
 <style>
   .language-switch { display: contents; }
+  :global([data-slot="site-header"] [data-slot="shimpz-brand-mark"]) {
+    margin-inline: 1.125rem;
+    transform: scale(2);
+  }
 </style>

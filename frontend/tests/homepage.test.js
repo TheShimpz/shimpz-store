@@ -9,7 +9,7 @@ import { tr } from "../src/lib/i18n.ts";
 
 test("freezes the exact first-person English homepage narrative", () => {
   const content = homepage("en");
-  assert.equal(content.title, "I do the work so you can focus on what matters.");
+  assert.deepEqual(content.titleLines, ["I do the work so you can", "focus on what matters."]);
 });
 
 test("provides a complete native homepage narrative for every supported locale", () => {
@@ -19,12 +19,12 @@ test("provides a complete native homepage narrative for every supported locale",
     for (const value of [
       content.seoTitle,
       content.seoDescription,
-      content.title,
+      ...content.titleLines,
     ]) {
       assert.ok(value.trim().length > 0, `${locale} homepage copy is complete`);
     }
     if (locale !== "en") {
-      assert.notEqual(content.title, english.title, `${locale} does not reuse the English headline`);
+      assert.notDeepEqual(content.titleLines, english.titleLines, `${locale} does not reuse the English headline`);
     }
   }
 });
