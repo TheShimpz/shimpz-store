@@ -56,7 +56,7 @@
 {/snippet}
 
 <div class="install-command">
-  <div class="command-shell">
+  <div class="command-shell" dir="ltr">
     <span class="prompt" aria-hidden="true">$</span>
     <code>{command}</code>
     <Button
@@ -66,6 +66,7 @@
       size="lg"
       icon={copyIcon}
       glitch
+      dir="auto"
       type="button"
       onclick={copyCommand}
       aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
@@ -90,9 +91,8 @@
   .command-shell {
     display: grid;
     min-height: 4.25rem;
-    grid-template-columns: auto minmax(0, max-content) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: center;
     gap: 0.8rem;
     padding: 0.75rem 0.8rem 0.75rem 1.1rem;
     background: transparent;
