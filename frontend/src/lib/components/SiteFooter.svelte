@@ -22,19 +22,12 @@
   </div>
 {/snippet}
 
-{#snippet meta()}
-  <i aria-hidden="true"></i>
-  <span>{tr("footer_meta", lang)}</span>
-{/snippet}
-
 <PublicSiteFooter
   brandHref={u.home(lang)}
   brandAriaLabel={tr("brand_home", lang)}
   linksLabel={tr("footer_links", lang)}
-  statement={tr("footer", lang)}
   contentWidth="editorial"
   {links}
-  {meta}
 />
 
 <style>
@@ -44,5 +37,8 @@
     background: transparent;
   }
   :global([data-slot="site-footer-monument"]) { opacity: 0.3; }
-  i { width: .42rem; height: .42rem; background: var(--color-green); border-radius: 50%; box-shadow: 0 0 8px rgba(5,255,161,.55); }
+  :global([data-slot="site-footer"] [data-slot="shimpz-brand-mark"]) {
+    margin-inline: 2.25rem;
+    transform: scale(3);
+  }
 </style>
