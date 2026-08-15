@@ -48,6 +48,7 @@
             <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
               <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
               <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_secure", lang)}</a></li>
+              <li><a href={u.install(lang)}><span aria-hidden="true">//</span>{tr("home_dockerized", lang)}</a></li>
             </ul>
             <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
           </div>
@@ -62,14 +63,14 @@
   .homepage-content { position: relative; z-index: 1; }
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
   .hero-space {
-    padding-block: clamp(1rem, 2vw, 1.5rem);
+    padding-block-start: clamp(3rem, 5vw, 5rem);
   }
   .homepage-hero {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
     --shimpz-type-display-measure: 30ch;
     display: grid;
     justify-items: center;
-    row-gap: var(--shimpz-space-4);
+    row-gap: clamp(3rem, 5vw, 5rem);
     text-align: center;
   }
   .homepage-hero > header { width: min(100%, 64rem); min-width: 0; }
@@ -106,7 +107,7 @@
   .copy { min-width: 0; }
   .actions { display: flex; justify-content: center; }
   .evidence-section {
-    padding-block: clamp(1rem, 2vw, 1.5rem);
+    padding-block: clamp(3rem, 5vw, 5rem) clamp(1rem, 2vw, 1.5rem);
   }
   .evidence-install-row {
     display: grid;
