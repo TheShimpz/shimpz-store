@@ -310,9 +310,8 @@
   .homepage-shell { position: relative; isolation: isolate; }
   .homepage-content { position: relative; z-index: 1; }
   .editorial-wrap { width: min(100% - 2rem, var(--shimpz-editorial-width)); margin-inline: auto; }
-  .hero-space {
-    padding-block: clamp(2.75rem, 5vw, 4.5rem);
-  }
+  .hero-space,
+  .section-space { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
   :global(section[data-slot="editorial-hero"].homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
     --shimpz-type-display-measure: 30ch;
@@ -426,15 +425,14 @@
     color: transparent;
   }
   .surface-band { border-block: 1px solid var(--color-border); background: var(--color-surface); }
-  .section-space { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
   .hero-brand {
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .hero-brand :global([data-slot="shimpz-brand-mark"]) {
-    width: clamp(16rem, 33vw, 30rem);
-    height: clamp(16rem, 33vw, 30rem);
+    width: clamp(16rem, 33vw, 20rem);
+    height: clamp(16rem, 33vw, 20rem);
   }
   .evidence-band { background: var(--color-bg); }
   .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
