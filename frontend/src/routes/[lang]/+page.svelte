@@ -141,7 +141,47 @@
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
   .evidence-band { background: transparent; }
   :global(body:has(.homepage-shell) .homepage-glitch-target) {
-    animation: button-glitch 4.8s 140ms infinite steps(1, end);
+    position: relative;
+    isolation: isolate;
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-target::before),
+  :global(body:has(.homepage-shell) .homepage-glitch-target::after) {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    inset: -1px;
+    border: 1px solid currentColor;
+    opacity: 0;
+    pointer-events: none;
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-target::before) {
+    animation: glitch-cyan 4.8s 140ms infinite steps(1, end);
+    border-color: var(--color-cyan);
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-target::after) {
+    animation: glitch-pink 4.8s 210ms infinite steps(1, end);
+    border-color: var(--color-pink);
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-label) {
+    position: relative;
+    display: inline-block;
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-label::before),
+  :global(body:has(.homepage-shell) .homepage-glitch-label::after) {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-label::before) {
+    animation: glitch-cyan 4.8s 140ms infinite steps(1, end);
+    text-shadow: -2px 0 var(--color-cyan);
+  }
+  :global(body:has(.homepage-shell) .homepage-glitch-label::after) {
+    animation: glitch-pink 4.8s 210ms infinite steps(1, end);
+    text-shadow: 2px 0 var(--color-pink);
   }
   @media (max-width: 900px) {
     .homepage-hero {
@@ -164,16 +204,13 @@
     89% { opacity: 0.5; transform: translate(-2px, 1px); clip-path: inset(18% 0 58% 0); }
     90% { opacity: 0.66; transform: translate(1px, 0); clip-path: inset(43% 0 31% 0); }
   }
-  @keyframes button-glitch {
-    0%, 86%, 91%, 100% { transform: translate(0); filter: none; }
-    87% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 var(--color-pink)); }
-    88% { transform: translate(2px, -1px); filter: drop-shadow(-2px 0 var(--color-cyan)); }
-    89% { transform: translate(-1px, 0); filter: drop-shadow(1px 0 var(--color-pink)); }
-  }
   @media (prefers-reduced-motion: reduce) {
     .glitch-title::before,
     .glitch-title::after,
-    :global(body:has(.homepage-shell) .homepage-glitch-target) { animation: none; }
+    :global(body:has(.homepage-shell) .homepage-glitch-target::before),
+    :global(body:has(.homepage-shell) .homepage-glitch-target::after),
+    :global(body:has(.homepage-shell) .homepage-glitch-label::before),
+    :global(body:has(.homepage-shell) .homepage-glitch-label::after) { animation: none; }
   }
   @media (forced-colors: active) {
     h1,

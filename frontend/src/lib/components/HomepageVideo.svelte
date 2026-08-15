@@ -21,7 +21,7 @@
       <div class="scanlines" aria-hidden="true"></div>
       <button class="homepage-glitch-target" type="button" aria-label="Play example video" onclick={() => playing = true}>
         <span class="play-icon" aria-hidden="true"></span>
-        <span>PLAY // DEMO</span>
+        <span class="homepage-glitch-label" data-text="PLAY // DEMO">PLAY // DEMO</span>
       </button>
       <span class="video-label" aria-hidden="true">YOUTUBE // PLACEHOLDER</span>
     {/if}

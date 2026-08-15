@@ -80,7 +80,9 @@
 {/snippet}
 
 {#snippet actions()}
-  <ActionLink class="homepage-glitch-target" href={u.install(lang)} variant="primary" size="compact">{tr("nav_install", lang)}</ActionLink>
+  <ActionLink class="homepage-glitch-target" href={u.install(lang)} variant="primary" size="compact">
+    <span class="homepage-glitch-label" data-text={tr("nav_install", lang)}>{tr("nav_install", lang)}</span>
+  </ActionLink>
   <AccountMenu {lang} />
   <div class="language-switch" data-sveltekit-noscroll onclickcapture={rememberLanguageScroll}>
     <DropdownMenu
