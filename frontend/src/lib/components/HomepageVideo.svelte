@@ -72,18 +72,7 @@
     --shimpz-control-cut: 0.75rem;
     position: relative;
     z-index: 1;
-    border: 1px solid var(--color-cyan);
-    background: rgb(0 8 12 / 0.88);
-    color: var(--color-cyan);
-    letter-spacing: 0.12em;
   }
-  :global(.video-button:hover),
-  :global(.video-button:focus-visible) {
-    border-color: var(--color-magenta);
-    color: var(--color-fg);
-    box-shadow: 0 0 1.4rem rgb(0 229 255 / 0.22);
-  }
-  :global(.video-button:focus-visible) { outline: 2px solid var(--color-fg); outline-offset: 3px; }
   .play-icon {
     width: 0;
     height: 0;
