@@ -6,7 +6,6 @@
   import Seo from "$lib/components/Seo.svelte";
   import { homepage } from "$lib/homepage";
   import { tr } from "$lib/i18n";
-  import { u } from "$lib/url";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);
@@ -31,6 +30,7 @@
             <span class="headline-line"><span class="title-accent">{content.title.accent}</span>{#if content.title.remainder}{titleSeparator}{content.title.remainder}{/if}</span>
             <span class="headline-line">{content.title.secondLine}</span>
           </h1>
+          <p class="hero-privacy">{tr("home_privacy_line", lang)}</p>
         </header>
         <div class="body">
           <div class="copy">
@@ -47,9 +47,9 @@
         <div class="evidence-install-row">
           <div class="evidence-install-content">
             <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-              <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
-              <li><a href={u.install(lang)}><span aria-hidden="true">//</span>{tr("home_self_hosted", lang)}</a></li>
-              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("home_sandboxed", lang)}</a></li>
+              <li><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</li>
+              <li><span aria-hidden="true">//</span>{tr("home_self_hosted", lang)}</li>
+              <li><span aria-hidden="true">//</span>{tr("home_sandboxed", lang)}</li>
             </ul>
             <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
           </div>
@@ -74,7 +74,7 @@
     row-gap: clamp(3rem, 5vw, 5rem);
     text-align: center;
   }
-  .homepage-hero > header { width: min(100%, 64rem); min-width: 0; }
+  .homepage-hero > header { position: relative; width: min(100%, 64rem); min-width: 0; }
   .homepage-hero > .body { width: min(100%, 47rem); min-width: 0; }
   h1 {
     position: relative;
@@ -85,6 +85,15 @@
     text-wrap: balance;
   }
   .headline-line { display: block; white-space: nowrap; }
+  .hero-privacy {
+    position: absolute;
+    inset-block-start: calc(100% + var(--shimpz-space-2));
+    inset-inline: 0;
+    margin: 0;
+    color: var(--color-muted);
+    font: 500 calc(var(--shimpz-type-display-size) * 0.4)/1.3 var(--font-sans);
+    text-align: center;
+  }
   .title-accent { color: var(--color-cyan); }
   .glitch-title::before,
   .glitch-title::after {
@@ -128,20 +137,17 @@
     padding: 0;
     list-style: none;
   }
-  .hero-differentials a {
+  .hero-differentials li {
     display: inline-flex;
     align-items: center;
     gap: var(--shimpz-space-2);
     color: var(--color-fg);
     font: 600 0.72rem/1.2 var(--font-mono);
     letter-spacing: 0.08em;
-    text-decoration: none;
     text-transform: uppercase;
   }
-  .hero-differentials a:hover,
-  .hero-differentials a:focus-visible { color: var(--color-cyan); }
   .hero-differentials span { color: var(--color-cyan); font-size: 0.62rem; }
-  :global([dir="rtl"]) .hero-differentials a { letter-spacing: normal; }
+  :global([dir="rtl"]) .hero-differentials li { letter-spacing: normal; }
   .evidence-band { background: transparent; }
   @media (max-width: 900px) {
     .homepage-hero {

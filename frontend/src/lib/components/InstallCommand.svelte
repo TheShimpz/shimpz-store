@@ -90,8 +90,9 @@
   .command-shell {
     display: grid;
     min-height: 4.25rem;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, max-content) auto;
     align-items: center;
+    justify-content: center;
     gap: 0.8rem;
     padding: 0.75rem 0.8rem 0.75rem 1.1rem;
     background: transparent;

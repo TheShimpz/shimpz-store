@@ -19,11 +19,6 @@
         allowfullscreen
       ></iframe>
     {:else}
-      <img
-        src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
-        alt=""
-        aria-hidden="true"
-      />
       <div class="scanlines" aria-hidden="true"></div>
       <Button class="video-button" type="button" variant="secondary" size="xl" icon={playIcon} glitch aria-label="Play example video" onclick={() => playing = true}>
         PLAY // DEMO
@@ -49,18 +44,12 @@
     background: #02070a;
     clip-path: inherit;
   }
-  iframe,
-  img {
+  iframe {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     border: 0;
-  }
-  img {
-    object-fit: cover;
-    opacity: 0.42;
-    filter: grayscale(0.65) contrast(1.25) brightness(0.65) hue-rotate(145deg);
   }
   .scanlines {
     position: absolute;
