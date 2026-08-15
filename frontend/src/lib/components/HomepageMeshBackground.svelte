@@ -105,15 +105,15 @@ void main() {
   uv = vec2(cos(angle), sin(angle)) * radius;
 
   float noiseValue = clamp(0.5 * (fbm(uv + vec2(time * 0.16, 0.0)) + 1.0), 0.0, 1.0);
-  float signal = smoothstep(0.30, 0.92, noiseValue);
+  float signal = smoothstep(0.24, 0.78, noiseValue);
 
   vec3 black = vec3(0.0, 0.002, 0.004);
-  vec3 deepBlue = vec3(0.0, 0.06, 0.11);
-  vec3 mutedCyan = vec3(0.0, 0.22, 0.26);
+  vec3 deepBlue = vec3(0.0, 0.12, 0.20);
+  vec3 mutedCyan = vec3(0.0, 0.42, 0.54);
   vec3 color = mix(black, deepBlue, signal);
-  color = mix(color, mutedCyan, smoothstep(0.76, 1.0, signal) * 0.28);
+  color = mix(color, mutedCyan, smoothstep(0.62, 1.0, signal) * 0.45);
 
-  float alpha = smoothstep(0.20, 0.94, signal) * 0.40;
+  float alpha = smoothstep(0.10, 0.80, signal) * 0.66;
   outColor = vec4(color, alpha);
 }`;
 
