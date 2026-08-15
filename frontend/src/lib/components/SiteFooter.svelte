@@ -57,6 +57,11 @@
       justify-content: center;
     }
 
+    :global([data-slot="site-footer"] .brand > p) {
+      width: 100%;
+      text-align: center;
+    }
+
     :global([data-slot="site-footer"] nav) {
       display: grid;
       width: 100%;
