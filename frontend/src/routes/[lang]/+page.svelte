@@ -14,7 +14,11 @@
   import HudIcon, { type HudIconName } from "$lib/components/HudIcon.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
-  import { homepage } from "$lib/homepage";
+  import {
+    homepage,
+    HOMEPAGE_TASK_HOLD_MS,
+    HOMEPAGE_TASK_TYPING_DELAY_MS,
+  } from "$lib/homepage";
   import { tr } from "$lib/i18n";
   import { MAX_PENDING_TASK_CHARS, savePendingTask } from "$lib/pendingTask.js";
   import { u } from "$lib/url";
@@ -31,62 +35,117 @@
   let taskField: HTMLTextAreaElement | undefined = $state();
   let animatedTaskPrompt = $state("");
   let taskPromptVisible = $state(false);
+  let taskPromptControlVisible = $state(false);
+  let taskPromptPaused = $state(false);
+  let reducedMotion = $state(false);
   let taskInteracted = false;
   let cancelTaskPromptAnimation = () => {};
+  let setTaskPromptPaused = (_paused: boolean) => {};
 
   onMount(() => {
     taskReady = true;
     void tick().then(() => taskField?.focus({ preventScroll: true }));
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotionPreference = () => {
+      reducedMotion = motionPreference.matches;
+    };
+    syncMotionPreference();
+    motionPreference.addEventListener("change", syncMotionPreference);
+
+    return () => motionPreference.removeEventListener("change", syncMotionPreference);
   });
 
   $effect(() => {
     const examples = content.taskExamples;
     const stablePrompt = content.taskPlaceholder;
-    if (!taskReady || taskInteracted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!taskReady || taskInteracted || reducedMotion) {
       taskPromptVisible = false;
+      taskPromptControlVisible = false;
       return;
     }
 
     const segmenter = new Intl.Segmenter(lang, { granularity: "grapheme" });
     const graphemes = (value: string) => Array.from(segmenter.segment(value), ({ segment }) => segment);
     const stable = graphemes(stablePrompt);
-    const first = graphemes(examples[0]);
-    const second = graphemes(examples[1]);
+    type Frame = { text: string; example: string; phase: "stable" | "type" | "erase"; delay: number };
     const frames = [
-      ...stable.map((_, index) => stable.slice(0, stable.length - index - 1).join("")),
-      ...first.map((_, index) => first.slice(0, index + 1).join("")),
-      ...first.map((_, index) => first.slice(0, first.length - index - 1).join("")),
-      ...second.map((_, index) => second.slice(0, index + 1).join("")),
-    ];
-    const firstCompleteIndex = stable.length + first.length - 1;
-    const pauseAfterFirst = 350;
-    const stepDelay = Math.max(12, Math.min(40, Math.floor((4_000 - pauseAfterFirst) / frames.length)));
+      ...stable.map((_, index): Frame => ({
+        text: stable.slice(0, stable.length - index - 1).join(""),
+        example: examples[0],
+        phase: "stable",
+        delay: HOMEPAGE_TASK_TYPING_DELAY_MS,
+      })),
+      ...examples.flatMap((example): Frame[] => {
+        const characters = graphemes(example);
+        return [
+          ...characters.map((_, index): Frame => ({
+            text: characters.slice(0, index + 1).join(""),
+            example,
+            phase: "type",
+            delay: index === characters.length - 1
+              ? HOMEPAGE_TASK_HOLD_MS
+              : HOMEPAGE_TASK_TYPING_DELAY_MS,
+          })),
+          ...characters.map((_, index): Frame => ({
+            text: characters.slice(0, characters.length - index - 1).join(""),
+            example,
+            phase: "erase",
+            delay: HOMEPAGE_TASK_TYPING_DELAY_MS,
+          })),
+        ];
+      }),
+    ] satisfies Frame[];
     let frameIndex = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
+    let paused = false;
+    let activeExample = examples[0];
 
     animatedTaskPrompt = stablePrompt;
     taskPromptVisible = true;
+    taskPromptControlVisible = true;
+    taskPromptPaused = false;
 
+    // An indefinite loop requires the user-visible pause control rendered after the form submit button.
     const advance = () => {
-      if (cancelled) return;
-      animatedTaskPrompt = frames[frameIndex];
-      const delay = frameIndex === firstCompleteIndex ? pauseAfterFirst : stepDelay;
-      frameIndex += 1;
-      if (frameIndex < frames.length) timer = setTimeout(advance, delay);
+      if (cancelled || paused) return;
+      const frame = frames[frameIndex];
+      animatedTaskPrompt = frame.text;
+      activeExample = frame.example;
+      frameIndex = (frameIndex + 1) % frames.length;
+      timer = setTimeout(advance, frame.delay);
     };
-    timer = setTimeout(advance, stepDelay);
+    timer = setTimeout(advance, HOMEPAGE_TASK_TYPING_DELAY_MS);
+
+    const setPaused = (nextPaused: boolean) => {
+      if (cancelled || nextPaused === paused) return;
+      paused = nextPaused;
+      taskPromptPaused = nextPaused;
+      if (timer !== undefined) clearTimeout(timer);
+      if (nextPaused) {
+        animatedTaskPrompt = activeExample;
+        const firstEraseFrame = frames.findIndex(
+          (frame) => frame.example === activeExample && frame.phase === "erase",
+        );
+        if (firstEraseFrame >= 0) frameIndex = firstEraseFrame;
+        return;
+      }
+      timer = setTimeout(advance, HOMEPAGE_TASK_TYPING_DELAY_MS);
+    };
+    setTaskPromptPaused = setPaused;
 
     const cancel = () => {
       cancelled = true;
       if (timer !== undefined) clearTimeout(timer);
       taskPromptVisible = false;
+      taskPromptControlVisible = false;
     };
     cancelTaskPromptAnimation = cancel;
 
     return () => {
       cancel();
       if (cancelTaskPromptAnimation === cancel) cancelTaskPromptAnimation = () => {};
+      if (setTaskPromptPaused === setPaused) setTaskPromptPaused = () => {};
     };
   });
 
@@ -151,6 +210,18 @@
       {/if}
     </div>
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
+    {#if taskPromptControlVisible}
+      <Button
+        type="button"
+        class="task-prompt-toggle"
+        variant="ghost"
+        size="compact"
+        aria-pressed={taskPromptPaused}
+        onclick={() => setTaskPromptPaused(!taskPromptPaused)}
+      >
+        {taskPromptPaused ? content.taskAnimationResume : content.taskAnimationPause}
+      </Button>
+    {/if}
   </form>
 {/snippet}
 
@@ -239,34 +310,40 @@
     padding-block: clamp(5.5rem, 10vw, 9rem);
   }
   :global(section[data-slot="editorial-hero"].homepage-hero) {
-    --shimpz-type-display-size: clamp(2.15rem, 4.2vw, 4rem);
+    --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
+    --shimpz-type-display-measure: 30ch;
     --homepage-hero-column-gap: clamp(var(--shimpz-space-8), 6vw, var(--shimpz-space-16));
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
+    grid-template-columns: minmax(29.5rem, 0.8fr) minmax(0, 1.2fr);
     column-gap: var(--homepage-hero-column-gap);
     row-gap: var(--shimpz-space-4);
-    align-items: start;
+    align-items: center;
   }
-  :global(.homepage-hero > header) { grid-column: 1; grid-row: 1; }
+  :global(.homepage-hero > header) { grid-column: 2; grid-row: 1; align-self: end; }
   :global(.homepage-hero > .body.has-media) { display: contents; }
-  :global(.homepage-hero > .body.has-media > .copy) { grid-column: 1; grid-row: 2; }
+  :global(.homepage-hero > .body.has-media > .copy) { grid-column: 2; grid-row: 2; align-self: start; }
   :global(.homepage-hero > .body.has-media > [data-slot="editorial-hero-media"]) {
-    position: absolute;
-    inset-block-start: 50%;
-    inset-inline-end: 0;
-    width: calc((100% - var(--homepage-hero-column-gap)) / 2);
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 100%;
     min-width: 0;
-    transform: translateY(-50%);
+    align-self: center;
   }
   .hero-task {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     width: 100%;
     gap: var(--shimpz-space-3);
     align-items: start;
   }
+  .hero-task :global(.shimpz-button[type="submit"]) { width: 100%; }
   .hero-task-prompt { position: relative; min-width: 0; }
+  .hero-task :global(.task-prompt-toggle) {
+    --button-color: var(--color-fg);
+    --button-hover-color: var(--color-cyan);
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
   .task-prompt-typing {
     position: absolute;
     z-index: 1;
@@ -334,6 +411,7 @@
   @media (max-width: 760px) {
     :global(section[data-slot="editorial-hero"].homepage-hero) {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
+      --shimpz-type-display-measure: 22ch;
       grid-template-columns: 1fr;
       row-gap: var(--shimpz-space-4);
     }
@@ -361,8 +439,6 @@
       width: min(70vw, 16rem);
       height: min(70vw, 16rem);
     }
-    .hero-task { grid-template-columns: 1fr; }
-    .hero-task :global(.shimpz-button) { width: 100%; }
     .feature-list { grid-template-columns: 1fr; }
     .feature-list li { min-height: auto; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .feature-list li:last-child { border-block-end: 0; }
