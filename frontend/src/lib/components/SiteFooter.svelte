@@ -42,4 +42,33 @@
     transform: scale(6);
   }
   :global([data-slot="site-footer"] [data-slot="shimpz-brand-wordmark"]) { display: none; }
+
+  @media (max-width: 620px) {
+    :global([data-slot="site-footer"] .shimpz-brand) {
+      width: 100%;
+      min-height: 13.5rem;
+      align-items: center;
+      justify-content: center;
+    }
+
+    :global([data-slot="site-footer"] nav) {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(1rem, 6vw, 2rem);
+    }
+
+    :global([data-slot="site-footer-group"]) {
+      width: 100%;
+      min-width: 0;
+    }
+
+    :global([data-slot="site-footer-group-title"]) {
+      font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+    }
+
+    :global([data-slot="site-footer-group"] a) {
+      font-size: clamp(0.64rem, 2.8vw, 0.78rem);
+    }
+  }
 </style>
