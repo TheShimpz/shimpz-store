@@ -35,7 +35,6 @@
   let taskField: HTMLTextAreaElement | undefined = $state();
   let animatedTaskPrompt = $state("");
   let taskPromptVisible = $state(false);
-  let taskPromptControlVisible = $state(false);
   let taskPromptPaused = $state(false);
   let reducedMotion = $state(false);
   let taskInteracted = false;
@@ -60,7 +59,6 @@
     const stablePrompt = content.taskPlaceholder;
     if (!taskReady || taskInteracted || reducedMotion) {
       taskPromptVisible = false;
-      taskPromptControlVisible = false;
       return;
     }
 
@@ -103,7 +101,6 @@
 
     animatedTaskPrompt = stablePrompt;
     taskPromptVisible = true;
-    taskPromptControlVisible = true;
     taskPromptPaused = false;
 
     // An indefinite loop requires the user-visible pause control rendered after the form submit button.
@@ -112,7 +109,7 @@
       const frame = frames[frameIndex];
       animatedTaskPrompt = frame.text;
       activeExample = frame.example;
-      frameIndex = (frameIndex + 1) % frames.length;
+      frameIndex = frameIndex + 1 >= frames.length ? stable.length : frameIndex + 1;
       timer = setTimeout(advance, frame.delay);
     };
     timer = setTimeout(advance, HOMEPAGE_TASK_TYPING_DELAY_MS);
@@ -138,7 +135,6 @@
       cancelled = true;
       if (timer !== undefined) clearTimeout(timer);
       taskPromptVisible = false;
-      taskPromptControlVisible = false;
     };
     cancelTaskPromptAnimation = cancel;
 
@@ -210,13 +206,12 @@
       {/if}
     </div>
     <Button type="submit" disabled={!taskReady || !firstTask.trim()}>{content.taskSubmit} →</Button>
-    {#if taskPromptControlVisible}
+    {#if taskPromptVisible}
       <Button
         type="button"
         class="task-prompt-toggle"
         variant="ghost"
         size="compact"
-        aria-pressed={taskPromptPaused}
         onclick={() => setTaskPromptPaused(!taskPromptPaused)}
       >
         {taskPromptPaused ? content.taskAnimationResume : content.taskAnimationPause}
@@ -408,7 +403,7 @@
   .feature-mark span { color: var(--color-cyan); font: 600 .66rem/1 var(--font-mono); letter-spacing: .1em; }
   .feature-list h3 { margin: 0 0 .6rem; font-size: 1.05rem; line-height: 1.25; }
   .feature-list p { margin: 0; color: var(--color-muted); font-size: .9rem; line-height: 1.65; }
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
     :global(section[data-slot="editorial-hero"].homepage-hero) {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
       --shimpz-type-display-measure: 22ch;
