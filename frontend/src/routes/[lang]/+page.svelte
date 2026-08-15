@@ -45,13 +45,15 @@
 
     <div class="evidence-band" data-slot="homepage-evidence-band">
       <div class="editorial-wrap evidence-section">
-        <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-          <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
-          <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
-        </ul>
         <div class="evidence-install-row">
           {@render brandSymbol("homepage-install-brand")}
-          <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+          <div class="evidence-install-content">
+            <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
+              <li><a href={u.openSource(lang)}><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</a></li>
+              <li><a href={u.security(lang)}><span aria-hidden="true">//</span>{tr("nav_security", lang)}</a></li>
+            </ul>
+            <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+          </div>
         </div>
       </div>
     </div>
@@ -111,8 +113,17 @@
   .body,
   .copy { min-width: 0; }
   .actions { display: flex; justify-content: center; }
-  .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(2rem, 4vw, 3.5rem); }
-  .evidence-install-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: clamp(2rem, 5vw, 4rem); }
+  .evidence-section { padding-block: clamp(2rem, 4vw, 3.5rem); }
+  .evidence-install-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 44rem);
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 58rem);
+    margin-inline: auto;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+  .evidence-install-content { display: grid; min-width: 0; gap: var(--shimpz-space-4); }
   .hero-differentials {
     display: flex;
     flex-wrap: wrap;
@@ -152,7 +163,6 @@
   }
   @media (max-width: 620px) {
     .evidence-install-row { grid-template-columns: 1fr; }
-    .hero-brand { justify-content: start; }
   }
   @keyframes glitch-cyan {
     0%, 86%, 91%, 100% { opacity: 0; transform: translate(0); clip-path: inset(0); }
