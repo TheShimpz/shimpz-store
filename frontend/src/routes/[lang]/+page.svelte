@@ -172,7 +172,7 @@
 
 <Seo title={content.seoTitle} description={content.seoDescription} {lang} />
 
-{#snippet heroMedia()}
+{#snippet brandSymbol()}
   <div class="hero-brand" data-slot="homepage-brand-monument">
     <ShimpzBrand variant="symbol" decorative />
   </div>
@@ -241,7 +241,6 @@
         title={content.title}
         lead={content.lead}
         titleId="hero-title"
-        media={heroMedia}
         actions={heroActions}
       />
     </div>
@@ -252,7 +251,10 @@
           <li><a href={u.openSource(lang)}><span aria-hidden="true">01</span>{tr("nav_open_source", lang)}</a></li>
           <li><a href={u.security(lang)}><span aria-hidden="true">02</span>{tr("nav_security", lang)}</a></li>
         </ul>
-        <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+        <div class="evidence-install-row">
+          {@render brandSymbol()}
+          <div data-slot="homepage-install-command"><InstallCommand {lang} /></div>
+        </div>
       </div>
     </div>
 
@@ -315,29 +317,22 @@
   :global(section[data-slot="editorial-hero"].homepage-hero) {
     --shimpz-type-display-size: clamp(2.15rem, 3.4vw, 3.5rem);
     --shimpz-type-display-measure: 30ch;
-    --homepage-hero-column-gap: clamp(var(--shimpz-space-8), 6vw, var(--shimpz-space-16));
-    display: grid;
-    grid-template-columns: minmax(29.5rem, 0.8fr) minmax(0, 1.2fr);
-    column-gap: var(--homepage-hero-column-gap);
+    justify-items: center;
     row-gap: var(--shimpz-space-4);
-    align-items: center;
+    text-align: center;
   }
-  :global(.homepage-hero > header) { grid-column: 2; grid-row: 1; align-self: end; }
+  :global(.homepage-hero > header),
+  :global(.homepage-hero > .body) { width: min(100%, 47rem); }
   :global(.homepage-hero > header > .kicker) { text-transform: none; }
-  :global(.homepage-hero > .body.has-media) { display: contents; }
-  :global(.homepage-hero > .body.has-media > .copy) { grid-column: 2; grid-row: 2; align-self: start; }
-  :global(.homepage-hero > .body.has-media > [data-slot="editorial-hero-media"]) {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    width: 100%;
-    min-width: 0;
-    align-self: center;
-  }
+  :global(.homepage-hero h1),
+  :global(.homepage-hero .lead) { margin-inline: auto; }
   .hero-task {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
+    max-width: 32.9rem;
+    margin-inline: auto;
     gap: var(--shimpz-space-3);
     align-items: start;
   }
@@ -394,6 +389,7 @@
     white-space: pre-wrap;
   }
   .evidence-section { display: grid; gap: var(--shimpz-space-6); padding-block: clamp(2rem, 4vw, 3.5rem); }
+  .evidence-install-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: clamp(2rem, 5vw, 4rem); }
   .hero-differentials {
     display: flex;
     flex-wrap: wrap;
@@ -431,8 +427,8 @@
     justify-content: center;
   }
   .hero-brand :global([data-slot="shimpz-brand-mark"]) {
-    width: clamp(16rem, 33vw, 20rem);
-    height: clamp(16rem, 33vw, 20rem);
+    width: clamp(7.5rem, 12vw, 10rem);
+    height: clamp(7.5rem, 12vw, 10rem);
   }
   .evidence-band { background: var(--color-bg); }
   .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--color-border); list-style: none; }
@@ -446,35 +442,13 @@
     :global(section[data-slot="editorial-hero"].homepage-hero) {
       --shimpz-type-display-size: clamp(1.65rem, 6.9vw, 2rem);
       --shimpz-type-display-measure: 22ch;
-      grid-template-columns: 1fr;
-      row-gap: var(--shimpz-space-4);
-    }
-    :global(.homepage-hero > header) { grid-column: 1; grid-row: auto; }
-    :global(.homepage-hero > .body.has-media) {
-      display: grid;
-      grid-column: 1;
-      grid-row: auto;
-      grid-template-columns: 1fr;
-      gap: var(--shimpz-space-8);
-      align-items: start;
-    }
-    :global(.homepage-hero > .body.has-media > .copy),
-    :global(.homepage-hero > .body.has-media > [data-slot="editorial-hero-media"]) {
-      grid-column: 1;
-      grid-row: auto;
-    }
-    :global(.homepage-hero > .body.has-media > [data-slot="editorial-hero-media"]) {
-      position: static;
-      width: auto;
-      transform: none;
-    }
-    .hero-brand { min-height: min(70vw, 16rem); }
-    .hero-brand :global([data-slot="shimpz-brand-mark"]) {
-      width: min(70vw, 16rem);
-      height: min(70vw, 16rem);
     }
     .feature-list { grid-template-columns: 1fr; }
     .feature-list li { min-height: auto; border-inline-end: 0; border-block-end: 1px solid var(--color-border); }
     .feature-list li:last-child { border-block-end: 0; }
+  }
+  @media (max-width: 620px) {
+    .evidence-install-row { grid-template-columns: 1fr; }
+    .hero-brand { justify-content: start; }
   }
 </style>
