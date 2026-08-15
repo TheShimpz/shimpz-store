@@ -10,7 +10,7 @@ const D: Dict = {
   home_copy_failed: { en: "Try again", pt: "Tentar novamente", es: "Intentar de nuevo", zh: "重试", fr: "Réessayer", de: "Erneut versuchen", ja: "再試行", ar: "حاول مجددًا" },
   home_self_hosted: { en: "Self hosted", pt: "Auto-hospedado", es: "Autohospedado", zh: "自托管", fr: "Auto-hébergé", de: "Selbst gehostet", ja: "セルフホスト", ar: "مستضاف ذاتيًا" },
   home_sandboxed: { en: "Sandboxed", pt: "Em sandbox", es: "En sandbox", zh: "沙箱隔离", fr: "En sandbox", de: "In Sandbox", ja: "サンドボックス", ar: "ضمن بيئة معزولة" },
-  home_read_script: { en: "Read the script first", pt: "Leia o script primeiro", es: "Lee primero el script", zh: "先阅读脚本", fr: "Lisez d’abord le script", de: "Script zuerst lesen", ja: "先にスクリプトを読む", ar: "اقرأ النص البرمجي أولًا" },
+  home_read_script: { en: "Read the script first", pt: "Leia o script primeiro", es: "Lee primero el script", zh: "先阅读脚本", fr: "Lisez d’abord le script", de: "Skript zuerst lesen", ja: "先にスクリプトを読む", ar: "اقرأ النص البرمجي أولًا" },
   nav_main: { en: "Main", pt: "Principal", es: "Principal", zh: "主导航", fr: "Principale", de: "Hauptnavigation", ja: "メイン", ar: "الرئيسية" },
   brand_home: { en: "Shimpz home", pt: "Início da Shimpz", es: "Inicio de Shimpz", zh: "Shimpz 首页", fr: "Accueil Shimpz", de: "Shimpz-Startseite", ja: "Shimpz ホーム", ar: "صفحة Shimpz الرئيسية" },
   nav_docs: { en: "Docs", pt: "Docs", es: "Docs", zh: "文档", fr: "Docs", de: "Doku", ja: "ドキュメント", ar: "الوثائق" },
