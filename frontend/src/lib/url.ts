@@ -1,22 +1,16 @@
-// Public URLs for the implemented product and platform-capability surfaces.
-import type { Locale, Service } from "$lib/catalog";
+// Public URLs for the implemented product surfaces.
+import type { Locale } from "$lib/catalog";
 
 export const SITE = "https://shimpz.com";
 
 export const u = {
   home: (l: Locale) => `/${l}`,
-  services: (l: Locale) => `/${l}/services`,
-  service: (l: Locale, service: Service) => `/${l}/services/${service.id}`,
   assistants: (l: Locale) => `/${l}/assistants`,
   team: (l: Locale) => `/${l}/team`,
   chat: (l: Locale, teamId?: string) =>
     `/${l}/chat${teamId ? `?team=${encodeURIComponent(teamId)}` : ""}`,
   login: (l: Locale) => `/${l}/login`,
   account: (l: Locale) => `/${l}/account`,
-  creators: (l: Locale) => `/${l}/creators`,
-  creator: (l: Locale, handle: string) => `/${l}/creators/${handle}`,
-  security: (l: Locale) => `/${l}/security`,
-  install: (l: Locale) => `/${l}/install`,
   openSource: (l: Locale) => `/${l}/open-source`,
   about: (l: Locale) => `/${l}/about`,
 };

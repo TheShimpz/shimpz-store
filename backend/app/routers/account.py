@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -12,7 +11,6 @@ from app.config import ACCOUNT_COOKIE, MAX_AUTH_BODY_BYTES
 from app.payloads import read_bounded_json
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
-log = structlog.get_logger()
 router = APIRouter()
 
 
@@ -20,12 +18,12 @@ async def _bounded_call(*args, **kwargs) -> tuple[int, dict]:
     return await call_bounded(authn.EXECUTOR, *args, **kwargs)
 
 
-async def _credential_route(request: Request, path: str) -> JSONResponse:
+async def _login(request: Request) -> JSONResponse:
     payload = await read_bounded_json(request, MAX_AUTH_BODY_BYTES)
     status, data = await _bounded_call(
         authn.ACCOUNT_URL,
         "POST",
-        path,
+        "/v1/login",
         {"username": payload.get("username"), "password": payload.get("password")},
         extra={"X-Forwarded-For": authn.client_ip(request)},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
@@ -34,19 +32,12 @@ async def _credential_route(request: Request, path: str) -> JSONResponse:
     response = private_json(body, status)
     if status == 200 and data.get("token"):
         authn.set_cookie(response, data["token"])
-        if path == "/v1/signup":
-            log.info("signup", username=data.get("username"))
     return response
-
-
-@router.post("/api/signup")
-async def signup(request: Request) -> JSONResponse:
-    return await _credential_route(request, "/v1/signup")
 
 
 @router.post("/api/login")
 async def login(request: Request) -> JSONResponse:
-    return await _credential_route(request, "/v1/login")
+    return await _login(request)
 
 
 @router.post("/api/logout")

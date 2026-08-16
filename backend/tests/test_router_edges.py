@@ -42,14 +42,14 @@ def test_account_routes_set_and_clear_cookie_and_project_me(monkeypatch):
     monkeypatch.setattr(account, "_bounded_call", credentials)
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
     with TestClient(app) as client:
-        signup = client.post("/api/signup", json={"username": "user", "password": "secret"})
         login = client.post("/api/login", json={"username": "user", "password": "secret"})
         me = client.get("/api/me")
         logout = client.post("/api/logout")
-    for response in (signup, login):
-        assert response.status_code == 200
-        assert response.json() == {"account_id": "account", "username": "user"}
-        assert response.headers["set-cookie"].startswith("shimpz_account=opaque;")
+        signup = client.post("/api/signup", json={})
+    assert login.status_code == 200
+    assert login.json() == {"account_id": "account", "username": "user"}
+    assert login.headers["set-cookie"].startswith("shimpz_account=opaque;")
+    assert signup.status_code == 405
     assert me.json() == {"authenticated": True, "account_id": "account", "username": "user"}
     assert logout.json() == {"ok": True}
     assert "Max-Age=0" in logout.headers["set-cookie"]

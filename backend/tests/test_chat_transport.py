@@ -759,46 +759,15 @@ def test_bounded_executor_counts_running_and_queued_work_then_recovers():
 def test_public_auth_json_is_bounded_before_any_upstream_hop():
     oversized = json.dumps({"padding": "x" * (config.MAX_AUTH_BODY_BYTES + 1)})
     with TestClient(app) as client:
-        responses = [
-            client.post(path, content=oversized, headers={"Content-Type": "application/json"})
-            for path in ("/api/signup", "/api/login")
-        ]
-    assert [response.status_code for response in responses] == [413, 413]
-
-
-def test_signup_forwards_only_the_persisted_credentials(monkeypatch):
-    forwarded = []
-
-    async def bounded_call(*args, extra=None, **kwargs):
-        forwarded.append((*args, extra, kwargs["timeout"]))
-        return 400, {"error": "rejected"}
-
-    monkeypatch.setattr("app.routers.account._bounded_call", bounded_call)
-    with TestClient(app) as client:
         response = client.post(
-            "/api/signup",
-            json={
-                "username": "account-user",
-                "password": "correct horse battery staple",
-                "github": "ignored",
-            },
+            "/api/login", content=oversized, headers={"Content-Type": "application/json"}
         )
-
-    assert response.status_code == 400
-    assert response.headers["cache-control"] == "private, no-store"
-    assert len(forwarded) == 1
-    base, method, path, payload, extra, timeout = forwarded[0]
-    assert (base, method, path) == (authn.ACCOUNT_URL, "POST", "/v1/signup")
-    assert payload == {
-        "username": "account-user",
-        "password": "correct horse battery staple",
-    }
-    assert set(extra) == {"X-Forwarded-For"}
-    assert timeout == 30
+    assert response.status_code == 413
 
 
 def test_retired_public_marketplace_routes_are_absent():
     registered_paths = {getattr(route, "path", None) for route in app.routes}
+    assert "/api/signup" not in registered_paths
     assert "/api/accounts/v1/verify" not in registered_paths
     assert "/api/apps/{app_id}/reviews" not in registered_paths
     assert "/api/teams/{team_id}/install" not in registered_paths
