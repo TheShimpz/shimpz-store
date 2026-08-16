@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import AssistantStore from "$lib/components/AssistantStore.svelte";
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Notice, ActionRequestFields } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { humanRequestContextParts } from "$lib/humanRequestContext";
   import { humanRequestFieldLabels } from "$lib/humanRequestPresentation";
   import { tr } from "$lib/i18n";

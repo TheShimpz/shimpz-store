@@ -1,4 +1,4 @@
-import { LOCALES } from "$lib/catalog";
+import { LOCALES } from "$lib/locales";
 
 export const prerender = true;
 

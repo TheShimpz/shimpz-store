@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { ActionLink } from "@shimpz/frontend";
   import InstitutionalPage from "$lib/components/InstitutionalPage.svelte";
   import Seo from "$lib/components/Seo.svelte";

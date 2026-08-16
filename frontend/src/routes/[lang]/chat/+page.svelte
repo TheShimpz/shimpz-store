@@ -2,7 +2,7 @@
   import { PageIntro } from "@shimpz/frontend";
   import { onDestroy, onMount, tick } from "svelte";
   import { goto } from "$app/navigation";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import {
     CHAT_WS_SUBPROTOCOL,
     createHumanResponse,

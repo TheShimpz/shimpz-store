@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import HomepageMeshBackground from "$lib/components/HomepageMeshBackground.svelte";
   import HomepageVideo from "$lib/components/HomepageVideo.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { LOCALES, type Locale } from "$lib/catalog";
+  import { LOCALES, type Locale } from "$lib/locales";
   import { SITE, swapLocale } from "$lib/url";
 
   let { title, description, lang }: { title: string; description: string; lang: Locale } = $props();

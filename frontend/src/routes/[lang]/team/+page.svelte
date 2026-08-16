@@ -2,7 +2,7 @@
   import { PageIntro } from "@shimpz/frontend";
   import { onMount, tick } from "svelte";
   import { goto } from "$app/navigation";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import {
     MODEL_PROVIDERS,

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SiteFooter as PublicSiteFooter } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
 

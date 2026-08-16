@@ -1,5 +1,5 @@
 // Public URLs for the implemented product surfaces.
-import type { Locale } from "$lib/catalog";
+import type { Locale } from "$lib/locales";
 
 export const SITE = "https://shimpz.com";
 

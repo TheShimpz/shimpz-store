@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "@shimpz/frontend";
   import { onDestroy } from "svelte";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
 
   const command = "curl -fsSL https://install.shimpz.com | sh";

@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { ShimpzBrand } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import { resolveClosedAssistantReturn } from "$lib/cloudAssistantLifecycle.js";

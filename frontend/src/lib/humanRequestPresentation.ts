@@ -1,4 +1,4 @@
-import type { Locale } from "./catalog.ts";
+import type { Locale } from "./locales.ts";
 import { tr } from "./i18n.ts";
 
 export function humanRequestKicker(kind: string, lang: Locale): string {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
   import { ActionLink, DropdownMenu, SiteHeader as PublicSiteHeader } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { LOCALE_OPTIONS } from "$lib/locales";
   import { swapLocale, u } from "$lib/url";

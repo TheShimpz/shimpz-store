@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { PageIntro } from "@shimpz/frontend";
   import { goto } from "$app/navigation";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { u } from "$lib/url";
   import ModelProviderSetupWizard from "$lib/components/ModelProviderSetupWizard.svelte";

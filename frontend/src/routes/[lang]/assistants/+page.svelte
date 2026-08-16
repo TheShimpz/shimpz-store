@@ -3,7 +3,7 @@
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
   import { PageIntro } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import { requestedAssistantFromSearch } from "$lib/cloudAssistantLifecycle.js";

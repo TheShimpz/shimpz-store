@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, PromptDialog } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import AssistantHumanRequestBody from "$lib/components/AssistantHumanRequestBody.svelte";
   import {
     humanRequestKicker,

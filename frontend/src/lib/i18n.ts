@@ -1,5 +1,5 @@
 // UI chrome uses English as the explicit fallback for incomplete operational translations.
-import type { Locale } from "$lib/catalog";
+import type { Locale } from "$lib/locales";
 
 type Translation = { en: string } & Partial<Record<Locale, string>>;
 type Dict = Record<string, Translation>;
@@ -15,7 +15,6 @@ const D: Dict = {
   nav_main: { en: "Main", pt: "Principal", es: "Principal", zh: "主导航", fr: "Principale", de: "Hauptnavigation", ja: "メイン", ar: "الرئيسية" },
   brand_home: { en: "Shimpz home", pt: "Início da Shimpz", es: "Inicio de Shimpz", zh: "Shimpz 首页", fr: "Accueil Shimpz", de: "Shimpz-Startseite", ja: "Shimpz ホーム", ar: "صفحة Shimpz الرئيسية" },
   nav_docs: { en: "Docs", pt: "Docs", es: "Docs", zh: "文档", fr: "Docs", de: "Doku", ja: "ドキュメント", ar: "الوثائق" },
-  install_shimpz: { en: "Install Shimpz", pt: "Instale o Shimpz", es: "Instala Shimpz", zh: "安装 Shimpz", fr: "Installer Shimpz", de: "Shimpz installieren", ja: "Shimpz をインストール", ar: "ثبّت Shimpz" },
   nav_open_source: { en: "Open source", pt: "Código aberto", es: "Código abierto", zh: "开源", fr: "Open source", de: "Open Source", ja: "オープンソース", ar: "مفتوح المصدر" },
   nav_about: { en: "About", pt: "Sobre", es: "Acerca de", zh: "关于", fr: "À propos", de: "Über uns", ja: "Shimpz について", ar: "حول Shimpz" },
   skip_content: { en: "Skip to content", pt: "Pular para o conteúdo", es: "Saltar al contenido", zh: "跳到内容", fr: "Aller au contenu", de: "Zum Inhalt springen", ja: "コンテンツへ移動", ar: "انتقل إلى المحتوى" },

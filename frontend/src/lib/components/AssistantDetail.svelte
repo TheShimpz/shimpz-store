@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { onMount, tick } from "svelte";
   import { AssistantIcon, SignalList } from "@shimpz/frontend";
-  import type { Locale } from "$lib/catalog";
+  import type { Locale } from "$lib/locales";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import {
     closedAssistantLoginHref,
