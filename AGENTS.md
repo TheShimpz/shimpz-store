@@ -2,7 +2,9 @@
 
 ## Authority
 
-- This repository owns public Store discovery and authenticated Hosted web orchestration.
+- This repository owns the public institutional site, public Assistant discovery, and the Store surface embedded
+  by Local Admin. It retains authenticated Hosted orchestration APIs, but exposes no public Account, login, Team,
+  or chat pages.
 - Store projects Developers data and sends exact install intent to Team. It does not own publication, catalog
   admission, Team lifecycle, Account identity, model-provider credential custody, or installation authority.
 - `egress/` owns only the dedicated Hosted Store-to-Neuron CONNECT enforcement and audit boundary. Store remains
