@@ -24,7 +24,6 @@ const D: Dict = {
   footer_group_company: { en: "Company", pt: "Empresa", es: "Empresa", zh: "公司", fr: "Entreprise", de: "Unternehmen", ja: "会社", ar: "الشركة" },
   privacy: { en: "Privacy", pt: "Privacidade", es: "Privacidad", zh: "隐私", fr: "Confidentialité", de: "Datenschutz", ja: "プライバシー", ar: "الخصوصية" },
   terms: { en: "Terms", pt: "Termos", es: "Términos", zh: "条款", fr: "Conditions", de: "Bedingungen", ja: "利用規約", ar: "الشروط" },
-  close: { en: "Close", pt: "Fechar" },
   assistants_title: { en: "Assistants", pt: "Assistants" },
   assistants_preview: { en: "Assistant Store // one catalog", pt: "Loja de Assistants // um catálogo" },
   assistants_lead: {

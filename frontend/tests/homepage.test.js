@@ -34,6 +34,6 @@ test("provides a complete native homepage narrative for every supported locale",
 });
 
 test("falls back only through the explicit translation chain", () => {
-  assert.equal(tr("close", "es"), "Close");
+  assert.equal(tr("assistants_free", "es"), "Free");
   assert.equal(tr("missing_translation", "en"), "missing_translation");
 });
