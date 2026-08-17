@@ -15,7 +15,7 @@
     createAssistantUninstallRequest,
     shouldReconcileAssistantStoreAction,
   } from "$lib/assistantInstallBridge.js";
-  import { closedAssistantStoreHref } from "$lib/cloudAssistantLifecycle.js";
+  import { closedAssistantStoreHref } from "$lib/assistantStoreUrl.js";
   import { AssistantIcon, PageIntro } from "@shimpz/frontend";
   import HudIcon from "$lib/components/HudIcon.svelte";
 

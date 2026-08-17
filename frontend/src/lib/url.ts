@@ -6,11 +6,6 @@ export const SITE = "https://shimpz.com";
 export const u = {
   home: (l: Locale) => `/${l}`,
   assistants: (l: Locale) => `/${l}/assistants`,
-  team: (l: Locale) => `/${l}/team`,
-  chat: (l: Locale, teamId?: string) =>
-    `/${l}/chat${teamId ? `?team=${encodeURIComponent(teamId)}` : ""}`,
-  login: (l: Locale) => `/${l}/login`,
-  account: (l: Locale) => `/${l}/account`,
   openSource: (l: Locale) => `/${l}/open-source`,
   about: (l: Locale) => `/${l}/about`,
 };

@@ -6,7 +6,7 @@
   import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
   import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import { requestedAssistantFromSearch } from "$lib/cloudAssistantLifecycle.js";
+  import { requestedAssistantFromSearch } from "$lib/assistantStoreUrl.js";
   import AssistantStore from "$lib/components/AssistantStore.svelte";
   import AssistantDetail from "$lib/components/AssistantDetail.svelte";
   import Seo from "$lib/components/Seo.svelte";
