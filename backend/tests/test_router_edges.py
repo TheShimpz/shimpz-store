@@ -55,6 +55,18 @@ def test_account_routes_set_and_clear_cookie_and_project_me(monkeypatch):
     assert "Max-Age=0" in logout.headers["set-cookie"]
 
 
+def test_successful_account_login_without_token_never_sets_a_cookie(monkeypatch):
+    async def credentials(*_args, **_kwargs):
+        return 200, {"account_id": "account", "username": "user"}
+
+    monkeypatch.setattr(account, "_bounded_call", credentials)
+    with TestClient(app) as client:
+        response = client.post("/api/login", json={"username": "user", "password": "secret"})
+
+    assert response.status_code == 200
+    assert "set-cookie" not in response.headers
+
+
 @pytest.mark.parametrize(
     "payload",
     [

@@ -101,3 +101,14 @@ def test_non_html_miss_keeps_plain_text_response(monkeypatch, tmp_path):
     assert response.status_code == 404
     assert response.text == "not found"
     assert response.headers["content-type"].startswith("text/plain")
+
+
+def test_missing_not_found_document_and_foreign_path_fail_closed(monkeypatch, tmp_path):
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    assert not static.is_not_found_document(tmp_path.parent / "404.html")
+    with TestClient(store.app) as client:
+        response = client.get("/en/missing", headers={"Accept": "text/html"})
+
+    assert response.status_code == 404
+    assert response.text == "not found"
