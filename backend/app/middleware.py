@@ -57,7 +57,7 @@ _EMBED_SECURITY_HEADERS = (
     (b"x-robots-tag", b"noindex, nofollow"),
 )
 _MANAGED_SECURITY_HEADERS = {name for name, _value in (*_SECURITY_HEADERS, *_EMBED_SECURITY_HEADERS)}
-_EMBED_PATH = re.compile(r"^/(?:en|pt)/assistants/embed/?$")
+_EMBED_PATH = re.compile(r"^/(?:en|pt|es|zh|fr|de|ja|ar)/assistants/embed/?$")
 _NO_REFERRER_PATHS = frozenset(
     {
         "/api/oauth/cloudflare/start",

@@ -19,7 +19,7 @@ def test_only_the_assistant_embed_allows_named_admin_origins():
         assert "frame-src https://www.youtube-nocookie.com" in normal.headers["content-security-policy"]
         assert "x-robots-tag" not in normal.headers
 
-        for locale in ("en", "pt"):
+        for locale in ("en", "pt", "es", "zh", "fr", "de", "ja", "ar"):
             embedded = client.get(f"/{locale}/assistants/embed")
             policy = embedded.headers["content-security-policy"]
             assert "x-frame-options" not in embedded.headers
