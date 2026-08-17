@@ -84,8 +84,7 @@ def test_not_found_document_is_never_exposed_as_a_successful_page(monkeypatch, t
 
     with TestClient(store.app) as client:
         responses = [
-            client.get(path, headers={"Accept": "text/html"})
-            for path in ("/en/404", "/en/404/", "/en/404.html")
+            client.get(path, headers={"Accept": "text/html"}) for path in ("/en/404", "/en/404/", "/en/404.html")
         ]
 
     assert all(response.status_code == 404 for response in responses)

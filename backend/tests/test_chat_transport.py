@@ -759,9 +759,7 @@ def test_bounded_executor_counts_running_and_queued_work_then_recovers():
 def test_public_auth_json_is_bounded_before_any_upstream_hop():
     oversized = json.dumps({"padding": "x" * (config.MAX_AUTH_BODY_BYTES + 1)})
     with TestClient(app) as client:
-        response = client.post(
-            "/api/login", content=oversized, headers={"Content-Type": "application/json"}
-        )
+        response = client.post("/api/login", content=oversized, headers={"Content-Type": "application/json"})
     assert response.status_code == 413
 
 
