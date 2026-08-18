@@ -147,6 +147,7 @@
   }
   @media (max-width: 620px) {
     .homepage-hero { --shimpz-type-display-size: clamp(1rem, 7vw, 3.3rem); }
+    .homepage-hero:lang(en) { --shimpz-type-display-size: clamp(2rem, 7vw, 3.3rem); }
     .homepage-hero:lang(pt),
     .homepage-hero:lang(es) { --shimpz-type-display-size: clamp(1rem, 5.6vw, 3.3rem); }
     .homepage-hero:lang(fr) { --shimpz-type-display-size: clamp(1rem, 5.2vw, 3.3rem); }
