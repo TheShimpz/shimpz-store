@@ -1,26 +1,27 @@
 # Shimpz Store
 
-Shimpz Store is the public, account-authenticated Shimpz web application. A SvelteKit frontend and
-FastAPI backend serves login, OAuth model credentials, Team creation and teardown, Assistant
-release discovery and installation, Hosted Assistant inventory, provider/model selection, Team files, and
-the strict `shimpz.chat.v4` WebSocket surface.
+Shimpz Store owns the institutional website, public Assistant discovery, and the catalog surface embedded by Local
+Admin. Its public SvelteKit frontend exposes the homepage, Assistant catalog and disclosures, institutional footer
+pages, and the branded not-found experience. It exposes no public Account, login, Team, chat, model-provider setup,
+or Hosted Assistant-installation page.
 
-The Store is an unprivileged gateway, not a controller. It has no Docker socket, provider admin key, or
-Team bearer. It forwards the authenticated account token to the internal Account and Team
-controller services, which enforce account/Team ownership and perform privileged work. Its one
-file-backed service capability can only finalize an exact model-credential generation already being
-revoked by Account.
+The FastAPI backend projects the public Developers catalog and retains authenticated Hosted orchestration APIs for
+Account, Team, files, inference, Assistant lifecycle, OAuth, and `shimpz.chat.v4`. No current public Store browser
+surface consumes those retained application APIs. Store is an unprivileged gateway, not publication, Account, Team,
+or installation authority; it has no Docker socket, provider admin key, or Team bearer.
 
 ## Security boundary
 
-- Session cookies are secure, HTTP-only, same-site, and verified against Account before protected work.
-- Team IDs bind the complete account ID and normalized Team name with a collision-resistant digest.
+- Public catalog and icon responses are projected from Developers; Store never admits a publication or substitutes a
+  mutable artifact identity.
+- Local Admin's embedded catalog sends only an exact Assistant ID and source digest. Team independently authorizes,
+  resolves, verifies, binds, and runs that publication.
+- Retained Hosted APIs verify secure, HTTP-only, same-site Account sessions before protected work. Team IDs bind the
+  complete Account ID and normalized Team name with a collision-resistant digest.
 - OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state,
   logs, or controller chat frames.
-- Chat v4 accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs, and
-  emits only exact terminal frames. Assistant Integrations must be connected out of band through the OAuth
-  routes before chat, so `integrations-required` is intentionally never browser-visible. Assistant Spec v1
-  has no static-secret, in-body approval, or human-input continuation flow.
+- The retained Chat v4 backend accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs,
+  and emits only exact admitted frames.
 - Static files resolve beneath the built application root; unknown API paths do not fall through to the
   SPA, and private JSON responses are non-cacheable.
 
