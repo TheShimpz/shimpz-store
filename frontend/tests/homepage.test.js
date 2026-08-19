@@ -58,6 +58,12 @@ test("preserves the founder's name in the German origin story", () => {
   assert.doesNotMatch(origin, /Julianes Frau/);
 });
 
+test("uses the canonical public founder name in every About locale", () => {
+  for (const locale of LOCALES) {
+    assert.match(institutionalPage("about", locale).lead, /Juliano Amaral Gouveia/);
+  }
+});
+
 test("scopes homepage and institutional open-source claims to licensed components", () => {
   assert.equal(tr("home_open_source", "en"), "Open-source components");
   for (const locale of LOCALES) {
