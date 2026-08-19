@@ -41,8 +41,8 @@ const D: Dict = {
   assistants_title: { en: "Assistants", pt: "Assistants" },
   assistants_preview: { en: "Assistant Store // one catalog", pt: "Loja de Assistants // um catálogo" },
   assistants_lead: {
-    en: "Team-native software that acts through declared Actions, follows opt-in routines, and collaborates through explicit permissions.",
-    pt: "Software nativo de Time que atua por Actions declarados, segue rotinas opt-in e colabora por permissões explícitas.",
+    en: "Team-native software that acts through declared Actions and collaborates through explicit permissions.",
+    pt: "Software nativo de Time que atua por Actions declarados e colabora por permissões explícitas.",
   },
   assistants_free: { en: "Free", pt: "Grátis" },
   assistants_version: { en: "Version", pt: "Versão" },

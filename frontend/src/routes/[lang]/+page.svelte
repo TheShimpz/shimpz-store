@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Locale } from "$lib/locales";
   import HomepageMeshBackground from "$lib/components/HomepageMeshBackground.svelte";
-  import HomepageVideo from "$lib/components/HomepageVideo.svelte";
   import InstallCommand from "$lib/components/InstallCommand.svelte";
   import Seo from "$lib/components/Seo.svelte";
   import { homepage } from "$lib/homepage";
@@ -31,13 +30,6 @@
             <span class="headline-line">{content.title.secondLine}</span>
           </h1>
         </header>
-        <div class="body">
-          <div class="copy">
-            <div data-slot="editorial-hero-actions" class="actions">
-              <HomepageVideo />
-            </div>
-          </div>
-        </div>
       </section>
     </div>
 
@@ -74,7 +66,6 @@
     text-align: center;
   }
   .homepage-hero > header { width: min(100%, 64rem); min-width: 0; }
-  .homepage-hero > .body { width: min(100%, 47rem); min-width: 0; }
   h1 {
     position: relative;
     margin: 0 auto;
@@ -103,9 +94,6 @@
     animation: glitch-pink 4.8s 70ms infinite steps(1, end);
     text-shadow: 3px 0 var(--color-magenta);
   }
-  .body,
-  .copy { min-width: 0; }
-  .actions { display: flex; justify-content: center; }
   .evidence-section {
     padding-block: clamp(3rem, 5vw, 5rem) clamp(1rem, 2vw, 1.5rem);
   }

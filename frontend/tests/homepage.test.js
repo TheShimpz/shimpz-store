@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { homepage } from "../src/lib/homepage.ts";
+import { institutionalPage } from "../src/lib/institutional.ts";
 import { LOCALES } from "../src/lib/locales.ts";
 import { tr } from "../src/lib/i18n.ts";
 
@@ -36,4 +37,17 @@ test("provides a complete native homepage narrative for every supported locale",
 test("falls back only through the explicit translation chain", () => {
   assert.equal(tr("assistants_free", "es"), "Free");
   assert.equal(tr("missing_translation", "en"), "missing_translation");
+});
+
+test("describes only current Assistant behavior", () => {
+  for (const locale of LOCALES) {
+    assert.doesNotMatch(tr("assistants_lead", locale), /routine|rotina/i);
+  }
+});
+
+test("lists the CLI in every localized open-source repository map", () => {
+  for (const locale of LOCALES) {
+    const repositories = institutionalPage("openSource", locale).sections[0];
+    assert.ok(repositories.body.includes("CLI"), `${locale} includes the CLI repository`);
+  }
 });

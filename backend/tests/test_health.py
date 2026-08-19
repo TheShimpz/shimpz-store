@@ -16,7 +16,8 @@ def test_only_the_assistant_embed_allows_named_admin_origins():
         normal = client.get("/api/health")
         assert normal.headers["x-frame-options"] == "DENY"
         assert "frame-ancestors 'none'" in normal.headers["content-security-policy"]
-        assert "frame-src https://www.youtube-nocookie.com" in normal.headers["content-security-policy"]
+        assert "frame-src 'none'" in normal.headers["content-security-policy"]
+        assert "youtube" not in normal.headers["content-security-policy"]
         assert "x-robots-tag" not in normal.headers
 
         for locale in ("en", "pt", "es", "zh", "fr", "de", "ja", "ar"):
