@@ -38,7 +38,7 @@
         <div class="evidence-install-row">
           <div class="evidence-install-content">
             <ul class="hero-differentials" data-slot="homepage-differentials" role="list">
-              <li><span aria-hidden="true">//</span>{tr("nav_open_source", lang)}</li>
+              <li><span aria-hidden="true">//</span>{tr("home_open_source", lang)}</li>
               <li><span aria-hidden="true">//</span>{tr("home_self_hosted", lang)}</li>
               <li><span aria-hidden="true">//</span>{tr("home_sandboxed", lang)}</li>
             </ul>

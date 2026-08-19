@@ -57,3 +57,12 @@ test("preserves the founder's name in the German origin story", () => {
   assert.match(origin, /Julianos Frau/);
   assert.doesNotMatch(origin, /Julianes Frau/);
 });
+
+test("scopes homepage and institutional open-source claims to licensed components", () => {
+  assert.equal(tr("home_open_source", "en"), "Open-source components");
+  for (const locale of LOCALES) {
+    const page = institutionalPage("openSource", locale);
+    assert.ok(page.sections[0].title.includes("Apache-2.0"), `${locale} names the license scope`);
+    assert.doesNotMatch(page.sections[0].body, /\bAccount\b|\bDevelopers\b|\bDocs\b/);
+  }
+});
