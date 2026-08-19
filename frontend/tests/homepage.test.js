@@ -66,3 +66,20 @@ test("scopes homepage and institutional open-source claims to licensed component
     assert.doesNotMatch(page.sections[0].body, /\bAccount\b|\bDevelopers\b|\bDocs\b/);
   }
 });
+
+test("keeps organization-level open-source claims out of every About locale", () => {
+  const retiredClaims = [
+    "open-source organization",
+    "organização de código aberto",
+    "organización de código abierto",
+    "organisation open source",
+    "Open-Source-Organisation",
+    "开源组织",
+    "オープンソース組織",
+    "منظمة مفتوحة المصدر",
+  ];
+  for (const locale of LOCALES) {
+    const lead = institutionalPage("about", locale).lead;
+    for (const claim of retiredClaims) assert.ok(!lead.includes(claim), `${locale} omits ${claim}`);
+  }
+});
