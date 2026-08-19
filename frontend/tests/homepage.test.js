@@ -51,3 +51,9 @@ test("lists the CLI in every localized open-source repository map", () => {
     assert.ok(repositories.body.includes("CLI"), `${locale} includes the CLI repository`);
   }
 });
+
+test("preserves the founder's name in the German origin story", () => {
+  const origin = institutionalPage("about", "de").sections[1].body;
+  assert.match(origin, /Julianos Frau/);
+  assert.doesNotMatch(origin, /Julianes Frau/);
+});
