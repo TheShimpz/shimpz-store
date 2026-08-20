@@ -25,8 +25,9 @@
       <li><strong>Connected Integrations:</strong> provider identity, approved scopes, connection status, token expiry, and OAuth access or refresh tokens.</li>
       <li><strong>Configuration:</strong> model-provider choices, Assistant installations, approvals, and resource settings.</li>
       <li>
-        <strong>Public-site performance:</strong> Cloudflare Web Analytics receives page and browser-performance
-        metrics from its injected beacon. It does not use cookies, local storage, or fingerprinting for these metrics.
+        <strong>Public-site edge:</strong> Cloudflare injects a Web Analytics tag into public HTML. Shimpz's
+        Content Security Policy blocks that third-party script from running, so the tag cannot send browser-performance
+        metrics. Cloudflare still processes the HTTP request as the site's infrastructure provider.
       </li>
       <li><strong>Security records:</strong> bounded logs about requests, authentication, changes, failures, and suspected abuse.</li>
     </ul>
@@ -39,7 +40,6 @@
       <li>create and secure your account and Teams;</li>
       <li>perform the operations you request through Assistants and connected providers;</li>
       <li>maintain, troubleshoot, audit, and improve the platform;</li>
-      <li>measure public-site reliability and browser performance;</li>
       <li>detect abuse, protect users, and enforce platform limits; and</li>
       <li>comply with applicable legal obligations.</li>
     </ul>
