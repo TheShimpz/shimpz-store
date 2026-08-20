@@ -6,7 +6,7 @@
   title="Privacy Policy"
   path="/privacy"
   description="How Shimpz collects, uses, protects, and shares information when you use the Shimpz platform."
-  effectiveDate="August 19, 2026"
+  effectiveDate="July 20, 2026"
 >
   <section>
     <h2>1. Scope</h2>
@@ -24,11 +24,6 @@
       <li><strong>Team content:</strong> Team settings, chat messages, files, instructions, and Assistant results you submit or create.</li>
       <li><strong>Connected Integrations:</strong> provider identity, approved scopes, connection status, token expiry, and OAuth access or refresh tokens.</li>
       <li><strong>Configuration:</strong> model-provider choices, Assistant installations, approvals, and resource settings.</li>
-      <li>
-        <strong>Public-site edge:</strong> Cloudflare injects a Web Analytics tag into public HTML. Shimpz's
-        Content Security Policy blocks that third-party script from running, so the tag cannot send browser-performance
-        metrics. Cloudflare still processes the HTTP request as the site's infrastructure provider.
-      </li>
       <li><strong>Security records:</strong> bounded logs about requests, authentication, changes, failures, and suspected abuse.</li>
     </ul>
   </section>
