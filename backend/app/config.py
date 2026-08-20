@@ -57,7 +57,7 @@ WS_ACCOUNT_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_ACCOUNT
 WS_TEAM_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_TEAM_CONNECTION_LIMIT", "2")))
 MAX_UPSTREAM_STREAM_LINE_BYTES = 256 * 1024
 MAX_UPSTREAM_STREAM_BYTES = 2 * 1024 * 1024
-HTML_CACHE_CONTROL = "no-cache, max-age=0, must-revalidate"
+HTML_CACHE_CONTROL = "public, no-cache, max-age=0, must-revalidate, no-transform"
 IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
 

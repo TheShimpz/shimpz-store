@@ -26,7 +26,7 @@ def test_html_navigation_always_revalidates(monkeypatch, tmp_path):
         ):
             response = client.get(url)
             assert response.status_code == 200
-            assert response.headers["cache-control"] == static.HTML_CACHE_CONTROL
+            assert response.headers["cache-control"] == "public, no-cache, max-age=0, must-revalidate, no-transform"
             assert "immutable" not in response.headers["cache-control"]
 
 
