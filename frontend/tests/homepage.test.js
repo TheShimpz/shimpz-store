@@ -73,6 +73,14 @@ test("scopes homepage and institutional open-source claims to licensed component
   }
 });
 
+test("discloses the exact cookie-free homepage analytics boundary", () => {
+  for (const locale of LOCALES) {
+    const statement = tr("home_privacy_line", locale);
+    assert.match(statement, /Cloudflare Web Analytics/);
+    assert.doesNotMatch(statement, /no trackers|sem rastreadores|sin rastreadores|sans traceurs|Keine Tracker/i);
+  }
+});
+
 test("keeps organization-level open-source claims out of every About locale", () => {
   const retiredClaims = [
     "open-source organization",

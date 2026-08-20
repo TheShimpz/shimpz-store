@@ -6,7 +6,7 @@
   title="Privacy Policy"
   path="/privacy"
   description="How Shimpz collects, uses, protects, and shares information when you use the Shimpz platform."
-  effectiveDate="July 20, 2026"
+  effectiveDate="August 19, 2026"
 >
   <section>
     <h2>1. Scope</h2>
@@ -24,6 +24,10 @@
       <li><strong>Team content:</strong> Team settings, chat messages, files, instructions, and Assistant results you submit or create.</li>
       <li><strong>Connected Integrations:</strong> provider identity, approved scopes, connection status, token expiry, and OAuth access or refresh tokens.</li>
       <li><strong>Configuration:</strong> model-provider choices, Assistant installations, approvals, and resource settings.</li>
+      <li>
+        <strong>Public-site performance:</strong> Cloudflare Web Analytics receives page and browser-performance
+        metrics from its injected beacon. It does not use cookies, local storage, or fingerprinting for these metrics.
+      </li>
       <li><strong>Security records:</strong> bounded logs about requests, authentication, changes, failures, and suspected abuse.</li>
     </ul>
   </section>
@@ -35,6 +39,7 @@
       <li>create and secure your account and Teams;</li>
       <li>perform the operations you request through Assistants and connected providers;</li>
       <li>maintain, troubleshoot, audit, and improve the platform;</li>
+      <li>measure public-site reliability and browser performance;</li>
       <li>detect abuse, protect users, and enforce platform limits; and</li>
       <li>comply with applicable legal obligations.</li>
     </ul>
