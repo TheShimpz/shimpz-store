@@ -6,7 +6,7 @@ pages, and the branded not-found experience. It exposes no public Account, login
 or Hosted Assistant-installation page.
 
 The FastAPI backend projects the public Developers catalog and retains authenticated Hosted orchestration APIs for
-Account, Team, files, inference, Assistant lifecycle, OAuth, and `shimpz.chat.v5`. No current public Store browser
+Account, Team, files, inference, Assistant lifecycle, OAuth, and `shimpz.chat.v6`. No current public Store browser
 surface consumes those retained application APIs. Store is an unprivileged gateway, not publication, Account, Team,
 or installation authority; it has no Docker socket, provider admin key, or Team bearer.
 
