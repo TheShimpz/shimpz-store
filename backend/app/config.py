@@ -87,4 +87,4 @@ MAX_CHAT_ASSISTANTS = team_contract.MAX_CHAT_ASSISTANTS
 MAX_CHAT_REPLY_CHARS = 60_000
 MAX_CHAT_ERROR_DETAIL_CHARS = 800
 TERMINAL_CONTRACT_ERROR = "team stream violated the terminal event contract"
-CHAT_WS_SUBPROTOCOL = "shimpz.chat.v6"
+CHAT_WS_SUBPROTOCOL = "shimpz.chat.v7"

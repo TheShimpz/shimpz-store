@@ -888,3 +888,7 @@ def test_terminal_event_contract_rejects_nonterminal_extra_and_unbounded_values(
 
 def test_terminal_event_parser_rejects_duplicate_fields():
     assert _parsed_stream_event(b'{"type":"stopped","type":"done"}', TEST_TEAM_ID) is None
+
+
+def test_chat_subprotocol_is_the_exact_current_contract() -> None:
+    assert CHAT_WS_SUBPROTOCOL == "shimpz.chat.v7"
