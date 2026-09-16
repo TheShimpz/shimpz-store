@@ -16,8 +16,7 @@
     shouldReconcileAssistantStoreAction,
   } from "$lib/assistantInstallBridge.js";
   import { closedAssistantStoreHref } from "$lib/assistantStoreUrl.js";
-  import { AssistantIcon, PageIntro } from "@shimpz/frontend";
-  import HudIcon from "$lib/components/HudIcon.svelte";
+  import { AssistantCard, PageIntro } from "@shimpz/frontend";
 
   type ActionKind = "install" | "uninstall";
   type ActionState = "idle" | "pending" | "sent" | "error";
@@ -294,55 +293,27 @@
 
   <div class="assistant-grid" aria-busy={catalogState === "loading"}>
     {#each assistantCatalog as assistant (assistant.id)}
-      <article
+      <AssistantCard
         id={`assistant-${assistant.id}`}
-        class:installed={renderedAssistantInstalled(assistant.id)}
-        class="assistant-card">
-        <div class="assistant-details">
-          <div class="assistant-heading">
-            <AssistantIcon
-              size={64}
-              src={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
-            />
-            <div class="assistant-identity">
-              <h2>
-                {#if embedded}
-                  {assistant.name}
-                {:else}
-                  <a class="assistant-link" href={closedAssistantStoreHref(lang, assistant.id)}>{assistant.name}</a>
-                {/if}
-              </h2>
-              <p>{assistant.creators.join(", ")}</p>
-            </div>
-            <span class="free-badge">{tr("assistants_free", lang)}</span>
-          </div>
-          <p class="assistant-summary">{assistant.summary}</p>
-        </div>
-
-        {#if embedded}
-          <div class:persistent={actionState(assistant.id) !== "idle"} class="assistant-action">
-            <button
-              class:btn-primary={!localAssistantInstalled(assistant.id)}
-              class:btn-danger={localAssistantInstalled(assistant.id)}
-              class="install-action"
-              type="button"
-              disabled={contextState !== "ready" || inventoryBlocksAction(assistant.id) || actionState(assistant.id) === "pending"}
-              onclick={() => requestAssistantAction(assistant)}>
-              <HudIcon name={localAssistantInstalled(assistant.id) ? "uninstall" : "add"} size={17} />
-              {actionLabel(assistant.id)}
-            </button>
-
-            {#if actionState(assistant.id) === "sent" || actionState(assistant.id) === "error"}
-              <p
-                class:error={actionState(assistant.id) === "error"}
-                class="install-status"
-                role={actionState(assistant.id) === "error" ? "alert" : "status"}>
-                {actionStatus(assistant.id)}
-              </p>
-            {/if}
-          </div>
-        {/if}
-      </article>
+        class="assistant-card"
+        name={assistant.name}
+        meta={assistant.creators.join(", ")}
+        summary={assistant.summary}
+        iconSrc={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
+        badge={tr("assistants_free", lang)}
+        href={embedded ? undefined : closedAssistantStoreHref(lang, assistant.id)}
+        installed={renderedAssistantInstalled(assistant.id)}
+        actionLabel={embedded ? actionLabel(assistant.id) : undefined}
+        actionDisabled={contextState !== "ready" || inventoryBlocksAction(assistant.id) || actionState(assistant.id) === "pending"}
+        actionTone={localAssistantInstalled(assistant.id) ? "danger" : "install"}
+        actionIcon={localAssistantInstalled(assistant.id) ? "uninstall" : "add"}
+        actionPersistent={actionState(assistant.id) !== "idle"}
+        actionStatus={actionState(assistant.id) === "sent" || actionState(assistant.id) === "error"
+          ? actionStatus(assistant.id)
+          : undefined}
+        actionError={actionState(assistant.id) === "error"}
+        onaction={() => requestAssistantAction(assistant)}
+      />
     {/each}
   </div>
 
@@ -359,77 +330,6 @@
     gap: 1rem;
     margin-top: 1.25rem;
   }
-  .assistant-card {
-    position: relative;
-    display: flex;
-    overflow: hidden;
-    flex-direction: column;
-    background: linear-gradient(180deg, var(--color-card-2), var(--color-card));
-    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-    box-shadow: inset 0 0 0 1px var(--color-border);
-    transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s var(--ease-shimpz);
-  }
-  .assistant-card:hover, .assistant-card:focus-within {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--color-cyan) 5%, var(--color-card-2)), var(--color-card));
-    transform: translateY(-2px);
-  }
-  .assistant-card.installed:hover, .assistant-card.installed:focus-within {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--color-green) 5%, var(--color-card-2)), var(--color-card));
-  }
-  .assistant-card.installed {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-green) 58%, var(--color-border));
-  }
-  .assistant-details { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 1rem; }
-  .assistant-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.8rem; }
-  .assistant-identity { min-width: 0; }
-  .assistant-identity h2 { overflow: hidden; margin: 0; font-size: 1.05rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-  .assistant-link::after { position: absolute; z-index: 1; content: ""; inset: 0; }
-  .assistant-identity p { overflow: hidden; margin: 0.25rem 0 0; color: var(--color-muted-2); font-family: var(--font-mono); font-size: 0.62rem; text-overflow: ellipsis; white-space: nowrap; }
-  .free-badge {
-    align-self: start;
-    border: 1px solid color-mix(in oklab, var(--color-green) 38%, var(--color-border));
-    padding: 0.22rem 0.4rem;
-    color: var(--color-green);
-    font-family: var(--font-mono);
-    font-size: 0.54rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-  }
-  .assistant-summary {
-    display: -webkit-box;
-    margin: 0.5rem 0 0;
-    overflow: hidden;
-    color: var(--color-muted);
-    font-size: 0.84rem;
-    line-height: 1.55;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-  .assistant-action {
-    position: absolute;
-    z-index: 2;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    padding: 2.5rem 1rem 1rem;
-    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.96) 42%);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(0.4rem);
-    transition: opacity 0.16s ease, transform 0.16s var(--ease-shimpz);
-  }
-  .assistant-card:hover .assistant-action,
-  .assistant-card:focus-within .assistant-action,
-  .assistant-action.persistent {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
-  .install-action { width: 100%; min-height: 2.5rem; border: 0; padding: 0.6rem 0.75rem; cursor: pointer; font-size: 0.62rem; }
-  .install-status { margin: 0.55rem 0 0; color: var(--color-green); font-size: 0.68rem; line-height: 1.45; }
-  .install-status.error { color: var(--color-danger); }
   .context-error {
     display: flex;
     align-items: center;
@@ -463,19 +363,5 @@
   @media (max-width: 540px) {
     .assistant-grid { grid-template-columns: 1fr; }
     .context-error { align-items: stretch; flex-direction: column; }
-  }
-  @media (hover: none), (pointer: coarse) {
-    .assistant-action {
-      position: static;
-      padding: 0.25rem 1rem 1rem;
-      background: transparent;
-      opacity: 1;
-      pointer-events: auto;
-      transform: none;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .assistant-card, .assistant-action { transition: none; }
-    .assistant-card:hover, .assistant-card:focus-within { transform: none; }
   }
 </style>
