@@ -41,6 +41,10 @@ def test_identifier_validators_reject_noncanonical_values(validator, value):
     assert validator(value) is None
 
 
+def test_language_exemplar_rejects_non_text() -> None:
+    assert payload.canonical_language_exemplar(None) is None
+
+
 @pytest.mark.parametrize("value", [None, "", " " + "a", "a" * 81, "bad\nname"])
 def test_team_name_rejects_every_invalid_shape(value):
     assert payload.canonical_team_name(value) is None

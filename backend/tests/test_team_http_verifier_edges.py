@@ -235,3 +235,31 @@ def test_verifier_rejects_identifier_vector_disagreement(tmp_path):
 
     with pytest.raises(SystemExit, match="team negative vector differs"):
         _execute(negative, patch=accept_everything)
+
+
+@pytest.mark.parametrize(
+    ("function_name", "mode", "message"),
+    [
+        ("canonical_language_exemplar", "positive", "Action-label exemplar positive"),
+        ("canonical_language_exemplar", "negative", "Action-label exemplar negative"),
+        ("canonical_action_label", "positive", "Action-label label positive"),
+        ("canonical_action_label", "negative", "Action-label label negative"),
+    ],
+)
+def test_verifier_rejects_action_label_vector_drift(tmp_path, function_name, mode, message):
+    root = _copy(tmp_path)
+
+    def drift(modules):
+        payload = modules["payload"]
+        original = getattr(payload, function_name)
+
+        def replace(value):
+            canonical = original(value)
+            if mode == "positive":
+                return None if canonical is not None else canonical
+            return "unexpected" if canonical is None else canonical
+
+        setattr(payload, function_name, replace)
+
+    with pytest.raises(SystemExit, match=message):
+        _execute(root, patch=drift)
