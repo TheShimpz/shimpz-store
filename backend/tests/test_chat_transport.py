@@ -438,22 +438,28 @@ def test_completed_turn_is_free_before_its_done_callback_runs():
     asyncio.run(scenario())
 
 
-def test_websocket_rejects_retired_answer_frames():
+def test_websocket_rejects_frames_outside_the_hosted_contract():
     async def scenario() -> None:
         websocket, sent = _websocket("{}")
         await websocket.accept()
-        await _ws_dispatch(
-            websocket,
-            "test-team",
-            {},
+        frames = (
             {"type": "answer", "rid": "answer-1", "answer": "yes"},
-            {"active": None},
+            {
+                "type": "resume-task",
+                "message": "Can you enable it?",
+                "objective": "List my DNS zones",
+                "files": [],
+                "assistant_ids": [],
+                "objective_assistant_ids": [],
+            },
         )
-        assert json.loads(sent[-1]["text"]) == {
-            "type": "error",
-            "status": 400,
-            "detail": "unsupported chat frame",
-        }
+        for frame in frames:
+            await _ws_dispatch(websocket, "test-team", {}, frame, {"active": None})
+            assert json.loads(sent[-1]["text"]) == {
+                "type": "error",
+                "status": 400,
+                "detail": "unsupported chat frame",
+            }
 
     asyncio.run(scenario())
 
