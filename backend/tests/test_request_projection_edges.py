@@ -79,14 +79,52 @@ def test_public_file_projections_delegate_to_the_closed_team_contract():
         None,
         {"assistants": [None]},
         {"assistants": [{"assistant": "Invalid", "status": "running"}]},
-        {"assistants": [{"assistant": "assistant", "assistant_version": "01.0.0", "status": "running"}]},
         {
             "assistants": [
-                {"assistant": "assistant", "assistant_version": "1.0.0", "status": "running"},
-                {"assistant": "assistant", "assistant_version": "1.0.0", "status": "stopped"},
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "01.0.0",
+                    "provenance": "published",
+                    "status": "running",
+                }
             ]
         },
-        {"assistants": [{"assistant": "assistant", "assistant_version": "1.0.0", "status": None}]},
+        {
+            "assistants": [
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "local",
+                    "status": "running",
+                }
+            ]
+        },
+        {
+            "assistants": [
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": "running",
+                },
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": "stopped",
+                },
+            ]
+        },
+        {
+            "assistants": [
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": None,
+                }
+            ]
+        },
     ],
 )
 def test_assistant_inventory_rejects_ambiguous_controller_data(value):
@@ -99,17 +137,60 @@ def test_assistant_inventory_rejects_ambiguous_controller_data(value):
         None,
         {"assistants": [None]},
         {"assistants": [{"assistant": "Invalid", "status": "running"}]},
-        {"assistants": [{"assistant": "assistant", "assistant_version": "1.0.0-beta", "status": "running"}]},
         {
             "assistants": [
-                {"assistant": "assistant", "assistant_version": "1.0.0", "status": "running"},
-                {"assistant": "assistant", "assistant_version": "1.0.0", "status": "running"},
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0-beta",
+                    "provenance": "published",
+                    "status": "running",
+                }
             ]
         },
-        {"assistants": [{"assistant": "assistant", "assistant_version": "1.0.0", "status": None}]},
         {
             "assistants": [
-                {"assistant": f"assistant-{index}", "assistant_version": "1.0.0", "status": "running"}
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "local",
+                    "status": "running",
+                }
+            ]
+        },
+        {
+            "assistants": [
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": "running",
+                },
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": "running",
+                },
+            ]
+        },
+        {
+            "assistants": [
+                {
+                    "assistant": "assistant",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": None,
+                }
+            ]
+        },
+        {
+            "assistants": [
+                {
+                    "assistant": f"assistant-{index}",
+                    "assistant_version": "1.0.0",
+                    "provenance": "published",
+                    "status": "running",
+                }
                 for index in range(MAX_CHAT_ASSISTANTS + 1)
             ]
         },

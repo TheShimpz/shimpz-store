@@ -11,15 +11,22 @@ _ASSISTANT_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-
 
 
 def _assistant_inventory_item(value: object) -> tuple[str, str] | None:
-    if not isinstance(value, dict) or set(value) != {"assistant", "assistant_version", "status"}:
+    if not isinstance(value, dict) or set(value) != {
+        "assistant",
+        "assistant_version",
+        "provenance",
+        "status",
+    }:
         return None
     assistant = team_contract.canonical_assistant_id(value["assistant"])
     version = value["assistant_version"]
+    provenance = value["provenance"]
     status = value["status"]
     if (
         assistant is None
         or not isinstance(version, str)
         or _ASSISTANT_VERSION.fullmatch(version) is None
+        or provenance != "published"
         or not isinstance(status, str)
     ):
         return None
