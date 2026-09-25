@@ -70,7 +70,7 @@ def test_successful_account_login_without_token_never_sets_a_cookie(monkeypatch)
 @pytest.mark.parametrize(
     "payload",
     [
-        {"team_name": "!!!", "provider": "openai", "model": "gpt-5.6-luna"},
+        {"team_name": "!!!", "provider": "openai", "model": "gpt-6-luna"},
         {"team_name": "Marketing", "provider": "unknown", "model": "model"},
     ],
 )

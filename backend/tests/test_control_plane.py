@@ -136,7 +136,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
         if self.path == "/v1/teams/team_openai/inference":
-            self._json(200, {"provider": "openai", "model": "gpt-5.5"})
+            self._json(200, {"provider": "openai", "model": "gpt-6-luna"})
             return
         self._json(404, {"error": "not found"})
 
@@ -330,11 +330,11 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
         response = client.post(
             "/api/teams",
-            json={"team_name": "Astra", "provider": "openai", "model": "gpt-5.5"},
+            json={"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"},
         )
         unsupported_payload = client.post(
             "/api/teams",
-            json={"team_name": "Rejected", "provider": "openai", "model": "gpt-5.5", "brain": "codex"},
+            json={"team_name": "Rejected", "provider": "openai", "model": "gpt-6-luna", "brain": "codex"},
         )
     assert response.status_code == 201
     assert unsupported_payload.status_code == 400
@@ -344,7 +344,7 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
         (
             "POST",
             f"/v1/teams/{main.teams.team_id_for('account-1', 'Astra')}/create",
-            {"team_name": "Astra", "provider": "openai", "model": "gpt-5.5"},
+            {"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"},
         )
     ]
 
@@ -360,7 +360,7 @@ def test_team_inference_is_read_and_updated_without_recreating_team():
         retired_login = client.post("/api/teams/team_openai/brain/login/start")
 
     assert current.status_code == updated.status_code == 200
-    assert current.json() == {"provider": "openai", "model": "gpt-5.5"}
+    assert current.json() == {"provider": "openai", "model": "gpt-6-luna"}
     assert updated.json() == {
         "team_id": "team_openai",
         "provider": "anthropic",
@@ -396,7 +396,7 @@ def test_team_routes_reject_malformed_team_ids_before_forwarding(monkeypatch):
             client.get("/api/teams/bad%20id/inference"),
             client.put(
                 "/api/teams/bad%20id/inference",
-                json={"provider": "openai", "model": "gpt-5.5"},
+                json={"provider": "openai", "model": "gpt-6-luna"},
             ),
         )
 
@@ -414,7 +414,7 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
         )
         switch = client.put(
             "/api/teams/team_openai/inference",
-            json={"provider": "anthropic", "model": "gpt-5.5"},
+            json={"provider": "anthropic", "model": "gpt-6-luna"},
         )
 
     assert create.status_code == switch.status_code == 400
@@ -448,7 +448,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
         }
     ).encode()
     inference_body = json.dumps(
-        {"provider": "openai", "model": "gpt-5.5", "padding": "x" * config.MAX_INFERENCE_BODY_BYTES}
+        {"provider": "openai", "model": "gpt-6-luna", "padding": "x" * config.MAX_INFERENCE_BODY_BYTES}
     ).encode()
     credential_body = json.dumps(
         {"auth_type": "api_key", "secret": "x" * main.model_providers.MAX_CREDENTIAL_BODY_BYTES}
