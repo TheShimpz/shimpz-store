@@ -427,9 +427,14 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
             "/api/teams/team_openai/inference",
             json={"provider": "anthropic", "model": "gpt-6-luna", "effort": "low"},
         )
+        unknown_provider = client.put(
+            "/api/teams/team_openai/inference",
+            json={"provider": "unknown", "model": "gpt-6-luna", "effort": "low"},
+        )
 
-    assert create.status_code == switch.status_code == 400
+    assert create.status_code == switch.status_code == unknown_provider.status_code == 400
     assert create.json() == switch.json() == {"detail": "unsupported model for provider"}
+    assert unknown_provider.json() == {"detail": "unsupported model provider"}
     assert not any(
         path.endswith("/create") or (method == "PUT" and path.endswith("/inference")) for method, path, _body in calls
     )
