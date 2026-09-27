@@ -136,7 +136,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
         if self.path == "/v1/teams/team_openai/inference":
-            self._json(200, {"provider": "openai", "model": "gpt-6-luna"})
+            self._json(200, {"provider": "openai", "model": "gpt-6-luna", "effort": "low"})
             return
         self._json(404, {"error": "not found"})
 
@@ -355,24 +355,35 @@ def test_team_inference_is_read_and_updated_without_recreating_team():
         current = client.get("/api/teams/team_openai/inference")
         updated = client.put(
             "/api/teams/team_openai/inference",
+            json={"provider": "anthropic", "model": "claude-sonnet-5", "effort": "high"},
+        )
+        missing_effort = client.put(
+            "/api/teams/team_openai/inference",
             json={"provider": "anthropic", "model": "claude-sonnet-5"},
+        )
+        unknown_effort = client.put(
+            "/api/teams/team_openai/inference",
+            json={"provider": "anthropic", "model": "claude-sonnet-5", "effort": "xhigh"},
         )
         retired_login = client.post("/api/teams/team_openai/brain/login/start")
 
     assert current.status_code == updated.status_code == 200
-    assert current.json() == {"provider": "openai", "model": "gpt-6-luna"}
+    assert current.json() == {"provider": "openai", "model": "gpt-6-luna", "effort": "low"}
     assert updated.json() == {
         "team_id": "team_openai",
         "provider": "anthropic",
         "model": "claude-sonnet-5",
+        "effort": "high",
     }
+    assert missing_effort.status_code == unknown_effort.status_code == 400
     assert retired_login.status_code in {404, 405}
     assert ("GET", "/v1/teams/team_openai/inference", {}) in calls
     assert (
         "PUT",
         "/v1/teams/team_openai/inference",
-        {"provider": "anthropic", "model": "claude-sonnet-5"},
+        {"provider": "anthropic", "model": "claude-sonnet-5", "effort": "high"},
     ) in calls
+    assert sum(1 for method, path, _body in calls if method == "PUT" and path.endswith("/inference")) == 1
     assert not any(call[1].endswith("/create") for call in calls)
 
 
@@ -396,7 +407,7 @@ def test_team_routes_reject_malformed_team_ids_before_forwarding(monkeypatch):
             client.get("/api/teams/bad%20id/inference"),
             client.put(
                 "/api/teams/bad%20id/inference",
-                json={"provider": "openai", "model": "gpt-6-luna"},
+                json={"provider": "openai", "model": "gpt-6-luna", "effort": "low"},
             ),
         )
 
@@ -414,7 +425,7 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
         )
         switch = client.put(
             "/api/teams/team_openai/inference",
-            json={"provider": "anthropic", "model": "gpt-6-luna"},
+            json={"provider": "anthropic", "model": "gpt-6-luna", "effort": "low"},
         )
 
     assert create.status_code == switch.status_code == 400
