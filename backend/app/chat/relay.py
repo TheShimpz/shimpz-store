@@ -109,6 +109,8 @@ def _stream_lines(relay: _StreamRelay) -> dict:
             "message": relay.text,
             "files": list(relay.files),
             "assistant_ids": list(relay.assistant_ids),
+            # Hosted has no server-derived committed presentation history; the browser never supplies one.
+            "conversation": [],
         }
         body = jsonlib.dumps(payload, ensure_ascii=False).encode()
         conn.request(

@@ -263,3 +263,24 @@ def test_verifier_rejects_action_label_vector_drift(tmp_path, function_name, mod
 
     with pytest.raises(SystemExit, match=message):
         _execute(root, patch=drift)
+
+
+def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path):
+    def missing(value):
+        value["chat_conversation"]["invalid"] = []
+
+    def accepted_invalid(value):
+        value["chat_conversation"]["invalid"] = [[]]
+
+    def rejected_valid(value):
+        value["chat_conversation"]["valid"] = [{"generated": "nine-entries"}]
+
+    for name, mutate, message in (
+        ("missing", missing, "conversation vectors are missing"),
+        ("accepted", accepted_invalid, "conversation negative vector differs"),
+        ("rejected", rejected_valid, "conversation positive vector differs"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
