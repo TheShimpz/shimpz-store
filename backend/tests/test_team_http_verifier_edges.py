@@ -290,6 +290,31 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
             _execute(root)
 
 
+def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):
+    def missing(value):
+        value["skills"]["invalid"] = []
+
+    def accepted_invalid(value):
+        value["skills"]["invalid"] = [value["skills"]["valid"][1]]
+
+    def rejected_valid(value):
+        value["skills"]["valid"] = [[{"key": "procedure-000000000000", "contracts": {}, "steps": []}]]
+
+    def drifted_apply(value):
+        value["knowledge_apply"][0]["result"]["skills"] = []
+
+    for name, mutate, message in (
+        ("missing", missing, "skills vectors are missing"),
+        ("accepted", accepted_invalid, "an invalid skills vector was admitted"),
+        ("rejected", rejected_valid, "a valid skills vector was not admitted exactly"),
+        ("apply", drifted_apply, "a knowledge application vector differs"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_memory_vectors(tmp_path):
     def missing(value):
         value["memory"]["valid"] = []
