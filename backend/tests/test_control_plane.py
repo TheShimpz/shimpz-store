@@ -355,15 +355,15 @@ def test_team_inference_is_read_and_updated_without_recreating_team():
         current = client.get("/api/teams/team_openai/inference")
         updated = client.put(
             "/api/teams/team_openai/inference",
-            json={"provider": "anthropic", "model": "claude-sonnet-5", "effort": "high"},
+            json={"provider": "anthropic", "model": "claude-sonnet-5-5", "effort": "high"},
         )
         missing_effort = client.put(
             "/api/teams/team_openai/inference",
-            json={"provider": "anthropic", "model": "claude-sonnet-5"},
+            json={"provider": "anthropic", "model": "claude-sonnet-5-5"},
         )
         unknown_effort = client.put(
             "/api/teams/team_openai/inference",
-            json={"provider": "anthropic", "model": "claude-sonnet-5", "effort": "xhigh"},
+            json={"provider": "anthropic", "model": "claude-sonnet-5-5", "effort": "xhigh"},
         )
         retired_login = client.post("/api/teams/team_openai/brain/login/start")
 
@@ -372,7 +372,7 @@ def test_team_inference_is_read_and_updated_without_recreating_team():
     assert updated.json() == {
         "team_id": "team_openai",
         "provider": "anthropic",
-        "model": "claude-sonnet-5",
+        "model": "claude-sonnet-5-5",
         "effort": "high",
     }
     assert missing_effort.status_code == unknown_effort.status_code == 400
@@ -381,7 +381,7 @@ def test_team_inference_is_read_and_updated_without_recreating_team():
     assert (
         "PUT",
         "/v1/teams/team_openai/inference",
-        {"provider": "anthropic", "model": "claude-sonnet-5", "effort": "high"},
+        {"provider": "anthropic", "model": "claude-sonnet-5-5", "effort": "high"},
     ) in calls
     assert sum(1 for method, path, _body in calls if method == "PUT" and path.endswith("/inference")) == 1
     assert not any(call[1].endswith("/create") for call in calls)
