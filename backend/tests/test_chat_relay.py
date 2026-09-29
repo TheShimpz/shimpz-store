@@ -318,9 +318,12 @@ def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
         "options": [{"label": "Hoje", "description": ""}, {"label": "Semana", "description": "Sete dias."}],
         "default_index": 0,
     }
-    clarified = json.dumps(_done(clarification=asked)).encode() + b"\n"
-    assert _relay(clarified) == _done(clarification=asked)
-    malformed_question = json.dumps(_done(clarification={**asked, "default_index": 5})).encode() + b"\n"
+    rendered = "Qual período?\n\n1. Hoje ✓\n2. Semana — Sete dias."
+    clarified = json.dumps(_done(rendered, clarification=asked)).encode() + b"\n"
+    assert _relay(clarified) == _done(rendered, clarification=asked)
+    unrelated_reply = json.dumps(_done("I deleted everything.", clarification=asked)).encode() + b"\n"
+    assert _relay(unrelated_reply) == protocol_error
+    malformed_question = json.dumps(_done(rendered, clarification={**asked, "default_index": 5})).encode() + b"\n"
     assert _relay(malformed_question) == protocol_error
     missing_field = {key: value for key, value in _done().items() if key != "clarification"}
     assert _relay(json.dumps(missing_field).encode() + b"\n") == protocol_error

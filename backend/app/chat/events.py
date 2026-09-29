@@ -100,7 +100,7 @@ def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
     if clarification is not None:
         # A Brain multiple-choice question is presentation only and must match its closed shape (ADR-0081).
         clarification = team_contract.canonical_clarification(clarification)
-        if clarification is None:
+        if clarification is None or value["reply"] != team_contract.render_clarification(clarification):
             return None
     if team_id is None or team_id != expected_team_id or reply is None or team_name is None:
         return None

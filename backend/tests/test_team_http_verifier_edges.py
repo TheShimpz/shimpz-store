@@ -275,7 +275,11 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
     def rejected_valid(value):
         value["clarification"]["valid"] = [{**value["clarification"]["valid"][0], "extra": 1}]
 
+    def drifted_rendering(value):
+        value["clarification"]["rendered"][0] = "Something else"
+
     for name, mutate, message in (
+        ("rendering", drifted_rendering, "a clarification rendering vector differs"),
         ("missing", missing, "clarification vectors are missing"),
         ("accepted", accepted_invalid, "an invalid clarification vector was admitted"),
         ("rejected", rejected_valid, "a valid clarification vector was not admitted exactly"),
