@@ -290,6 +290,27 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
             _execute(root)
 
 
+def test_verifier_rejects_missing_or_drifted_standing_instruction_vectors(tmp_path):
+    def missing(value):
+        value["instructions"]["valid"] = []
+
+    def accepted_invalid(value):
+        value["instructions"]["invalid"] = [value["instructions"]["valid"][1]]
+
+    def rejected_valid(value):
+        value["instructions"]["valid"] = [["Linha\nquebrada"]]
+
+    for name, mutate, message in (
+        ("missing", missing, "standing instruction vectors are missing"),
+        ("accepted", accepted_invalid, "an invalid standing instruction vector was admitted"),
+        ("rejected", rejected_valid, "a valid standing instruction vector was not admitted exactly"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path):
     def missing(value):
         value["chat_conversation"]["invalid"] = []
