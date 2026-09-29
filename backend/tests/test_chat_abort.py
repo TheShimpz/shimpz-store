@@ -28,6 +28,7 @@ def _done(
         "team_id": team_id,
         "team_name": team_name,
         "reply": reply,
+        "clarification": None,
     }
 
 

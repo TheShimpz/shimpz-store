@@ -21,12 +21,14 @@ def _done(
     *,
     team_id: str = TEST_TEAM_ID,
     team_name: str = "Marketing",
+    clarification: dict | None = None,
 ) -> dict:
     return {
         "type": "done",
         "team_id": team_id,
         "team_name": team_name,
         "reply": reply,
+        "clarification": clarification,
     }
 
 
@@ -132,7 +134,7 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
 def test_upstream_relay_releases_nothing_before_one_complete_terminal_event():
     async def scenario() -> None:
         first = b'{"type":"done","team_id":"test_team",'
-        rest = b'"team_name":"Marketing","reply":"first"}\n'
+        rest = b'"team_name":"Marketing","reply":"first","clarification":null}\n'
         with _real_delayed_upstream(first, rest) as (
             response,
             first_flushed,
@@ -310,6 +312,18 @@ def test_upstream_relay_is_bounded_and_fails_closed_on_protocol_errors():
 
     mismatched_team = json.dumps(_done(team_id="another_team")).encode() + b"\n"
     assert _relay(mismatched_team) == protocol_error
+
+    asked = {
+        "question": "Qual período?",
+        "options": [{"label": "Hoje", "description": ""}, {"label": "Semana", "description": "Sete dias."}],
+        "default_index": 0,
+    }
+    clarified = json.dumps(_done(clarification=asked)).encode() + b"\n"
+    assert _relay(clarified) == _done(clarification=asked)
+    malformed_question = json.dumps(_done(clarification={**asked, "default_index": 5})).encode() + b"\n"
+    assert _relay(malformed_question) == protocol_error
+    missing_field = {key: value for key, value in _done().items() if key != "clarification"}
+    assert _relay(json.dumps(missing_field).encode() + b"\n") == protocol_error
 
     assert _relay(b"") == protocol_error
 

@@ -265,6 +265,27 @@ def test_verifier_rejects_action_label_vector_drift(tmp_path, function_name, mod
         _execute(root, patch=drift)
 
 
+def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
+    def missing(value):
+        value["clarification"]["invalid"] = []
+
+    def accepted_invalid(value):
+        value["clarification"]["invalid"] = [value["clarification"]["valid"][0]]
+
+    def rejected_valid(value):
+        value["clarification"]["valid"] = [{**value["clarification"]["valid"][0], "extra": 1}]
+
+    for name, mutate, message in (
+        ("missing", missing, "clarification vectors are missing"),
+        ("accepted", accepted_invalid, "an invalid clarification vector was admitted"),
+        ("rejected", rejected_valid, "a valid clarification vector was not admitted exactly"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path):
     def missing(value):
         value["chat_conversation"]["invalid"] = []

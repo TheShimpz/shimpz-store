@@ -91,11 +91,17 @@ async def ws_receive_bounded_json(ws: WebSocket) -> dict:
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) != {"type", "team_id", "team_name", "reply"}:
+    if set(value) != {"type", "team_id", "team_name", "reply", "clarification"}:
         return None
     team_id = team_contract.canonical_team_id(value["team_id"])
     reply = canonical_chat_reply(value["reply"])
     team_name = team_contract.canonical_team_name(value["team_name"])
+    clarification = value["clarification"]
+    if clarification is not None:
+        # A Brain multiple-choice question is presentation only and must match its closed shape (ADR-0081).
+        clarification = team_contract.canonical_clarification(clarification)
+        if clarification is None:
+            return None
     if team_id is None or team_id != expected_team_id or reply is None or team_name is None:
         return None
     return {
@@ -103,6 +109,7 @@ def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
         "team_id": team_id,
         "team_name": team_name,
         "reply": reply,
+        "clarification": clarification,
     }
 
 
