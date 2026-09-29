@@ -290,20 +290,24 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
             _execute(root)
 
 
-def test_verifier_rejects_missing_or_drifted_standing_instruction_vectors(tmp_path):
+def test_verifier_rejects_missing_or_drifted_memory_vectors(tmp_path):
     def missing(value):
-        value["instructions"]["valid"] = []
+        value["memory"]["valid"] = []
 
     def accepted_invalid(value):
-        value["instructions"]["invalid"] = [value["instructions"]["valid"][1]]
+        value["memory_changes"]["invalid"] = [value["memory_changes"]["valid"][1]]
 
     def rejected_valid(value):
-        value["instructions"]["valid"] = [["Linha\nquebrada"]]
+        value["memory"]["valid"] = [[{"topic": "Bad Topic", "preference": "x"}]]
+
+    def drifted_apply(value):
+        value["memory_apply"][0]["result"] = []
 
     for name, mutate, message in (
-        ("missing", missing, "standing instruction vectors are missing"),
-        ("accepted", accepted_invalid, "an invalid standing instruction vector was admitted"),
-        ("rejected", rejected_valid, "a valid standing instruction vector was not admitted exactly"),
+        ("missing", missing, "memory vectors are missing"),
+        ("accepted", accepted_invalid, "an invalid memory_changes vector was admitted"),
+        ("rejected", rejected_valid, "a valid memory vector was not admitted exactly"),
+        ("apply", drifted_apply, "a memory application vector differs"),
     ):
         root = _copy(tmp_path / name)
         _vectors(root, mutate)
