@@ -1,5 +1,7 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
+// The Developers catalog contract and the Store backend both admit up to 1,000 public Assistants.
+export const MAX_CATALOG_ASSISTANTS = 1000;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
 const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
@@ -156,7 +158,7 @@ export function parseAssistantCatalog(value) {
   if (!hasExactKeys(record, ["assistants", "version"]) || record.version !== 1 || !Array.isArray(record.assistants)) {
     throw new Error("invalid Assistant catalog");
   }
-  if (record.assistants.length > 256) throw new Error("Assistant catalog is too large");
+  if (record.assistants.length > MAX_CATALOG_ASSISTANTS) throw new Error("Assistant catalog is too large");
   const assistants = record.assistants.map(parseAssistant);
   if (new Set(assistants.map((assistant) => assistant.id)).size !== assistants.length) {
     throw new Error("duplicate Assistant catalog entry");

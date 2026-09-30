@@ -92,3 +92,16 @@ test("fails closed on ambiguous or executable catalog data", () => {
     assert.throws(() => parseAssistantCatalog(value));
   }
 });
+
+test("admits exactly the producer's 1,000-entry catalog and refuses one more", () => {
+  const entry = catalog().assistants[0];
+  const entries = (count) => ({
+    version: 1,
+    assistants: Array.from({ length: count }, (_, index) => ({
+      ...entry,
+      assistant_id: `assistant-${String(index).padStart(4, "0")}`,
+    })),
+  });
+  assert.equal(parseAssistantCatalog(entries(1000)).length, 1000);
+  assert.throws(() => parseAssistantCatalog(entries(1001)), /too large/);
+});
