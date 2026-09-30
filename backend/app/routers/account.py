@@ -68,9 +68,9 @@ async def logout(request: Request) -> JSONResponse:
     if status == 200:
         response = private_json({"ok": True})
     else:
-        # The browser still forgets the cookie, but a copied session stays valid until Account revokes it.
+        # The browser forgets the cookie, so a retry cannot reach this session; say revocation stays unconfirmed.
         response = private_json(
-            {"detail": "the Account session could not be revoked; sign out again"},
+            {"detail": "signed out of this browser, but Account did not confirm revoking the session"},
             429 if status == 429 else 502,
         )
     response.delete_cookie(ACCOUNT_COOKIE, path="/")

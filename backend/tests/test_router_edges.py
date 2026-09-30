@@ -81,6 +81,8 @@ def test_logout_revokes_the_exact_account_session_and_reports_revocation_failure
         absent = client.post("/api/logout", headers=ORIGIN)
     assert [r.status_code for r in (revoked, unreachable, saturated, absent)] == [200, 502, 429, 200]
     assert revoked.json() == absent.json() == {"ok": True}
+    unconfirmed = {"detail": "signed out of this browser, but Account did not confirm revoking the session"}
+    assert unreachable.json() == saturated.json() == unconfirmed
     assert all("Max-Age=0" in r.headers["set-cookie"] for r in (revoked, unreachable, saturated, absent))
     assert all(r.headers["cache-control"] == "private, no-store" for r in (revoked, unreachable, saturated))
     revocation = (authn.ACCOUNT_URL, "POST", "/v1/logout", {"token": "opaque"})
