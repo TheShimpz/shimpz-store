@@ -114,8 +114,8 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
         return private_json(begin_data, begin_status)
     try:
         already_absent, generation = _revocation_state(begin_data)
-    except ValueError as exc:
-        return private_json({"detail": str(exc)}, 502)
+    except ValueError:
+        return private_json({"detail": "credential revocation returned invalid state"}, 502)
     if already_absent:
         log.info("model_provider_delete", provider=provider, status=200, already_absent=True)
         return private_json(
