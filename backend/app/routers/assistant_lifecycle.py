@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from app import authn, config
-from app.access import mutation_origin_allowed
+from app.access import mutation_origin_allowed, require_json_mutation
 from app.config import MAX_ASSISTANT_INSTALL_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError, read_bounded_json
@@ -38,10 +38,7 @@ async def install_assistant_publication(request: Request, team_id: str) -> Assis
     token, account_id, _ = await authn.authed_account_bounded(request)
     if not token:
         raise ClientPayloadError(401, "not authenticated")
-    if not mutation_origin_allowed(request.headers.get("origin")):
-        raise ClientPayloadError(403, "forbidden origin")
-    if request.headers.get("content-type", "").strip().lower() != "application/json":
-        raise ClientPayloadError(415, "Content-Type must be application/json")
+    require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_ASSISTANT_INSTALL_BODY_BYTES)
     if set(payload) != {"assistant_id", "source_digest"}:
         raise ClientPayloadError(400, "body must contain only assistant_id and source_digest")

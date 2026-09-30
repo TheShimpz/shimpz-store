@@ -15,6 +15,7 @@ from app.config import ACCOUNT_COOKIE
 from app.main import app
 
 VERIFY_CAPABILITY = "c" * 64
+ORIGIN = {"Origin": "https://shimpz.com"}
 
 
 def test_account_verification_uses_only_an_exact_file_capability(tmp_path, monkeypatch):
@@ -301,11 +302,16 @@ def test_model_provider_inventory_has_one_public_responsibility():
 def test_model_credentials_accept_only_generic_provider_api_keys():
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        valid = client.post("/api/model-providers/anthropic", json={"auth_type": "api_key", "secret": "secret-key"})
-        oauth = client.post("/api/model-providers/anthropic", json={"auth_type": "oauth", "secret": "oauth-token"})
+        valid = client.post(
+            "/api/model-providers/anthropic", json={"auth_type": "api_key", "secret": "secret-key"}, headers=ORIGIN
+        )
+        oauth = client.post(
+            "/api/model-providers/anthropic", json={"auth_type": "oauth", "secret": "oauth-token"}, headers=ORIGIN
+        )
         retired_provider = client.post(
             "/api/model-providers/codex",
             json={"auth_type": "api_key", "secret": "secret-key"},
+            headers=ORIGIN,
         )
 
     assert valid.status_code == 200
@@ -331,10 +337,12 @@ def test_team_create_forwards_the_account_scoped_model_to_the_real_control_plane
         response = client.post(
             "/api/teams",
             json={"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"},
+            headers=ORIGIN,
         )
         unsupported_payload = client.post(
             "/api/teams",
             json={"team_name": "Rejected", "provider": "openai", "model": "gpt-6-luna", "brain": "codex"},
+            headers=ORIGIN,
         )
     assert response.status_code == 201
     assert unsupported_payload.status_code == 400
@@ -422,6 +430,7 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
         create = client.post(
             "/api/teams",
             json={"team_name": "Unknown", "provider": "openai", "model": "gpt-unknown"},
+            headers=ORIGIN,
         )
         switch = client.put(
             "/api/teams/team_openai/inference",
@@ -471,7 +480,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
     ).encode()
     with _brain_control_plane() as calls, TestClient(app) as client:
         client.cookies.set(ACCOUNT_COOKIE, "valid-token")
-        create = client.post("/api/teams", content=create_body, headers={"Content-Type": "application/json"})
+        create = client.post("/api/teams", content=create_body, headers={"Content-Type": "application/json", **ORIGIN})
         install = client.post(
             "/api/teams/team_openai/assistants",
             content=install_body,
@@ -485,7 +494,7 @@ def test_control_mutations_reject_oversize_bodies_before_control_plane_forwardin
         credential = client.post(
             "/api/model-providers/openai",
             content=credential_body,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", **ORIGIN},
         )
     assert create.status_code == install.status_code == inference.status_code == credential.status_code == 413
     for private_response in (inference, credential):

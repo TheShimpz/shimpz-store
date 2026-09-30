@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
+from app.access import require_json_mutation
 from app.config import MAX_TEAM_CREATE_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
@@ -66,6 +67,7 @@ async def teams_create(request: Request) -> JSONResponse:
     token, account_id, _ = await authn.authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_TEAM_CREATE_BODY_BYTES)
     team_id, create_payload = _create_payload(payload, account_id)
     status, data = await call_bounded(

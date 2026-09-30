@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from app import authn
 from app.main import app
 from app.oauth_broker import SCOPES, OAuthBrokerError
-from app.routers import model_providers, oauth, action_assurance
+from app.routers import action_assurance, model_providers, oauth, teams
 
 
 def _session(authenticated: bool = True):
@@ -65,7 +65,9 @@ def test_model_provider_listing_forwards_failure_and_rejects_invalid_inventory(m
 def test_model_provider_mutations_reject_shape_and_unknown_provider(monkeypatch):
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
     with TestClient(app) as client:
-        wrong_shape = client.post("/api/model-providers/openai", json={"auth_type": "api_key"})
+        wrong_shape = client.post(
+            "/api/model-providers/openai", json={"auth_type": "api_key"}, headers={"Origin": "https://shimpz.com"}
+        )
         unknown = client.delete("/api/model-providers/unknown")
     assert wrong_shape.status_code == 400
     assert unknown.status_code == 400
@@ -173,3 +175,34 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch):
     )
     unknown = asyncio.run(oauth._post(request, "unknown", frozenset()))
     assert unknown.status_code == 502
+
+
+def test_credential_and_team_creation_posts_refuse_foreign_origins_and_simple_bodies(monkeypatch):
+    """A cookie-authenticated POST a cross-site simple request (no preflight) can reach is refused before dispatch."""
+    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    dispatched = []
+
+    async def upstream(*args, **_kwargs):
+        dispatched.append(args)
+        return 200, {}
+
+    monkeypatch.setattr(model_providers, "call_bounded", upstream)
+    monkeypatch.setattr(teams, "call_bounded", upstream)
+    targets = (
+        ("/api/model-providers/openai", {"auth_type": "api_key", "secret": "sk-browser-contract-key"}),
+        ("/api/teams", {"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"}),
+    )
+    statuses = []
+    with TestClient(app) as client:
+        for path, payload in targets:
+            body = json.dumps(payload)
+            foreign = client.post(
+                path, content=body, headers={"Origin": "https://evil.example", "Content-Type": "application/json"}
+            )
+            absent = client.post(path, content=body, headers={"Content-Type": "application/json"})
+            simple = client.post(
+                path, content=body, headers={"Origin": "https://shimpz.com", "Content-Type": "text/plain"}
+            )
+            statuses.append((foreign.status_code, absent.status_code, simple.status_code))
+    assert statuses == [(403, 403, 415), (403, 403, 415)]
+    assert dispatched == []

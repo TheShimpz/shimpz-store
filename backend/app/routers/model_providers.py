@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
+from app.access import require_json_mutation
 from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import provider as canonical_provider
@@ -46,6 +47,7 @@ async def model_provider_upsert(request: Request, provider: str) -> JSONResponse
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
         return JSONResponse({"detail": "not authenticated"}, status_code=401)
+    require_json_mutation(request)
     provider_value = canonical_provider(provider)
     if provider_value is None:
         return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
