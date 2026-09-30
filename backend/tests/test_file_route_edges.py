@@ -270,3 +270,48 @@ def test_an_upload_holds_one_admission_slot_from_parsing_through_the_team_hop(mo
     assert (forwarded.status_code, refused.status_code) == (503, 400)
     assert held_during_hop == [True]
     assert admission.acquire(blocking=False)
+
+
+def test_a_stalled_upload_body_is_refused_at_its_read_deadline_and_its_buffer_released(monkeypatch):
+    monkeypatch.setattr(files, "UPLOAD_READ_DEADLINE_SECONDS", 0.05)
+    parsers = []
+
+    class RecordingParser(files._InMemoryMultiPartParser):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            parsers.append(self)
+
+    monkeypatch.setattr(files, "_InMemoryMultiPartParser", RecordingParser)
+    boundary = "shimpzboundary"
+    first = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="a.txt"\r\n'
+        "Content-Type: text/plain\r\n\r\n"
+        "partial"
+    ).encode()
+    stalled = []
+
+    async def receive():
+        if not stalled:
+            stalled.append("sent")
+            return {"type": "http.request", "body": first, "more_body": True}
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            stalled.append("cancelled")
+            raise
+        raise AssertionError("unreachable")
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/teams/team/files",
+        "headers": [(b"content-type", f"multipart/form-data; boundary={boundary}".encode())],
+    }
+    # The outer bound only keeps a regression from hanging the suite; the route's own deadline must answer first.
+    response = asyncio.run(asyncio.wait_for(files._read_one_file(Request(scope, receive)), 5))
+    assert response.status_code == 408
+    assert stalled == ["sent", "cancelled"]
+    buffered = parsers[0]._files_to_close_on_error
+    assert buffered
+    assert all(file.closed for file in buffered)

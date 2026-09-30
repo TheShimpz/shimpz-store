@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
 from collections.abc import AsyncIterator
+from contextlib import aclosing
 
 import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from python_multipart.exceptions import FormParserError
-from starlette.datastructures import UploadFile
+from starlette.datastructures import FormData, UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 
 from app import authn, config
@@ -31,6 +33,9 @@ ONE_FILE = {"detail": "expected exactly one multipart file named file"}
 # parsed part and its forwarded copy, so this keeps upload memory well inside the Store's container limit.
 UPLOAD_CONCURRENCY = 4
 UPLOAD_ADMISSION = threading.BoundedSemaphore(UPLOAD_CONCURRENCY)
+# Absolute bound on receiving one upload body (a full file at about 2 Mbit/s), so a stalled client cannot hold its
+# admission slot and partial buffer indefinitely.
+UPLOAD_READ_DEADLINE_SECONDS = 120
 
 
 class UploadTooLargeError(Exception):
@@ -48,6 +53,11 @@ class _InMemoryMultiPartParser(MultiPartParser):
 
     def on_end(self) -> None:
         self.ended = True
+
+    def close_files(self) -> None:
+        """Release the partially buffered parts of an abandoned parse."""
+        for file in self._files_to_close_on_error:
+            file.close()
 
 
 async def bounded_stream(stream: AsyncIterator[bytes], limit: int) -> AsyncIterator[bytes]:
@@ -90,20 +100,32 @@ async def team_files(request: Request, team_id: str) -> JSONResponse:
     return private_json(inventory)
 
 
+async def _parse_upload(request: Request) -> tuple[FormData, bool] | JSONResponse:
+    """Parse the multipart body within its byte bound and read deadline, reporting whether it was terminated."""
+    async with aclosing(bounded_stream(request.stream(), MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES)) as body:
+        parser = _InMemoryMultiPartParser(request.headers, body, max_files=1, max_fields=0)
+        try:
+            async with asyncio.timeout(UPLOAD_READ_DEADLINE_SECONDS):
+                return await parser.parse(), parser.ended
+        except TimeoutError:
+            parser.close_files()
+            return private_json({"detail": "upload was not received in time"}, 408)
+        except UploadTooLargeError:
+            return _too_large()
+        except MultiPartException, FormParserError:
+            return private_json(ONE_FILE, 400)
+
+
 async def _read_one_file(request: Request) -> tuple[UploadFile, bytes] | JSONResponse:
     """Read the single file part of an admitted upload, bounded while streaming and kept in memory."""
     if not request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
         return private_json(ONE_FILE, 400)
-    body = bounded_stream(request.stream(), MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES)
-    parser = _InMemoryMultiPartParser(request.headers, body, max_files=1, max_fields=0)
-    try:
-        form = await parser.parse()
-    except UploadTooLargeError:
-        return _too_large()
-    except MultiPartException, FormParserError:
-        return private_json(ONE_FILE, 400)
+    parsed = await _parse_upload(request)
+    if isinstance(parsed, JSONResponse):
+        return parsed
+    form, ended = parsed
     file = form.get("file")
-    if not parser.ended or list(form.keys()) != ["file"] or not isinstance(file, UploadFile):
+    if not ended or list(form.keys()) != ["file"] or not isinstance(file, UploadFile):
         return private_json(ONE_FILE, 400)
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
