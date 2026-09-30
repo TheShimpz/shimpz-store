@@ -31,6 +31,7 @@ def _request(body: bytes, headers: list[tuple[bytes, bytes]] | None = None) -> R
         (b"{}", [(b"content-length", b"invalid")], "invalid Content-Length"),
         (b"{}", [(b"content-length", b"-1")], "invalid Content-Length"),
         (b'{"value":NaN}', None, "invalid JSON body"),
+        (b'{"value":1e999}', None, "invalid JSON body"),
         (b'{"value":1,"value":2}', None, "invalid JSON body"),
         (b"[]", None, "JSON body must be an object"),
     ],
@@ -198,3 +199,7 @@ def test_assistant_inventory_rejects_ambiguous_controller_data(value):
 )
 def test_running_inventory_rejects_ambiguous_controller_data(value):
     assert projections.running_assistant_inventory(value) is None
+
+
+def test_bounded_json_admits_a_finite_decimal():
+    assert asyncio.run(read_bounded_json(_request(b'{"value":1.5e3}'), 100)) == {"value": 1500.0}
