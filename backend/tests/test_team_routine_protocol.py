@@ -17,6 +17,7 @@ VIEWS = {
     "run": routine_contract.canonical_run_view,
     "notice_batch": routine_contract.canonical_notice_batch,
     "claim": routine_contract.canonical_claim,
+    "claim_request": routine_contract.canonical_claim_request,
 }
 
 
