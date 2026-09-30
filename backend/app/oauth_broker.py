@@ -235,7 +235,9 @@ def _open_neuron_tunnel() -> ssl.SSLSocket:
         raw.sendall(f"CONNECT {NEURON_HOST}:443 HTTP/1.1\r\nHost: {NEURON_HOST}:443\r\n\r\n".encode("ascii"))
         if _read_proxy_response(raw) != b"HTTP/1.1 200 Connection established\r\n\r\n":
             raise OAuthBrokerError("Neuron egress proxy rejected the destination")
-        secured = ssl.create_default_context().wrap_socket(raw, server_hostname=NEURON_HOST)
+        context = ssl.create_default_context()
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        secured = context.wrap_socket(raw, server_hostname=NEURON_HOST)
     except OAuthBrokerError:
         raise
     except (OSError, ssl.SSLError) as exc:
