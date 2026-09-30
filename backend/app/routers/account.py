@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app import authn
 from app.access import mutation_origin_allowed, private_json, require_json_mutation
+from app.concurrency import ExecutorSaturatedError
 from app.config import ACCOUNT_COOKIE, MAX_AUTH_BODY_BYTES
 from app.payloads import ClientPayloadError, read_bounded_json
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
@@ -42,11 +43,36 @@ async def login(request: Request) -> JSONResponse:
     return await _login(request)
 
 
+async def _revoke_session(token: str) -> int:
+    """Revoke the exact Account session; an absent or already-revoked session is a successful outcome."""
+    if not token:
+        return 200
+    try:
+        status, _ = await _bounded_call(
+            authn.ACCOUNT_URL,
+            "POST",
+            "/v1/logout",
+            {"token": token},
+            timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
+        )
+    except ExecutorSaturatedError:
+        return 429
+    return status
+
+
 @router.post("/api/logout")
-def logout(request: Request) -> JSONResponse:
+async def logout(request: Request) -> JSONResponse:
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
-    response = private_json({"ok": True})
+    status = await _revoke_session(request.cookies.get(ACCOUNT_COOKIE, ""))
+    if status == 200:
+        response = private_json({"ok": True})
+    else:
+        # The browser still forgets the cookie, but a copied session stays valid until Account revokes it.
+        response = private_json(
+            {"detail": "the Account session could not be revoked; sign out again"},
+            429 if status == 429 else 502,
+        )
     response.delete_cookie(ACCOUNT_COOKIE, path="/")
     return response
 

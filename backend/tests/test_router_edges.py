@@ -10,9 +10,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import authn
+from app.concurrency import ExecutorSaturatedError
 from app.main import app
 from app.payloads import ClientPayloadError
 from app.routers import account, assistant_lifecycle, static, teams
+from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS
 
 ORIGIN = {"Origin": "https://shimpz.com"}
 
@@ -56,6 +58,33 @@ def test_account_routes_set_and_clear_cookie_and_project_me(monkeypatch):
     assert me.json() == {"authenticated": True, "account_id": "account", "username": "user"}
     assert logout.json() == {"ok": True}
     assert "Max-Age=0" in logout.headers["set-cookie"]
+
+
+def test_logout_revokes_the_exact_account_session_and_reports_revocation_failure(monkeypatch):
+    """The cookie is always cleared, but success is reported only after Account revokes the session."""
+    calls = []
+    outcomes = iter(((200, {"logged_out": True}), (502, {"detail": "the Space is unreachable"}), "saturated"))
+
+    async def revoke(*args, **kwargs):
+        calls.append((args, kwargs))
+        outcome = next(outcomes)
+        if outcome == "saturated":
+            raise ExecutorSaturatedError("blocking worker admission is full")
+        return outcome
+
+    monkeypatch.setattr(account, "_bounded_call", revoke)
+    session = {**ORIGIN, "Cookie": "shimpz_account=opaque"}
+    with TestClient(app) as client:
+        revoked = client.post("/api/logout", headers=session)
+        unreachable = client.post("/api/logout", headers=session)
+        saturated = client.post("/api/logout", headers=session)
+        absent = client.post("/api/logout", headers=ORIGIN)
+    assert [r.status_code for r in (revoked, unreachable, saturated, absent)] == [200, 502, 429, 200]
+    assert revoked.json() == absent.json() == {"ok": True}
+    assert all("Max-Age=0" in r.headers["set-cookie"] for r in (revoked, unreachable, saturated, absent))
+    assert all(r.headers["cache-control"] == "private, no-store" for r in (revoked, unreachable, saturated))
+    revocation = (authn.ACCOUNT_URL, "POST", "/v1/logout", {"token": "opaque"})
+    assert calls == [(revocation, {"timeout": CONTROL_PLANE_TIMEOUT_SECONDS})] * 3
 
 
 def test_login_and_logout_refuse_cross_site_requests(monkeypatch):
