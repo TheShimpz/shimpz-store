@@ -7,6 +7,8 @@ import re
 from app.protocol.http.v1 import payload as team_contract
 
 MAX_ASSISTANTS = 1000
+# Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
+MAX_ACTIONS = 128
 _VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _CREATOR = re.compile(r"^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
@@ -118,7 +120,7 @@ def _stored_inputs(value: object) -> frozenset[str]:
 
 
 def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, object]]:
-    if not isinstance(value, list) or not 1 <= len(value) <= 64:
+    if not isinstance(value, list) or not 1 <= len(value) <= MAX_ACTIONS:
         raise CatalogError("catalog Actions are invalid")
     projected = []
     for item in value:

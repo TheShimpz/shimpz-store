@@ -75,7 +75,6 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].actions[0].human_requests = ["input:magic"]; },
     (value) => { value.assistants[0].actions[0].human_requests = ["approval", "approval"]; },
     (value) => { value.assistants[0].actions = []; },
-    (value) => { value.assistants[0].actions = Array.from({ length: 65 }, () => structuredClone(value.assistants[0].actions[0])); },
     (value) => { value.assistants[0].actions[0].integrations = Array.from({ length: 17 }, (_, index) => `integration-${index}`); },
     (value) => { value.assistants[0].actions[0].integrations = ["a".repeat(65)]; },
     (value) => { value.assistants[0].integrations = "example"; },
@@ -91,6 +90,17 @@ test("fails closed on ambiguous or executable catalog data", () => {
     mutate(value);
     assert.throws(() => parseAssistantCatalog(value));
   }
+});
+
+test("admits the producer's 128 Actions per Assistant and refuses one more", () => {
+  const withActions = (count) => {
+    const value = catalog();
+    const action = value.assistants[0].actions[0];
+    value.assistants[0].actions = Array.from({ length: count }, (_, index) => ({ ...action, id: `action-${index}` }));
+    return value;
+  };
+  assert.equal(parseAssistantCatalog(withActions(128))[0].actions.length, 128);
+  assert.throws(() => parseAssistantCatalog(withActions(129)));
 });
 
 test("admits exactly the producer's 1,000-entry catalog and refuses one more", () => {

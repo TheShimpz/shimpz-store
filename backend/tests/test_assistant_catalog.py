@@ -129,6 +129,18 @@ def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:
         catalog.project_catalog(value)
 
 
+def _with_actions(count: int) -> dict[str, object]:
+    action = _assistant()["actions"][0]
+    return _assistant(actions=[{**action, "id": f"action-{index}"} for index in range(count)])
+
+
+def test_an_assistant_with_the_producer_maximum_of_actions_is_projected() -> None:
+    projected = catalog.project_catalog({"version": 1, "assistants": [_with_actions(128)]})
+    assert len(projected["assistants"][0]["actions"]) == 128
+    with pytest.raises(catalog.CatalogError):
+        catalog.project_catalog({"version": 1, "assistants": [_with_actions(129)]})
+
+
 def test_public_route_caches_only_a_valid_developers_catalog(monkeypatch) -> None:
     async def valid_catalog(*_args, **_kwargs):
         return 200, {"version": 1, "assistants": [_assistant()]}
