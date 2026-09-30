@@ -10,6 +10,7 @@ import logging
 import os
 
 import structlog
+import structlog.tracebacks
 
 
 def setup(service: str) -> None:
@@ -24,13 +25,19 @@ def setup(service: str) -> None:
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.dict_tracebacks,  # full exception -> structured JSON, never a bare string
     ]
+    # Exceptions keep their full stack, but never frame locals: a request frame holds session tokens and upload
+    # bytes, which must not reach logs.
     if os.getenv("LOG_FORMAT", "json") == "console":
-        processors = [*shared, structlog.dev.ConsoleRenderer()]
+        processors = [
+            *shared,
+            structlog.dev.ConsoleRenderer(exception_formatter=structlog.dev.plain_traceback),
+        ]
     else:
         processors = [
             *shared,
+            # Full exception -> structured JSON, never a bare string.
+            structlog.processors.ExceptionRenderer(structlog.tracebacks.ExceptionDictTransformer(show_locals=False)),
             structlog.processors.EventRenamer("msg"),
             structlog.processors.JSONRenderer(),
         ]
