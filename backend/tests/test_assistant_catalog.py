@@ -16,6 +16,7 @@ ICON_DIGEST = "sha256:" + ("b" * 64)
 
 
 def _assistant(**changes) -> dict[str, object]:
+    """One entry in the exact shape Developers publishes (developers-api resolve.rs catalog value)."""
     value = {
         "assistant_id": "hello-world",
         "name": "Hello World",
@@ -28,12 +29,16 @@ def _assistant(**changes) -> dict[str, object]:
         "platforms": ["linux/amd64", "linux/arm64"],
         "allowed_hosts": ["api.example.com"],
         "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
+        "stored_inputs": [
+            {"id": "api-token", "kind": "password", "label": "API token", "description": "Used to call the API."}
+        ],
         "actions": [
             {
                 "id": "hello",
                 "input_schema": {"type": "object"},
                 "output_schema": {"type": "object"},
                 "integrations": ["github"],
+                "stored_inputs": ["api-token"],
                 "human_requests": ["approval", "input:text"],
             }
         ],
@@ -73,6 +78,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
     serialized = str(projected)
     assert "image_reference" not in serialized
     assert "input_schema" not in serialized
+    # Stored Input declarations are validated but never projected to the browser.
+    assert "stored_inputs" not in serialized
 
 
 @pytest.mark.parametrize(
@@ -98,6 +105,20 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0]["actions"][0].update(command="/bin/sh"),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["unknown"]),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "approval"]),
+        lambda value: value["assistants"][0].pop("stored_inputs"),
+        lambda value: value["assistants"][0]["actions"][0].pop("stored_inputs"),
+        lambda value: value["assistants"][0].update(stored_inputs="invalid"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(kind="text"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(label="bad\nlabel"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(extra=True),
+        lambda value: value["assistants"][0]["stored_inputs"].append(dict(value["assistants"][0]["stored_inputs"][0])),
+        lambda value: value["assistants"][0].update(
+            stored_inputs=[
+                {"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key."} for index in range(9)
+            ]
+        ),
+        lambda value: value["assistants"][0]["actions"][0].update(stored_inputs=["undeclared"]),
+        lambda value: value["assistants"][0]["actions"][0].update(stored_inputs=["api-token", "api-token"]),
     ],
 )
 def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:

@@ -40,8 +40,10 @@ _ASSISTANT_FIELDS = {
     "platforms",
     "allowed_hosts",
     "integrations",
+    "stored_inputs",
     "actions",
 }
+_ACTION_FIELDS = {"id", "input_schema", "output_schema", "integrations", "stored_inputs", "human_requests"}
 
 
 class CatalogError(ValueError):
@@ -92,14 +94,37 @@ def _integrations(value: object) -> list[dict[str, object]]:
     return projected
 
 
-def _actions(value: object) -> list[dict[str, object]]:
+def _stored_inputs(value: object) -> frozenset[str]:
+    """Validate the declared Stored Inputs; they are checked, not projected to the browser."""
+    if not isinstance(value, list) or len(value) > 8:
+        raise CatalogError("catalog Stored Inputs are invalid")
+    identifiers = []
+    for item in value:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"id", "kind", "label", "description"}
+            or not isinstance(item["id"], str)
+            or len(item["id"]) > 64
+            or _ACTION_ID.fullmatch(item["id"]) is None
+            or item["kind"] != "password"
+        ):
+            raise CatalogError("catalog Stored Input is invalid")
+        _text(item["label"], 80)
+        _text(item["description"], 500)
+        identifiers.append(item["id"])
+    if len(set(identifiers)) != len(identifiers):
+        raise CatalogError("catalog Stored Inputs are duplicated")
+    return frozenset(identifiers)
+
+
+def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, object]]:
     if not isinstance(value, list) or not 1 <= len(value) <= 64:
         raise CatalogError("catalog Actions are invalid")
     projected = []
     for item in value:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "input_schema", "output_schema", "integrations", "human_requests"}
+            or set(item) != _ACTION_FIELDS
             or not isinstance(item["id"], str)
             or _ACTION_ID.fullmatch(item["id"]) is None
             or not isinstance(item["input_schema"], dict)
@@ -109,6 +134,8 @@ def _actions(value: object) -> list[dict[str, object]]:
         human_requests = _closed_strings(item["human_requests"], 11, 25)
         if any(kind not in _HUMAN_REQUEST_KINDS for kind in human_requests):
             raise CatalogError("catalog Action human requests are invalid")
+        if not set(_closed_strings(item["stored_inputs"], 1, 64)) <= stored_inputs:
+            raise CatalogError("catalog Action Stored Inputs are invalid")
         projected.append(
             {
                 "id": item["id"],
@@ -152,7 +179,7 @@ def _assistant(value: object) -> dict[str, object]:
         "platforms": platforms,
         "allowed_hosts": _closed_strings(value["allowed_hosts"], 32, 253),
         "integrations": _integrations(value["integrations"]),
-        "actions": _actions(value["actions"]),
+        "actions": _actions(value["actions"], _stored_inputs(value["stored_inputs"])),
     }
 
 
