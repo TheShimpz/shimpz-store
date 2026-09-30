@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import structlog
-from fastapi import APIRouter, Request, UploadFile
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from starlette.datastructures import UploadFile
+from starlette.formparsers import MultiPartException, MultiPartParser
 
 from app import authn, config
 from app.access import mutation_origin_allowed, private_json
@@ -18,6 +22,33 @@ log = structlog.get_logger()
 router = APIRouter()
 
 MAX_UPLOAD_BYTES = team_contract.MAX_FILE_UPLOAD_BYTES
+# Multipart framing (boundary lines and one part's headers) admitted beyond the file bytes themselves.
+MULTIPART_OVERHEAD_BYTES = 64 * 1024
+ONE_FILE = {"detail": "expected exactly one multipart file named file"}
+
+
+class UploadTooLargeError(Exception):
+    """The request body passed its byte bound while it was being read."""
+
+
+class _InMemoryMultiPartParser(MultiPartParser):
+    """Keeps the one admitted file in memory, so a Team upload never spools to the Store's small /tmp."""
+
+    spool_max_size = MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES
+
+
+async def bounded_stream(stream: AsyncIterator[bytes], limit: int) -> AsyncIterator[bytes]:
+    """Yield the body until it passes ``limit`` bytes, then stop reading it."""
+    received = 0
+    async for chunk in stream:
+        received += len(chunk)
+        if received > limit:
+            raise UploadTooLargeError
+        yield chunk
+
+
+def _too_large() -> JSONResponse:
+    return private_json({"detail": f"file too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)"}, 413)
 
 
 @router.get("/api/teams/{team_id}/files")
@@ -46,9 +77,34 @@ async def team_files(request: Request, team_id: str) -> JSONResponse:
     return private_json(inventory)
 
 
+async def _read_one_file(request: Request) -> tuple[UploadFile, bytes] | JSONResponse:
+    """Read the single file part of an admitted upload, bounded while streaming and kept in memory."""
+    if not request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
+        return private_json(ONE_FILE, 400)
+    body = bounded_stream(request.stream(), MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES)
+    parser = _InMemoryMultiPartParser(request.headers, body, max_files=1, max_fields=0)
+    try:
+        form = await parser.parse()
+    except UploadTooLargeError:
+        return _too_large()
+    except MultiPartException:
+        return private_json(ONE_FILE, 400)
+    file = form.get("file")
+    if list(form.keys()) != ["file"] or not isinstance(file, UploadFile):
+        return private_json(ONE_FILE, 400)
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        return _too_large()
+    return file, data
+
+
 @router.post("/api/teams/{team_id}/files")
-async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> JSONResponse:
-    """Upload one opaque Team object without granting a Brain or Assistant filesystem access."""
+async def team_file_upload(request: Request, team_id: str) -> JSONResponse:
+    """Upload one opaque Team object without granting a Brain or Assistant filesystem access.
+
+    The body is read only after the account and origin are admitted, and only up to the file limit plus multipart
+    framing; it must hold exactly one file part named ``file`` and nothing else.
+    """
     token, account_id, _ = await authn.authed_account_bounded(request)
     if not token:
         raise ClientPayloadError(401, "not authenticated")
@@ -57,12 +113,10 @@ async def team_file_upload(request: Request, team_id: str, file: UploadFile) -> 
     team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
         raise ClientPayloadError(400, "bad team id")
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        return private_json(
-            {"detail": f"file too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)"},
-            413,
-        )
+    read = await _read_one_file(request)
+    if isinstance(read, JSONResponse):
+        return read
+    file, data = read
     filename = team_contract.canonical_filename(file.filename or "upload.bin")
     media_type = team_contract.canonical_media_type(file.content_type)
     if filename is None or media_type is None:

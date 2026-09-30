@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import secrets
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from app import authn
 from app.main import app
@@ -67,6 +70,12 @@ def test_file_upload_rejects_bad_team_size_and_metadata(monkeypatch):
             files={"file": ("file.txt", b"abc", "text/plain")},
             headers=ORIGIN,
         )
+        monkeypatch.setattr(files, "MULTIPART_OVERHEAD_BYTES", 0)
+        streamed_oversize = client.post(
+            "/api/teams/team/files",
+            files={"file": ("file.txt", b"abc", "text/plain")},
+            headers=ORIGIN,
+        )
         monkeypatch.setattr(files, "MAX_UPLOAD_BYTES", files.team_contract.MAX_FILE_UPLOAD_BYTES)
         invalid = client.post(
             "/api/teams/team/files",
@@ -75,6 +84,7 @@ def test_file_upload_rejects_bad_team_size_and_metadata(monkeypatch):
         )
     assert bad_team.status_code == 400
     assert oversized.status_code == 413
+    assert streamed_oversize.status_code == 413
     assert invalid.status_code == 400
 
 
@@ -125,3 +135,69 @@ def test_file_deletion_forwards_upstream_failure_and_rejects_invalid_projection(
         invalid = client.delete(f"/api/teams/team/files/{FILE_ID}", headers=ORIGIN)
     assert unavailable.status_code == 503
     assert invalid.status_code == 502
+
+
+def test_an_upload_is_refused_before_its_body_is_read(monkeypatch):
+    """Authentication and origin admission run before any multipart body is read or spooled."""
+    read = []
+    original = Request.stream
+
+    def recording(self):
+        read.append(self.url.path)
+        return original(self)
+
+    monkeypatch.setattr(Request, "stream", recording)
+    body = {"file": ("file.txt", b"data" * 1024, "text/plain")}
+    with TestClient(app) as client:
+        monkeypatch.setattr(authn, "authed_account_bounded", _session(False))
+        anonymous = client.post("/api/teams/team/files", files=body, headers=ORIGIN)
+        monkeypatch.setattr(authn, "authed_account_bounded", _session())
+        foreign = client.post("/api/teams/team/files", files=body)
+    assert (anonymous.status_code, foreign.status_code) == (401, 403)
+    assert read == []
+
+
+def test_an_upload_admits_exactly_one_file_part_and_no_fields(monkeypatch):
+    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    forwarded = []
+
+    async def upstream(*args, **_kwargs):
+        forwarded.append(args)
+        return 200, {}
+
+    monkeypatch.setattr(files, "call_raw_bounded", upstream)
+    with TestClient(app) as client:
+        two_files = client.post(
+            "/api/teams/team/files",
+            files=[("file", ("a.txt", b"a", "text/plain")), ("file", ("b.txt", b"b", "text/plain"))],
+            headers=ORIGIN,
+        )
+        with_field = client.post(
+            "/api/teams/team/files",
+            files={"file": ("a.txt", b"a", "text/plain")},
+            data={"note": "x"},
+            headers=ORIGIN,
+        )
+        wrong_name = client.post(
+            "/api/teams/team/files", files={"upload": ("a.txt", b"a", "text/plain")}, headers=ORIGIN
+        )
+        not_multipart = client.post("/api/teams/team/files", content=b"raw", headers=ORIGIN)
+    assert [r.status_code for r in (two_files, with_field, wrong_name, not_multipart)] == [400, 400, 400, 400]
+    assert forwarded == []
+
+
+def test_the_upload_stream_stops_at_its_byte_bound_without_draining_the_body():
+    pulled = []
+
+    async def body():
+        for index in range(100):
+            pulled.append(index)
+            yield b"x" * 1024
+
+    async def drain():
+        async for _chunk in files.bounded_stream(body(), 2048):
+            pass
+
+    with pytest.raises(files.UploadTooLargeError):
+        asyncio.run(drain())
+    assert pulled == [0, 1, 2]
