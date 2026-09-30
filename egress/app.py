@@ -9,6 +9,7 @@ import select
 import socket
 import socketserver
 import threading
+import time
 
 import audit
 
@@ -57,9 +58,15 @@ def resolve_public(host: str, port: int) -> tuple[int, tuple] | None:
 
 
 def _read_request(stream: socket.socket) -> bytes | None:
+    # The whole header read shares one deadline: a per-recv timeout alone lets a byte trickle hold a worker.
+    deadline = time.monotonic() + CONNECT_TIMEOUT
     payload = bytearray()
     while b"\r\n\r\n" not in payload:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
         try:
+            stream.settimeout(remaining)
             chunk = stream.recv(256)
         except OSError:
             return None

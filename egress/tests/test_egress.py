@@ -102,6 +102,25 @@ class StoreEgressTests(unittest.TestCase):
         oversized.recv.return_value = b"x" * (app.MAX_REQUEST_BYTES + 1)
         self.assertIsNone(app._read_request(oversized))
 
+    def test_request_reader_closes_a_byte_trickle_at_its_absolute_deadline(self) -> None:
+        # Each byte resets an idle timeout, so only a whole-read deadline stops a trickle holding a worker.
+        trickle = mock.Mock()
+        trickle.recv.side_effect = [b"CONNECT neuron.shimpz.com:443 HTTP/1.1\r\n", b"\r\n"]
+        clock = [0.0, 0.0, app.CONNECT_TIMEOUT + 1.0]
+        with mock.patch.object(app.time, "monotonic", side_effect=clock):
+            self.assertIsNone(app._read_request(trickle))
+        trickle.recv.assert_called_once()
+        trickle.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT)
+
+        remaining = mock.Mock()
+        remaining.recv.side_effect = [b"CONNECT ", b"neuron\r\n\r\n"]
+        with mock.patch.object(app.time, "monotonic", side_effect=[0.0, 0.0, 4.0]):
+            self.assertEqual(app._read_request(remaining), b"CONNECT neuron\r\n\r\n")
+        self.assertEqual(
+            remaining.settimeout.call_args_list,
+            [mock.call(app.CONNECT_TIMEOUT), mock.call(app.CONNECT_TIMEOUT - 4.0)],
+        )
+
     def test_connect_uses_the_validated_address_without_reresolving(self) -> None:
         upstream = mock.Mock()
         with mock.patch.object(app.socket, "socket", return_value=upstream) as constructor:
