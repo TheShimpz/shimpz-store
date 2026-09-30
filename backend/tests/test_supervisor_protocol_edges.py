@@ -100,7 +100,7 @@ def test_assurance_binding_requires_exact_identity():
         lambda value: value.update(sub="bad"),
         lambda value: value.update(authority="invalid"),
         lambda value: value.update(jti="bad"),
-        lambda value: value.update(method="PATCH"),
+        lambda value: value.update(method="TRACE"),
     ],
 )
 def test_claims_reject_each_closed_envelope_violation(mutate):
