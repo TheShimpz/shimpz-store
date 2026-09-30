@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
-from app.access import require_json_mutation
+from app.access import private_json, require_json_mutation
 from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import provider as canonical_provider
@@ -24,7 +24,7 @@ MAX_CREDENTIAL_BODY_BYTES = 72 * 1024
 async def model_providers_list(request: Request) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     status, data = await call_bounded(
         authn.EXECUTOR,
         config.ACCOUNT_URL,
@@ -35,29 +35,29 @@ async def model_providers_list(request: Request) -> JSONResponse:
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     if status != 200 or not isinstance(data, dict):
-        return JSONResponse(data, status_code=status)
+        return private_json(data, status)
     providers = data.get("model_providers")
     if not isinstance(providers, list):
-        return JSONResponse({"detail": "invalid model provider inventory"}, status_code=502)
-    return JSONResponse({"providers": providers})
+        return private_json({"detail": "invalid model provider inventory"}, 502)
+    return private_json({"providers": providers})
 
 
 @router.post("/api/model-providers/{provider}")
 async def model_provider_upsert(request: Request, provider: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     require_json_mutation(request)
     provider_value = canonical_provider(provider)
     if provider_value is None:
-        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
+        return private_json({"detail": "unsupported model provider"}, 400)
     payload = await read_bounded_json(request, MAX_CREDENTIAL_BODY_BYTES)
     if set(payload) != {"auth_type", "secret"}:
-        return JSONResponse({"detail": "credential requires auth_type and secret"}, status_code=400)
+        return private_json({"detail": "credential requires auth_type and secret"}, 400)
     auth_type = str(payload.get("auth_type") or "").strip().lower()
     secret = payload.get("secret")
     if auth_type != "api_key" or not isinstance(secret, str):
-        return JSONResponse({"detail": "invalid model provider credential"}, status_code=400)
+        return private_json({"detail": "invalid model provider credential"}, 400)
     status, data = await call_bounded(
         authn.EXECUTOR,
         config.ACCOUNT_URL,
@@ -73,17 +73,17 @@ async def model_provider_upsert(request: Request, provider: str) -> JSONResponse
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     log.info("model_provider_upsert", provider=provider_value, status=status)
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)
 
 
 @router.delete("/api/model-providers/{provider}")
 async def model_provider_delete(request: Request, provider: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     provider_value = canonical_provider(provider)
     if provider_value is None:
-        return JSONResponse({"detail": "unsupported model provider"}, status_code=400)
+        return private_json({"detail": "unsupported model provider"}, 400)
     return await run_bounded(
         CONTROL_EXECUTOR,
         _delete_model_provider_for_token,
@@ -111,14 +111,14 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     if begin_status != 200 or not isinstance(begin_data, dict):
-        return JSONResponse(begin_data, status_code=begin_status)
+        return private_json(begin_data, begin_status)
     try:
         already_absent, generation = _revocation_state(begin_data)
     except ValueError as exc:
-        return JSONResponse({"detail": str(exc)}, status_code=502)
+        return private_json({"detail": str(exc)}, 502)
     if already_absent:
         log.info("model_provider_delete", provider=provider, status=200, already_absent=True)
-        return JSONResponse(
+        return private_json(
             {
                 "provider": provider,
                 "generation": generation,
@@ -132,9 +132,9 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
         finalize_token = ""
     if not finalize_token:
         log.warning("brain_finalize_unavailable", provider=provider)
-        return JSONResponse(
+        return private_json(
             {"detail": "Integration secret finalization is unavailable"},
-            status_code=502,
+            502,
         )
     status, data = call(
         config.ACCOUNT_URL,
@@ -148,4 +148,4 @@ def _delete_model_provider_for_token(token: str, provider: str, forwarded_for: s
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
     log.info("model_provider_delete", provider=provider, status=status)
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)

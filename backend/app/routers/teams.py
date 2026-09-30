@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
-from app.access import require_json_mutation
+from app.access import private_json, require_json_mutation
 from app.config import MAX_TEAM_CREATE_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
@@ -50,7 +50,7 @@ def _create_payload(payload: dict, account_id: str) -> tuple[str, dict[str, str]
 async def teams_list(request: Request) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -59,14 +59,14 @@ async def teams_list(request: Request) -> JSONResponse:
         extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)
 
 
 @router.post("/api/teams")
 async def teams_create(request: Request) -> JSONResponse:
     token, account_id, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_TEAM_CREATE_BODY_BYTES)
     team_id, create_payload = _create_payload(payload, account_id)
@@ -79,17 +79,17 @@ async def teams_create(request: Request) -> JSONResponse:
         {team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)
 
 
 @router.delete("/api/teams/{team_id}")
 async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
-        return JSONResponse({"detail": "bad team id"}, status_code=400)
+        return private_json({"detail": "bad team id"}, 400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -98,4 +98,4 @@ async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
         extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)

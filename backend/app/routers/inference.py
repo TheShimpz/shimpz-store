@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
+from app.access import private_json
 from app.config import MAX_INFERENCE_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
@@ -21,10 +22,10 @@ INFERENCE_EFFORTS = ("low", "medium", "high")
 async def team_inference(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
-        return JSONResponse({"detail": "bad team id"}, status_code=400)
+        return private_json({"detail": "bad team id"}, 400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -33,7 +34,7 @@ async def team_inference(request: Request, team_id: str) -> JSONResponse:
         extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)
 
 
 def _inference_selection(payload: object) -> tuple[dict[str, str] | None, str | None]:
@@ -55,13 +56,13 @@ def _inference_selection(payload: object) -> tuple[dict[str, str] | None, str | 
 async def team_inference_configure(request: Request, team_id: str) -> JSONResponse:
     token, _, _ = await authn.authed_account_bounded(request)
     if not token:
-        return JSONResponse({"detail": "not authenticated"}, status_code=401)
+        return private_json({"detail": "not authenticated"}, 401)
     team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
-        return JSONResponse({"detail": "bad team id"}, status_code=400)
+        return private_json({"detail": "bad team id"}, 400)
     selection, problem = _inference_selection(await read_bounded_json(request, MAX_INFERENCE_BODY_BYTES))
     if problem is not None:
-        return JSONResponse({"detail": problem}, status_code=400)
+        return private_json({"detail": problem}, 400)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -71,4 +72,4 @@ async def team_inference_configure(request: Request, team_id: str) -> JSONRespon
         extra={team_contract.ACCOUNT_SESSION_HEADER: token},
         timeout=CONTROL_PLANE_TIMEOUT_SECONDS,
     )
-    return JSONResponse(data, status_code=status)
+    return private_json(data, status)
