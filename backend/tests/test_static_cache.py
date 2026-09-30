@@ -112,3 +112,22 @@ def test_missing_not_found_document_and_foreign_path_fail_closed(monkeypatch, tm
 
     assert response.status_code == 404
     assert response.text == "not found"
+
+
+def test_files_resolving_outside_the_build_are_refused_while_a_linked_build_serves(monkeypatch, tmp_path):
+    build = tmp_path / "build"
+    _write(build, "index.html", "home")
+    _write(tmp_path, "secret.txt", "secret sentinel")
+    (build / "leak.txt").symlink_to(tmp_path / "secret.txt")
+    (tmp_path / "linked-build").symlink_to(build)
+    monkeypatch.setattr(static, "BUILD", tmp_path / "linked-build")
+
+    assert static.resolve("leak.txt") is None
+    with TestClient(store.app) as client:
+        leaked = client.get("/leak.txt", headers={"Accept": "text/html"})
+        home = client.get("/")
+
+    assert leaked.status_code == 404
+    assert "secret sentinel" not in leaked.text
+    assert home.status_code == 200
+    assert home.text == "home"

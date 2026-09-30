@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -13,12 +14,15 @@ router = APIRouter()
 
 
 def resolve(rel: str) -> Path | None:
+    """Map a request path to one regular file whose real path, symlinks resolved, stays inside BUILD."""
     rel = rel.strip("/")
     if ".." in rel.split("/"):
         return None
-    for candidate in (BUILD / rel, BUILD / f"{rel}.html", BUILD / rel / "index.html"):
-        if candidate.is_file():
-            return candidate
+    root = os.path.realpath(BUILD)
+    for relative in (rel, f"{rel}.html", f"{rel}/index.html" if rel else "index.html"):
+        candidate = os.path.realpath(Path(root, relative))
+        if candidate.startswith(root + os.sep) and Path(candidate).is_file():
+            return Path(candidate)
     return None
 
 
@@ -32,7 +36,7 @@ def cache_control(path: str, hit: Path) -> str:
 
 def is_not_found_document(hit: Path) -> bool:
     try:
-        relative = hit.relative_to(BUILD)
+        relative = hit.relative_to(os.path.realpath(BUILD))
     except ValueError:
         return False
     return len(relative.parts) == 2 and relative.name == "404.html"
