@@ -245,35 +245,6 @@ async def _ws_run_admitted_turn(turn: _WsTurn, lease: _TurnLease) -> None:
         await _deliver_turn(turn, worker)
 
 
-async def _ws_run_turn(
-    ws: WebSocket,
-    team_id: str,
-    hdr: dict,
-    payload: dict[str, object],
-    started: asyncio.Event,
-) -> None:
-    """Relay one terminal controller event for a live turn."""
-    admitted = _TURN_ADMISSION.reserve()
-    if admitted is None:
-        started.set()
-        await ws.send_json(_relay_capacity_event())
-        return
-    dispatched = asyncio.Event()
-    await _ws_run_admitted_turn(
-        _WsTurn(
-            ws=ws,
-            team_id=team_id,
-            headers=hdr,
-            text=payload["message"],
-            started=started,
-            dispatched=dispatched,
-            files=tuple(payload["files"]),
-            assistant_ids=tuple(payload["assistant_ids"]),
-        ),
-        admitted,
-    )
-
-
 def _start_ws_turn(
     context: _WsContext,
     msg: dict,

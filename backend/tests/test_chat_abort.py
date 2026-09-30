@@ -13,6 +13,7 @@ from starlette.websockets import WebSocketDisconnect
 from app import config
 from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
+from tests.chat_relay_fixture import run_admitted_turn
 
 TEST_TEAM_ID = "test_team"
 
@@ -143,13 +144,7 @@ def test_local_relay_eof_stops_provider_before_browser_error():
         await websocket.accept()
         started = asyncio.Event()
         with _real_relay_abort_team() as calls:
-            await main._ws_run_turn(
-                websocket,
-                "team-abort",
-                {},
-                {"message": "hello", "files": [], "assistant_ids": []},
-                started,
-            )
+            await run_admitted_turn(websocket, "team-abort", "hello", started)
         events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
         assert events == [
             {

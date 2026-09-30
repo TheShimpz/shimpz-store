@@ -12,6 +12,7 @@ from app import config
 from app.chat.relay import _relay_upstream_events
 from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
+from tests.chat_relay_fixture import run_admitted_turn
 
 TEST_TEAM_ID = "test_team"
 
@@ -230,13 +231,7 @@ def test_team_terminal_failures_reach_websocket_as_errors(terminal: dict):
         started = asyncio.Event()
         response = json.dumps(terminal, separators=(",", ":")).encode() + b"\n"
         with _real_stream_team(response) as requests:
-            await main._ws_run_turn(
-                websocket,
-                "team-terminal",
-                {},
-                {"message": "hello", "files": [], "assistant_ids": []},
-                started,
-            )
+            await run_admitted_turn(websocket, "team-terminal", "hello", started)
         events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
         assert started.is_set()
         assert len(requests) == 1
@@ -270,13 +265,7 @@ def test_real_upstream_non_2xx_reaches_websocket_redacted(status: int, payload: 
         started = asyncio.Event()
         body = json.dumps(payload, separators=(",", ":")).encode()
         with _real_stream_team(body, status=status) as requests:
-            await main._ws_run_turn(
-                websocket,
-                "team-upstream-error",
-                {},
-                {"message": "hello", "files": [], "assistant_ids": []},
-                started,
-            )
+            await run_admitted_turn(websocket, "team-upstream-error", "hello", started)
         events = [json.loads(message["text"]) for message in sent if message["type"] == "websocket.send"]
         assert started.is_set()
         assert len(requests) == 1

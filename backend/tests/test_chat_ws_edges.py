@@ -105,25 +105,6 @@ def test_admitted_turn_translates_executor_saturation(monkeypatch):
     asyncio.run(scenario())
 
 
-def test_turn_without_admission_reports_capacity(monkeypatch):
-    monkeypatch.setattr(ws._TURN_ADMISSION, "reserve", lambda: None)
-
-    async def scenario():
-        socket = _Socket()
-        started = asyncio.Event()
-        await ws._ws_run_turn(
-            socket,
-            "team",
-            {},
-            {"message": "hello", "files": [], "assistant_ids": []},
-            started,
-        )
-        assert started.is_set()
-        assert socket.json == [ws._relay_capacity_event()]
-
-    asyncio.run(scenario())
-
-
 @pytest.mark.parametrize(
     ("status", "data", "expected_type"),
     [

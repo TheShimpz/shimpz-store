@@ -1,10 +1,12 @@
 """Loopback Team chat stream team shared by relay suites."""
 
+import asyncio
 import contextlib
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from app import config
+from app.chat import ws
 
 
 @contextlib.contextmanager
@@ -40,3 +42,13 @@ def real_stream_team(response_body: bytes, *, status: int = 200):
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
+
+
+async def run_admitted_turn(websocket, team_id: str, message: str, started: asyncio.Event) -> None:
+    """Relay one chat turn through the live admitted entrypoint, as an accepted WebSocket chat frame does."""
+    lease = ws._TURN_ADMISSION.reserve()
+    assert lease is not None
+    turn = ws._WsTurn(
+        ws=websocket, team_id=team_id, headers={}, text=message, started=started, dispatched=asyncio.Event()
+    )
+    await ws._ws_run_admitted_turn(turn, lease)
