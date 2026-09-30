@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import secrets
+import threading
 
 import pytest
 from fastapi.testclient import TestClient
@@ -233,3 +234,39 @@ def test_malformed_or_unterminated_multipart_is_refused_without_dispatch(monkeyp
         }
     assert statuses == {"malformed": 400, "unterminated": 400}
     assert forwarded == []
+
+
+def test_an_upload_holds_one_admission_slot_from_parsing_through_the_team_hop(monkeypatch):
+    """A saturated upload budget refuses before reading the body; a slot is held until Team answers."""
+    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    admission = threading.BoundedSemaphore(1)
+    monkeypatch.setattr(files, "UPLOAD_ADMISSION", admission)
+    read = []
+    original = Request.stream
+
+    def recording(self):
+        read.append(self.url.path)
+        return original(self)
+
+    held_during_hop = []
+
+    async def upstream(*_args, **_kwargs):
+        held_during_hop.append(not admission.acquire(blocking=False))
+        return 503, {"detail": "unavailable"}
+
+    monkeypatch.setattr(Request, "stream", recording)
+    monkeypatch.setattr(files, "call_raw_bounded", upstream)
+    body = {"file": ("file.txt", b"data", "text/plain")}
+    with TestClient(app) as client:
+        assert admission.acquire(blocking=False)
+        saturated = client.post("/api/teams/team/files", files=body, headers=ORIGIN)
+        assert read == []
+        admission.release()
+        forwarded = client.post("/api/teams/team/files", files=body, headers=ORIGIN)
+        refused = client.post("/api/teams/team/files", content=b"raw", headers=ORIGIN)
+    assert saturated.status_code == 429
+    assert saturated.headers["retry-after"] == "1"
+    assert saturated.headers["cache-control"] == "private, no-store"
+    assert (forwarded.status_code, refused.status_code) == (503, 400)
+    assert held_during_hop == [True]
+    assert admission.acquire(blocking=False)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import AsyncIterator
 
 import structlog
@@ -26,6 +27,10 @@ MAX_UPLOAD_BYTES = team_contract.MAX_FILE_UPLOAD_BYTES
 # Multipart framing (boundary lines and one part's headers) admitted beyond the file bytes themselves.
 MULTIPART_OVERHEAD_BYTES = 64 * 1024
 ONE_FILE = {"detail": "expected exactly one multipart file named file"}
+# Uploads buffered in memory at once, each held from parsing through the Team hop. An upload can briefly hold its
+# parsed part and its forwarded copy, so this keeps upload memory well inside the Store's container limit.
+UPLOAD_CONCURRENCY = 4
+UPLOAD_ADMISSION = threading.BoundedSemaphore(UPLOAD_CONCURRENCY)
 
 
 class UploadTooLargeError(Exception):
@@ -110,8 +115,8 @@ async def _read_one_file(request: Request) -> tuple[UploadFile, bytes] | JSONRes
 async def team_file_upload(request: Request, team_id: str) -> JSONResponse:
     """Upload one opaque Team object without granting a Brain or Assistant filesystem access.
 
-    The body is read only after the account and origin are admitted, and only up to the file limit plus multipart
-    framing; it must hold exactly one file part named ``file`` and nothing else.
+    The body is read only after the account and origin are admitted and an upload slot is free, and only up to the
+    file limit plus multipart framing; it must hold exactly one file part named ``file`` and nothing else.
     """
     token, account_id, _ = await authn.authed_account_bounded(request)
     if not token:
@@ -121,6 +126,19 @@ async def team_file_upload(request: Request, team_id: str) -> JSONResponse:
     team_id = team_contract.canonical_team_id(team_id)
     if team_id is None:
         raise ClientPayloadError(400, "bad team id")
+    if not UPLOAD_ADMISSION.acquire(blocking=False):
+        log.warning("store_capacity_rejected", path=request.url.path)
+        response = private_json({"detail": "Store upload capacity reached"}, 429)
+        response.headers["Retry-After"] = "1"
+        return response
+    try:
+        return await _forward_upload(request, team_id, token, account_id)
+    finally:
+        UPLOAD_ADMISSION.release()
+
+
+async def _forward_upload(request: Request, team_id: str, token: str, account_id: str) -> JSONResponse:
+    """Read one admitted upload and forward it to Team while the caller holds an upload admission slot."""
     read = await _read_one_file(request)
     if isinstance(read, JSONResponse):
         return read
