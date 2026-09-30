@@ -15,7 +15,7 @@ from types import ModuleType
 import pytest
 
 PROTOCOL = Path(__file__).resolve().parents[1] / "app" / "protocol" / "http" / "v1"
-DEPENDENCIES = ("payload", "progress", "supervisor", "websocket")
+DEPENDENCIES = ("payload", "progress", "routine", "supervisor", "websocket")
 
 
 def _refresh_manifest(root: Path) -> None:
@@ -356,6 +356,60 @@ def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path)
         ("rejected", rejected_valid, "conversation positive vector differs"),
     ):
         root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
+def _set(path: tuple[str, ...], replacement):
+    def mutate(value):
+        target = value
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = replacement(value) if callable(replacement) else replacement
+
+    return mutate
+
+
+def test_verifier_rejects_missing_or_drifted_routine_vectors(tmp_path):
+    views = ("routine_views",)
+    cases = (
+        (_set(("local_routine", "invalid"), []), "Local Routine vectors are missing"),
+        (
+            _set(("local_routine", "valid"), lambda v: [{**v["local_routine"]["valid"][0], "authority": "session"}]),
+            "Local Routine positive vector differs",
+        ),
+        (
+            _set(("local_routine", "invalid"), lambda v: [v["local_routine"]["valid"][0]]),
+            "Local Routine negative vector",
+        ),
+        (_set(("routine_schedule", "daily_rate"), []), "routine schedule vectors are missing"),
+        (_set(("routine_schedule", "valid"), [{"kind": "daily", "time": "25:00"}]), "valid routine schedule vector"),
+        (
+            _set(("routine_schedule", "invalid"), [{"kind": "daily", "time": "09:00"}]),
+            "invalid routine schedule vector",
+        ),
+        (
+            _set(
+                ("routine_schedule", "daily_rate"), lambda v: [{**v["routine_schedule"]["daily_rate"][0], "rate": "5"}]
+            ),
+            "routine daily rate vector differs",
+        ),
+        (_set(("routine_timezone", "valid"), []), "routine timezone vectors are missing"),
+        (_set(("routine_timezone", "valid"), ["../UTC"]), "valid routine timezone vector"),
+        (_set(("routine_timezone", "invalid"), ["UTC"]), "invalid routine timezone vector"),
+        (_set(("routine_change", "valid"), []), "routine change vectors are missing"),
+        (
+            _set(("routine_change", "valid"), lambda v: [{**v["routine_change"]["valid"][0], "extra": 1}]),
+            "valid routine change vector",
+        ),
+        (_set(("routine_change", "invalid"), lambda v: [v["routine_change"]["valid"][0]]), "invalid routine change"),
+        (lambda v: v["routine_views"].pop("claim"), "routine view vectors are missing"),
+        (_set((*views, "claim", "valid"), [{"run": None, "extra": 1}]), "valid routine claim vector"),
+        (_set((*views, "claim", "invalid"), [{"run": None}]), "invalid routine claim vector"),
+    )
+    for index, (mutate, message) in enumerate(cases):
+        root = _copy(tmp_path / str(index))
         _vectors(root, mutate)
         with pytest.raises(SystemExit, match=message):
             _execute(root)
