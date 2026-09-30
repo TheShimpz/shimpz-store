@@ -48,7 +48,8 @@ async def assistant_catalog() -> Response:
             headers={"Cache-Control": "no-store"},
         )
     return Response(
-        content=json.dumps(projected, separators=(",", ":"), sort_keys=True),
+        # UTF-8, not ASCII escapes: escaping multibyte text would inflate a full catalog past its consumers' limit.
+        content=json.dumps(projected, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode(),
         media_type="application/json",
         headers={"Cache-Control": "public, max-age=60, s-maxage=300"},
     )

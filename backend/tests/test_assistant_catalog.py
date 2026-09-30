@@ -183,3 +183,34 @@ def test_public_route_fails_closed_without_cache(monkeypatch, upstream) -> None:
     assert response.status_code == 503
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {"detail": "Assistant catalog is unavailable"}
+
+
+# Admin's byte cap for the Store catalog response (admin/backend/chat/store_catalog.py).
+ADMIN_CATALOG_BYTE_LIMIT = 4 * 1024 * 1024
+
+
+def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(monkeypatch) -> None:
+    """The response keeps multibyte text as UTF-8; escaping it would push a valid full catalog past Admin's cap."""
+    name = "Á" * 80
+    summary = "É" * 160
+
+    def entry(index: int) -> dict[str, object]:
+        # Long public texts make a full catalog near the consumer cap, as real publications can be.
+        return _assistant(
+            assistant_id=f"assistant-{index:04d}",
+            name=name,
+            summary=summary,
+            allowed_hosts=[f"{'á' * 60}{host:02d}.example.com" for host in range(16)],
+        )
+
+    upstream_value = {"version": 1, "assistants": [entry(index) for index in range(1000)]}
+
+    async def full_catalog(*_args, **_kwargs):
+        return 200, upstream_value
+
+    monkeypatch.setattr(public, "call_bounded", full_catalog)
+    with TestClient(app) as client:
+        response = client.get("/api/assistants")
+    assert response.status_code == 200
+    assert len(response.content) <= ADMIN_CATALOG_BYTE_LIMIT
+    assert name in response.text
