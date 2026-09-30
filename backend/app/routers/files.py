@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from python_multipart.exceptions import FormParserError
 from starlette.datastructures import UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 
@@ -32,9 +33,16 @@ class UploadTooLargeError(Exception):
 
 
 class _InMemoryMultiPartParser(MultiPartParser):
-    """Keeps the one admitted file in memory, so a Team upload never spools to the Store's small /tmp."""
+    """Parse one upload in memory and record whether its closing boundary arrived.
+
+    Memory keeps a Team upload off the Store's small /tmp; the underlying parser never verifies the closing boundary.
+    """
 
     spool_max_size = MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES
+    ended = False
+
+    def on_end(self) -> None:
+        self.ended = True
 
 
 async def bounded_stream(stream: AsyncIterator[bytes], limit: int) -> AsyncIterator[bytes]:
@@ -87,10 +95,10 @@ async def _read_one_file(request: Request) -> tuple[UploadFile, bytes] | JSONRes
         form = await parser.parse()
     except UploadTooLargeError:
         return _too_large()
-    except MultiPartException:
+    except MultiPartException, FormParserError:
         return private_json(ONE_FILE, 400)
     file = form.get("file")
-    if list(form.keys()) != ["file"] or not isinstance(file, UploadFile):
+    if not parser.ended or list(form.keys()) != ["file"] or not isinstance(file, UploadFile):
         return private_json(ONE_FILE, 400)
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:

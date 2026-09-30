@@ -201,3 +201,35 @@ def test_the_upload_stream_stops_at_its_byte_bound_without_draining_the_body():
     with pytest.raises(files.UploadTooLargeError):
         asyncio.run(drain())
     assert pulled == [0, 1, 2]
+
+
+def test_malformed_or_unterminated_multipart_is_refused_without_dispatch(monkeypatch):
+    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    forwarded = []
+
+    async def upstream(*args, **_kwargs):
+        forwarded.append(args)
+        return 200, {}
+
+    monkeypatch.setattr(files, "call_raw_bounded", upstream)
+    boundary = "shimpzboundary"
+    part = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="a.txt"\r\n'
+        "Content-Type: text/plain\r\n\r\n"
+        "data\r\n"
+    )
+    headers = {**ORIGIN, "Content-Type": f"multipart/form-data; boundary={boundary}"}
+    bodies = {
+        # A syntax error in the framing itself.
+        "malformed": f"--{boundary}\r\nnot a header line\r\n\r\n",
+        # A completed file part followed by an unfinished second part and no closing boundary.
+        "unterminated": part + f"--{boundary}\r\nContent-Disposition: form-data; name=",
+    }
+    with TestClient(app, raise_server_exceptions=False) as client:
+        statuses = {
+            name: client.post("/api/teams/team/files", content=body, headers=headers).status_code
+            for name, body in bodies.items()
+        }
+    assert statuses == {"malformed": 400, "unterminated": 400}
+    assert forwarded == []
