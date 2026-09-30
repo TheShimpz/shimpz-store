@@ -6,9 +6,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn
-from app.access import private_json
+from app.access import mutation_origin_allowed, private_json, require_json_mutation
 from app.config import ACCOUNT_COOKIE, MAX_AUTH_BODY_BYTES
-from app.payloads import read_bounded_json
+from app.payloads import ClientPayloadError, read_bounded_json
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS, call_bounded
 
 router = APIRouter()
@@ -19,6 +19,8 @@ async def _bounded_call(*args, **kwargs) -> tuple[int, dict]:
 
 
 async def _login(request: Request) -> JSONResponse:
+    # A cross-site login would sign the browser into the attacker's account (login CSRF).
+    require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_AUTH_BODY_BYTES)
     status, data = await _bounded_call(
         authn.ACCOUNT_URL,
@@ -41,7 +43,9 @@ async def login(request: Request) -> JSONResponse:
 
 
 @router.post("/api/logout")
-def logout() -> JSONResponse:
+def logout(request: Request) -> JSONResponse:
+    if not mutation_origin_allowed(request.headers.get("origin")):
+        raise ClientPayloadError(403, "forbidden origin")
     response = private_json({"ok": True})
     response.delete_cookie(ACCOUNT_COOKIE, path="/")
     return response

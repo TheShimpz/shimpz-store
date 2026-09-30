@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import secrets
 
 import pytest
@@ -12,6 +13,8 @@ from app import authn
 from app.main import app
 from app.payloads import ClientPayloadError
 from app.routers import account, assistant_lifecycle, static, teams
+
+ORIGIN = {"Origin": "https://shimpz.com"}
 
 
 def _session(account_id: str = "account", username: str = "user"):
@@ -42,9 +45,9 @@ def test_account_routes_set_and_clear_cookie_and_project_me(monkeypatch):
     monkeypatch.setattr(account, "_bounded_call", credentials)
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
     with TestClient(app) as client:
-        login = client.post("/api/login", json={"username": "user", "password": "secret"})
+        login = client.post("/api/login", json={"username": "user", "password": "secret"}, headers=ORIGIN)
         me = client.get("/api/me")
-        logout = client.post("/api/logout")
+        logout = client.post("/api/logout", headers=ORIGIN)
         signup = client.post("/api/signup", json={})
     assert login.status_code == 200
     assert login.json() == {"account_id": "account", "username": "user"}
@@ -55,13 +58,42 @@ def test_account_routes_set_and_clear_cookie_and_project_me(monkeypatch):
     assert "Max-Age=0" in logout.headers["set-cookie"]
 
 
+def test_login_and_logout_refuse_cross_site_requests(monkeypatch):
+    """A cross-site page can neither sign a browser in (login CSRF) nor sign it out."""
+    dispatched = []
+
+    async def credentials(*args, **_kwargs):
+        dispatched.append(args)
+        return 200, {"account_id": "account", "username": "user", "token": "opaque"}
+
+    monkeypatch.setattr(account, "_bounded_call", credentials)
+    body = json.dumps({"username": "user", "password": "secret"})
+    with TestClient(app) as client:
+        responses = (
+            client.post(
+                "/api/login",
+                content=body,
+                headers={"Origin": "https://evil.example", "Content-Type": "application/json"},
+            ),
+            client.post("/api/login", content=body, headers={"Content-Type": "application/json"}),
+            client.post(
+                "/api/login", content=body, headers={"Origin": "https://shimpz.com", "Content-Type": "text/plain"}
+            ),
+            client.post("/api/logout", headers={"Origin": "https://evil.example"}),
+            client.post("/api/logout"),
+        )
+    assert [response.status_code for response in responses] == [403, 403, 415, 403, 403]
+    assert all("set-cookie" not in response.headers for response in responses)
+    assert dispatched == []
+
+
 def test_successful_account_login_without_token_never_sets_a_cookie(monkeypatch):
     async def credentials(*_args, **_kwargs):
         return 200, {"account_id": "account", "username": "user"}
 
     monkeypatch.setattr(account, "_bounded_call", credentials)
     with TestClient(app) as client:
-        response = client.post("/api/login", json={"username": "user", "password": "secret"})
+        response = client.post("/api/login", json={"username": "user", "password": "secret"}, headers=ORIGIN)
 
     assert response.status_code == 200
     assert "set-cookie" not in response.headers
