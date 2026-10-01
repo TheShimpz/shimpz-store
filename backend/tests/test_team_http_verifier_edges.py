@@ -306,6 +306,27 @@ def test_verifier_rejects_missing_presentation_vectors(tmp_path, family):
         _execute(root)
 
 
+def test_verifier_rejects_missing_or_drifted_rendered_copy_vectors(tmp_path):
+    def missing(value):
+        value["rendered_copy"]["invalid"] = []
+
+    def accepted_invalid(value):
+        value["rendered_copy"]["invalid"] = value["rendered_copy"]["valid"][:1]
+
+    def rejected_valid(value):
+        value["rendered_copy"]["valid"] = value["rendered_copy"]["invalid"][:1]
+
+    for name, mutate, message in (
+        ("missing", missing, "Team HTTP rendered copy vectors are missing"),
+        ("accepted", accepted_invalid, "Team HTTP rendered copy negative vector differs"),
+        ("rejected", rejected_valid, "Team HTTP rendered copy positive vector differs"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):
     def missing(value):
         value["skills"]["invalid"] = []
