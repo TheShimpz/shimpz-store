@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 
 import pytest
@@ -20,15 +21,62 @@ def _done(reply: str = "hello") -> dict:
     }
 
 
+PACK_DIGEST = "sha256:" + "5" * 64
+COPY_FIELDS = ("title", "description", "label", "placeholder")
+
+
+def _reference(text: str, **params: object) -> dict:
+    """A catalog reference whose message id is the SHA-256 of the English template (ADR-0091)."""
+    return {"message": hashlib.sha256(text.encode()).hexdigest(), "params": params}
+
+
 def _human_request(kind: str, **fields: object) -> dict:
+    """A canonical request whose plain-copy fields become catalog references."""
+    copy = {
+        field: None if fields[field] is None else _reference(fields[field])
+        for field in ("label", "placeholder")
+        if field in fields
+    }
+    options = (
+        {
+            "options": [
+                {
+                    "value": option["value"],
+                    "label": _reference(option["label"]),
+                    "description": None if option["description"] is None else _reference(option["description"]),
+                }
+                for option in fields["options"]
+            ]
+        }
+        if "options" in fields
+        else {}
+    )
     return {
         "kind": kind,
         "ordinal": 0,
-        "title": "Provide reviewed input",
-        "description": "Provide only the information requested by this exact Action.",
+        "title": _reference("Provide reviewed input"),
+        "description": _reference("Provide only the information requested by this exact Action."),
         "fingerprint": "d" * 64,
         **fields,
+        **copy,
+        **options,
     }
+
+
+def _rendered(request: dict) -> dict:
+    """Display copy for exactly the request's copy fields, null only where the reference is null."""
+    rendered: dict = {
+        field: None if request[field] is None else f"Rendered {field}" for field in COPY_FIELDS if field in request
+    }
+    if "options" in request:
+        rendered["options"] = [
+            {
+                "label": f"Option {index}",
+                "description": None if option["description"] is None else f"Description {index}",
+            }
+            for index, option in enumerate(request["options"])
+        ]
+    return rendered
 
 
 def _human_challenge(
@@ -37,6 +85,7 @@ def _human_challenge(
     challenge_id: str = "c" * 32,
     request: dict | None = None,
 ) -> dict:
+    request = request or _human_request("approval")
     return {
         "type": "human-required",
         "status": "human-required",
@@ -46,7 +95,10 @@ def _human_challenge(
         "expires_in": 300,
         "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare", "version": "0.4.1"},
         "action": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
-        "request": request or _human_request("approval"),
+        "request": request,
+        "rendered": _rendered(request),
+        "locale": "en",
+        "pack_digest": PACK_DIGEST,
     }
 
 
@@ -258,6 +310,9 @@ def test_terminal_event_contract_projects_exact_public_human_challenge():
         "assistant": {"id": "shimpz-cloudflare", "name": "Shimpz Cloudflare", "version": "0.4.1"},
         "action": {"id": "list-zones", "summary": "List reviewed Cloudflare zones."},
         "request": _human_request("approval"),
+        "rendered": {"title": "Rendered title", "description": "Rendered description"},
+        "locale": "en",
+        "pack_digest": PACK_DIGEST,
     }
 
     assert _validated_terminal_event(_human_challenge(), TEST_TEAM_ID) == expected
@@ -414,4 +469,93 @@ def test_terminal_event_contract_projects_every_reviewed_human_request(descripto
     ],
 )
 def test_terminal_event_contract_rejects_unreviewed_human_values(event: dict):
+    assert _validated_terminal_event(event, TEST_TEAM_ID) is None
+
+
+def _portuguese_choice() -> dict:
+    request = _human_request(
+        "input:choice",
+        label="Mode",
+        required=True,
+        options=[
+            {"value": "proxied", "label": "Proxied", "description": "Route traffic through Cloudflare."},
+            {"value": "dns-only", "label": "DNS only", "description": None},
+        ],
+    )
+    return {
+        **_human_challenge(request=request),
+        "rendered": {
+            "title": "Forneça a entrada revisada",
+            "description": "Forneça apenas o que esta Ação exata pede.",
+            "label": "Modo",
+            "options": [
+                {"label": "Com proxy", "description": "Encaminhar o tráfego pela Cloudflare."},
+                {"label": "Somente DNS", "description": None},
+            ],
+        },
+        "locale": "pt",
+    }
+
+
+def test_hosted_relay_forwards_the_rendered_copy_locale_and_pack_beside_the_canonical_request():
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        state = {"pending_human": None}
+        turn = main._WsTurn(
+            websocket,
+            TEST_TEAM_ID,
+            {"X-Shimpz-Account": "session"},
+            "hello",
+            asyncio.Event(),
+            asyncio.Event(),
+            state=state,
+        )
+        challenge = _portuguese_choice()
+        await main._send_relay_event(turn, challenge, main._RelayDelivery())
+        relayed = json.loads(sent[-1]["text"])
+        assert relayed["request"] == challenge["request"]
+        assert relayed["rendered"] == challenge["rendered"]
+        assert (relayed["locale"], relayed["pack_digest"]) == ("pt", PACK_DIGEST)
+        assert [option["value"] for option in relayed["request"]["options"]] == ["proxied", "dns-only"]
+        # Only the canonical request is kept to check the answer; display copy never decides what is admitted.
+        assert state["pending_human"] == {"challenge_id": "c" * 32, "request": challenge["request"]}
+
+    asyncio.run(scenario())
+
+
+def _without(name: str) -> dict:
+    return {key: value for key, value in _portuguese_choice().items() if key != name}
+
+
+def _rendered_with(**change: object) -> dict:
+    challenge = _portuguese_choice()
+    return {**challenge, "rendered": {**challenge["rendered"], **change}}
+
+
+_FIRST, _SECOND = _portuguese_choice()["rendered"]["options"]
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        _without("rendered"),
+        _without("locale"),
+        _without("pack_digest"),
+        {**_portuguese_choice(), "locale": None},
+        {**_portuguese_choice(), "locale": "pt-BR"},
+        {**_portuguese_choice(), "pack_digest": "sha256:" + "A" * 64},
+        {**_portuguese_choice(), "pack_digest": "5" * 64},
+        {**_portuguese_choice(), "rendered": None},
+        _rendered_with(placeholder=None),
+        _rendered_with(title="x" * 81),
+        _rendered_with(title=" Forneça"),
+        _rendered_with(description="Café"),
+        _rendered_with(options=[_FIRST]),
+        _rendered_with(options=[_FIRST, {"label": "Somente DNS", "description": "x"}]),
+        _rendered_with(options=[{**_FIRST, "value": "proxied"}, _SECOND]),
+        {**_portuguese_choice(), "request": {**_portuguese_choice()["request"], "title": "Provide reviewed input"}},
+    ],
+)
+def test_terminal_event_contract_refuses_a_challenge_without_exactly_its_localized_copy(event: dict):
     assert _validated_terminal_event(event, TEST_TEAM_ID) is None
