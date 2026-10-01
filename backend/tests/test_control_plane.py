@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app import authn, config, main, upstream
 from app.config import ACCOUNT_COOKIE
 from app.main import app
+from app.protocol.http.v1 import payload as team_contract
 
 VERIFY_CAPABILITY = "c" * 64
 ORIGIN = {"Origin": "https://shimpz.com"}
@@ -449,7 +450,7 @@ def test_team_models_must_match_the_closed_provider_catalog_before_forwarding():
     )
 
 
-def test_team_ids_bind_the_complete_account_and_normalized_name():
+def test_team_ids_bind_the_complete_account_and_the_exact_name():
     first = main.teams.team_id_for("account-prefix-one", "A very long shared team name alpha")
     same = main.teams.team_id_for("account-prefix-one", "A very long shared team name alpha")
     other_account = main.teams.team_id_for("account-prefix-two", "A very long shared team name alpha")
@@ -461,6 +462,53 @@ def test_team_ids_bind_the_complete_account_and_normalized_name():
     assert len(first) <= 40
     assert re.fullmatch(r"[a-z0-9_]+", first)
     assert main.teams.team_id_for("account-prefix-one", "!!!") == ""
+    assert main.teams.team_id_for("account-prefix-one", "Team \ud800") == ""
+
+
+def test_names_whose_slugs_agree_are_distinct_teams_with_the_same_bounded_suffix():
+    names = ("A-B", "A B", "a_b", "A.B!", "a / b")
+    ids = [main.teams.team_id_for("account-1", name) for name in names]
+
+    assert len(set(ids)) == len(names)
+    assert all(team_contract.canonical_team_id(team_id) == team_id and team_id.endswith("_a_b") for team_id in ids)
+    assert main.teams.team_id_for("account-2", "A-B") not in ids
+
+
+def test_team_creates_whose_slugs_agree_reach_distinct_teams(monkeypatch):
+    forwarded: list[tuple[str, dict]] = []
+
+    async def authenticated(_request):
+        return "session-token", "account-1", "account-user"
+
+    async def call(_executor, _url, _method, path, body, *_args, **_kwargs):
+        forwarded.append((path, body))
+        return 201, {}
+
+    monkeypatch.setattr(authn, "authed_account_bounded", authenticated)
+    monkeypatch.setattr(main.teams, "call_bounded", call)
+    with TestClient(app) as client:
+        for name in ("A-B", " A B ", "a_b"):
+            response = client.post(
+                "/api/teams",
+                json={"team_name": name, "provider": "openai", "model": "gpt-6-luna"},
+                headers=ORIGIN,
+            )
+            assert response.status_code == 201
+        refused = [
+            client.post(
+                "/api/teams",
+                json={"team_name": name, "provider": "openai", "model": "gpt-6-luna"},
+                headers=ORIGIN,
+            )
+            for name in ("!!!", "", "A\u0007B", "A" * 81, 7, ["A-B"], None)
+        ]
+
+    assert [body["team_name"] for _path, body in forwarded] == ["A-B", "A B", "a_b"]
+    assert len({path for path, _body in forwarded}) == 3
+    assert [path for path, _body in forwarded] == [
+        f"/v1/teams/{main.teams.team_id_for('account-1', name)}/create" for name in ("A-B", "A B", "a_b")
+    ]
+    assert [(response.status_code, response.json()) for response in refused] == [(400, {"detail": "bad team name"})] * 7
 
 
 def test_control_mutations_reject_oversize_bodies_before_control_plane_forwarding():
