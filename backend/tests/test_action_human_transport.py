@@ -272,16 +272,71 @@ def test_terminal_event_contract_projects_the_brain_purpose_beside_the_request()
     assert projected["request"] == _human_request("approval")
 
 
+KEY_PAGE = "https://dash.cloudflare.com/profile/api-tokens"
+
+
+def _stored_input_request(stored_input: str = "cloudflare-token") -> dict:
+    return _human_request(
+        "input:password",
+        label="Cloudflare API token",
+        required=True,
+        placeholder=None,
+        min_length=1,
+        max_length=1024,
+        stored_input=stored_input,
+    )
+
+
+def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purpose():
+    purpose = "To publish the DNS change you asked for, I need Cloudflare."
+
+    async def scenario() -> None:
+        websocket, sent = _websocket("{}")
+        await websocket.accept()
+        state = {"pending_human": None}
+        turn = main._WsTurn(
+            websocket,
+            TEST_TEAM_ID,
+            {"X-Shimpz-Account": "session"},
+            "hello",
+            asyncio.Event(),
+            asyncio.Event(),
+            state=state,
+        )
+        challenge = {**_human_challenge(request=_stored_input_request()), "purpose": purpose, "help_url": KEY_PAGE}
+        await main._send_relay_event(turn, challenge, main._RelayDelivery())
+        relayed = json.loads(sent[-1]["text"])
+        assert relayed["request"] == _stored_input_request()
+        assert (relayed["purpose"], relayed["help_url"]) == (purpose, KEY_PAGE)
+        assert state["pending_human"] == {"challenge_id": "c" * 32, "request": _stored_input_request()}
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize(
-    "extra",
+    "event",
     [
-        {"purpose": "Search \u2014 then publish"},
-        {"purpose": None},
-        {"help_url": "https://dash.cloudflare.com/profile/api-tokens"},
+        {**_human_challenge(), "purpose": "Search \u2014 then publish"},
+        {**_human_challenge(), "purpose": None},
+        {**_human_challenge(), "help_url": KEY_PAGE},
+        {**_human_challenge(request=_stored_input_request()), "help_url": "http://dash.cloudflare.com/x"},
+        {**_human_challenge(request=_stored_input_request()), "help_url": KEY_PAGE + "\n"},
+        _human_challenge(request=_stored_input_request(stored_input="Not An Id")),
+        _human_challenge(
+            request=_human_request(
+                "input:text",
+                label="Zone",
+                required=True,
+                placeholder=None,
+                min_length=1,
+                max_length=64,
+                stored_input="cloudflare-token",
+            )
+        ),
     ],
 )
-def test_terminal_event_contract_refuses_invalid_purpose_or_any_key_page(extra: dict):
-    assert _validated_terminal_event({**_human_challenge(), **extra}, TEST_TEAM_ID) is None
+def test_terminal_event_contract_refuses_invalid_presentation_or_misplaced_stored_input(event: dict):
+    assert _validated_terminal_event(event, TEST_TEAM_ID) is None
 
 
 @pytest.mark.parametrize(

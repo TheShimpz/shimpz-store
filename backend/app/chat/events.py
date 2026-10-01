@@ -216,6 +216,12 @@ def _human_input_base(value: dict, base: dict[str, object]) -> dict[str, object]
 
 def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dict | None:
     expected = _HUMAN_BASE_FIELDS | {"label", "required", "placeholder", "min_length", "max_length"}
+    # A password request may name the one Stored Input its Action declares (ADR-0059).
+    stored_input = value.get("stored_input") if base["kind"] == "input:password" else None
+    if stored_input is not None:
+        if team_contract.canonical_assistant_id(stored_input) is None:
+            return None
+        expected |= {"stored_input"}
     input_base = _human_input_base(value, base)
     placeholder = value.get("placeholder")
     minimum = value.get("min_length")
@@ -236,6 +242,7 @@ def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dic
         "placeholder": placeholder,
         "min_length": minimum,
         "max_length": maximum,
+        **({} if stored_input is None else {"stored_input": stored_input}),
     }
 
 
@@ -317,11 +324,13 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
     assistant = _human_assistant(value.get("assistant"))
     action = _human_identity(value.get("action"), "summary", 160)
     request = _human_request(value.get("request"))
-    # The Brain's optional task-bound purpose (ADR-0090); a Stored Input key page never reaches Hosted Store.
+    # The Brain's optional task-bound purpose and a Stored Input request's reviewed key page (ADR-0090).
     purpose = team_contract.canonical_purpose(value.get("purpose")) if "purpose" in value else None
+    help_url = team_contract.canonical_help_url(value.get("help_url")) if "help_url" in value else None
     if (
-        set(value) - {"purpose"} != expected
+        set(value) - {"purpose", "help_url"} != expected
         or ("purpose" in value and purpose is None)
+        or ("help_url" in value and (help_url is None or request is None or "stored_input" not in request))
         or value.get("type") != "human-required"
         or value.get("status") != "human-required"
         or identity is None
@@ -341,6 +350,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "action": action,
         "request": request,
         **({} if purpose is None else {"purpose": purpose}),
+        **({} if help_url is None else {"help_url": help_url}),
     }
 
 
