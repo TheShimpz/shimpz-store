@@ -35,8 +35,6 @@ def _assistant(**changes) -> dict[str, object]:
         "actions": [
             {
                 "id": "hello",
-                "input_schema": {"type": "object"},
-                "output_schema": {"type": "object"},
                 "integrations": ["github"],
                 "stored_inputs": ["api-token"],
                 "human_requests": ["approval", "input:text"],
@@ -103,6 +101,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(github="https://example.com/repository"),
         lambda value: value["assistants"].append(copy.deepcopy(value["assistants"][0])),
         lambda value: value["assistants"][0]["actions"][0].update(command="/bin/sh"),
+        lambda value: value["assistants"][0]["actions"][0].update(input_schema={"type": "object"}),
+        lambda value: value["assistants"][0]["actions"][0].update(output_schema={"type": "object"}),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["unknown"]),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "approval"]),
         lambda value: value["assistants"][0].pop("stored_inputs"),

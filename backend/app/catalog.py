@@ -45,7 +45,8 @@ _ASSISTANT_FIELDS = {
     "stored_inputs",
     "actions",
 }
-_ACTION_FIELDS = {"id", "input_schema", "output_schema", "integrations", "stored_inputs", "human_requests"}
+# Developers' catalog carries schema-free Action metadata; complete schemas stay in exact resolution.
+_ACTION_FIELDS = {"id", "integrations", "stored_inputs", "human_requests"}
 
 
 class CatalogError(ValueError):
@@ -129,8 +130,6 @@ def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, obj
             or set(item) != _ACTION_FIELDS
             or not isinstance(item["id"], str)
             or _ACTION_ID.fullmatch(item["id"]) is None
-            or not isinstance(item["input_schema"], dict)
-            or not isinstance(item["output_schema"], dict)
         ):
             raise CatalogError("catalog Action is invalid")
         human_requests = _closed_strings(item["human_requests"], 11, 25)
