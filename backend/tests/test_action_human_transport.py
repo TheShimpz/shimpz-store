@@ -263,6 +263,27 @@ def test_terminal_event_contract_projects_exact_public_human_challenge():
     assert _validated_terminal_event(_human_challenge(), TEST_TEAM_ID) == expected
 
 
+def test_terminal_event_contract_projects_the_brain_purpose_beside_the_request():
+    purpose = "To publish the DNS change you asked for, I need Cloudflare."
+    projected = _validated_terminal_event({**_human_challenge(), "purpose": purpose}, TEST_TEAM_ID)
+
+    assert projected is not None
+    assert projected["purpose"] == purpose
+    assert projected["request"] == _human_request("approval")
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"purpose": "Search \u2014 then publish"},
+        {"purpose": None},
+        {"help_url": "https://dash.cloudflare.com/profile/api-tokens"},
+    ],
+)
+def test_terminal_event_contract_refuses_invalid_purpose_or_any_key_page(extra: dict):
+    assert _validated_terminal_event({**_human_challenge(), **extra}, TEST_TEAM_ID) is None
+
+
 @pytest.mark.parametrize(
     "descriptor",
     [

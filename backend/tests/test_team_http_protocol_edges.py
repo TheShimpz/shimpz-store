@@ -41,8 +41,20 @@ def test_identifier_validators_reject_noncanonical_values(validator, value):
     assert validator(value) is None
 
 
-def test_language_exemplar_rejects_non_text() -> None:
-    assert payload.canonical_language_exemplar(None) is None
+@pytest.mark.parametrize("value", [None, 1, "EN", "pt-BR", ""])
+def test_locale_admits_only_a_closed_interface_language(value) -> None:
+    assert payload.canonical_locale(value) is None
+    assert payload.canonical_locale("pt") == "pt"
+
+
+@pytest.mark.parametrize("value", [None, 7, "https://a.com", "https://a.com/" + "a" * 2035])
+def test_help_url_rejects_every_invalid_shape(value) -> None:
+    assert payload.canonical_help_url(value) is None
+
+
+@pytest.mark.parametrize("value", [None, 3, "", "a - b", "a \u2014 b", "go to www.x.com", "see https://x.com/"])
+def test_purpose_rejects_every_invalid_shape(value) -> None:
+    assert payload.canonical_purpose(value) is None
 
 
 @pytest.mark.parametrize("value", [None, "", " " + "a", "a" * 81, "bad\nname"])

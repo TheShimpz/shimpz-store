@@ -191,6 +191,7 @@ def test_stream_transport_preserves_utf8_prompt_and_reply_bytes():
             "files": [opaque_file],
             "assistant_ids": ["shimpz-cloudflare"],
             "conversation": [],
+            "locale": None,
         }
         assert prompt.encode() in requests[0]
         assert b"\\u" not in requests[0]

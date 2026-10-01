@@ -240,8 +240,12 @@ def test_verifier_rejects_identifier_vector_disagreement(tmp_path):
 @pytest.mark.parametrize(
     ("function_name", "mode", "message"),
     [
-        ("canonical_language_exemplar", "positive", "Action-label exemplar positive"),
-        ("canonical_language_exemplar", "negative", "Action-label exemplar negative"),
+        ("canonical_locale", "positive", "chat_locale positive"),
+        ("canonical_locale", "negative", "chat_locale negative"),
+        ("canonical_help_url", "positive", "help_url positive"),
+        ("canonical_help_url", "negative", "help_url negative"),
+        ("canonical_purpose", "positive", "purpose positive"),
+        ("canonical_purpose", "negative", "purpose negative"),
         ("canonical_action_label", "positive", "Action-label label positive"),
         ("canonical_action_label", "negative", "Action-label label negative"),
     ],
@@ -288,6 +292,18 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
         _vectors(root, mutate)
         with pytest.raises(SystemExit, match=message):
             _execute(root)
+
+
+@pytest.mark.parametrize("family", ["chat_locale", "help_url", "purpose"])
+def test_verifier_rejects_missing_presentation_vectors(tmp_path, family):
+    root = _copy(tmp_path)
+
+    def missing(value):
+        value[family]["invalid"] = []
+
+    _vectors(root, missing)
+    with pytest.raises(SystemExit, match=f"Team HTTP {family} vectors are missing"):
+        _execute(root)
 
 
 def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):

@@ -111,6 +111,8 @@ def _stream_lines(relay: _StreamRelay) -> dict:
             "assistant_ids": list(relay.assistant_ids),
             # Hosted has no server-derived committed presentation history; the browser never supplies one.
             "conversation": [],
+            # Store has no browser chat surface that selects an interface language; the Brain follows the message.
+            "locale": None,
         }
         body = jsonlib.dumps(payload, ensure_ascii=False).encode()
         conn.request(

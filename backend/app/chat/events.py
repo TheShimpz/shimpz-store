@@ -317,8 +317,11 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
     assistant = _human_assistant(value.get("assistant"))
     action = _human_identity(value.get("action"), "summary", 160)
     request = _human_request(value.get("request"))
+    # The Brain's optional task-bound purpose (ADR-0090); a Stored Input key page never reaches Hosted Store.
+    purpose = team_contract.canonical_purpose(value.get("purpose")) if "purpose" in value else None
     if (
-        set(value) != expected
+        set(value) - {"purpose"} != expected
+        or ("purpose" in value and purpose is None)
         or value.get("type") != "human-required"
         or value.get("status") != "human-required"
         or identity is None
@@ -337,6 +340,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "assistant": assistant,
         "action": action,
         "request": request,
+        **({} if purpose is None else {"purpose": purpose}),
     }
 
 
