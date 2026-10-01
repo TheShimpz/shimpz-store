@@ -1,4 +1,4 @@
-"""Strict projection of public Assistant metadata from Developers."""
+"""Strict projection of public Assistant metadata from Developers, in one interface language (ADR-0091)."""
 
 from __future__ import annotations
 
@@ -184,9 +184,19 @@ def _assistant(value: object) -> dict[str, object]:
     }
 
 
-def project_catalog(value: object) -> dict[str, object]:
-    """Validate Developers' closed catalog and return browser-safe metadata."""
-    if not isinstance(value, dict) or set(value) != {"version", "assistants"} or value["version"] != 1:
+def project_catalog(value: object, locale: str) -> dict[str, object]:
+    """Validate Developers' closed catalog for exactly the requested locale and return browser-safe metadata.
+
+    Developers localizes only each summary, from the publication's own pack; a catalog in any other locale is refused
+    so a cache can never serve one language's copy under another.
+    """
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"version", "locale", "assistants"}
+        or value["version"] != 1
+        or team_contract.canonical_locale(locale) is None
+        or value["locale"] != locale
+    ):
         raise CatalogError("catalog envelope is invalid")
     assistants = value["assistants"]
     if not isinstance(assistants, list) or len(assistants) > MAX_ASSISTANTS:
@@ -195,4 +205,4 @@ def project_catalog(value: object) -> dict[str, object]:
     identities = [item["assistant_id"] for item in projected]
     if identities != sorted(identities) or len(set(identities)) != len(identities):
         raise CatalogError("catalog Assistant ordering is invalid")
-    return {"version": 1, "assistants": projected}
+    return {"version": 1, "locale": locale, "assistants": projected}

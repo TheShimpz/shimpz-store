@@ -6,11 +6,12 @@ import hashlib
 import json
 import re
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from app import catalog, config
 from app.control import EXECUTOR as CONTROL_EXECUTOR
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import VERIFY_TIMEOUT_SECONDS, call_asset_bounded, call_bounded
 
 router = APIRouter()
@@ -22,13 +23,28 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _catalog_locale(request: Request) -> str | None:
+    """Admit exactly one closed `locale` query parameter and nothing else."""
+    query = request.url.query
+    return team_contract.canonical_locale(query.removeprefix("locale=")) if query.startswith("locale=") else None
+
+
 @router.get("/api/assistants")
-async def assistant_catalog() -> Response:
+async def assistant_catalog(request: Request) -> Response:
+    # The visitor's interface language selects the catalog; caches key it by this exact URL.
+    locale = _catalog_locale(request)
+    if locale is None:
+        return Response(
+            content='{"detail":"Assistant catalog locale is invalid"}',
+            status_code=400,
+            media_type="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
     status, value = await call_bounded(
         CONTROL_EXECUTOR,
         config.DEVELOPERS_URL,
         "GET",
-        "/api/v1/assistants",
+        f"/api/v1/assistants?locale={locale}",
         timeout=VERIFY_TIMEOUT_SECONDS,
     )
     if status != 200:
@@ -39,7 +55,7 @@ async def assistant_catalog() -> Response:
             headers={"Cache-Control": "no-store"},
         )
     try:
-        projected = catalog.project_catalog(value)
+        projected = catalog.project_catalog(value, locale)
     except catalog.CatalogError:
         return Response(
             content='{"detail":"Assistant catalog is unavailable"}',
