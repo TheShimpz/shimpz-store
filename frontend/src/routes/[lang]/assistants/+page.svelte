@@ -1,11 +1,11 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { browser } from "$app/environment";
-  import { onMount } from "svelte";
+  import { untrack } from "svelte";
   import { PageIntro } from "@shimpz/frontend";
   import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
-  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
+  import { fetchAssistantCatalog, parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import { requestedAssistantFromSearch } from "$lib/assistantStoreUrl.js";
   import AssistantStore from "$lib/components/AssistantStore.svelte";
   import AssistantDetail from "$lib/components/AssistantDetail.svelte";
@@ -20,23 +20,29 @@
   const requestedAssistant = $derived(browser ? requestedAssistantFromSearch(page.url.search) : "");
   const assistant = $derived(assistants.find(({ id }) => id === requestedAssistant));
 
+  let catalogRequest = 0;
+
+  // The catalog is requested in the visitor's language; a newer language's request supersedes an older one.
   async function loadAssistantCatalog() {
+    const request = ++catalogRequest;
+    const locale = lang;
     catalogState = "loading";
     try {
-      const response = await fetch("/api/assistants", {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      assistants = parseAssistantCatalog(await response.json());
+      const next = await fetchAssistantCatalog(fetch, locale);
+      if (request !== catalogRequest) return;
+      assistants = next;
       catalogState = "ready";
     } catch {
+      if (request !== catalogRequest) return;
       assistants = [];
       catalogState = "error";
     }
   }
 
-  onMount(() => { void loadAssistantCatalog(); });
+  $effect(() => {
+    void lang;
+    untrack(() => { void loadAssistantCatalog(); });
+  });
 </script>
 
 <Seo

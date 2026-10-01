@@ -153,11 +153,22 @@ function parseAssistant(value) {
   });
 }
 
-/** @param {unknown} value */
-export function parseAssistantCatalog(value) {
+/**
+ * Parse the catalog for exactly the requested interface language. Only each summary is localized, from the
+ * publication's own language pack; a catalog in any other language is refused so no cache can mix them.
+ * @param {unknown} value
+ * @param {string} locale
+ */
+export function parseAssistantCatalog(value, locale) {
   if (!isObject(value)) throw new Error("invalid Assistant catalog");
   const record = value;
-  if (!hasExactKeys(record, ["assistants", "version"]) || record.version !== 1 || !Array.isArray(record.assistants)) {
+  if (
+    !hasExactKeys(record, ["assistants", "locale", "version"]) ||
+    record.version !== 1 ||
+    typeof locale !== "string" ||
+    record.locale !== locale ||
+    !Array.isArray(record.assistants)
+  ) {
     throw new Error("invalid Assistant catalog");
   }
   if (record.assistants.length > MAX_CATALOG_ASSISTANTS) throw new Error("Assistant catalog is too large");
@@ -166,4 +177,18 @@ export function parseAssistantCatalog(value) {
     throw new Error("duplicate Assistant catalog entry");
   }
   return Object.freeze(assistants);
+}
+
+/**
+ * Fetch the public catalog in one interface language; the Store backend admits only its closed locale set.
+ * @param {typeof fetch} fetcher
+ * @param {string} locale
+ */
+export async function fetchAssistantCatalog(fetcher, locale) {
+  const response = await fetcher(`/api/assistants?locale=${encodeURIComponent(locale)}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return parseAssistantCatalog(await response.json(), locale);
 }

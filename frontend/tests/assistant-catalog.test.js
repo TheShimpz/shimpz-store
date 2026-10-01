@@ -2,7 +2,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseAssistantCatalog } from "../src/lib/assistantCatalog.js";
+import { fetchAssistantCatalog, parseAssistantCatalog as parseLocalized } from "../src/lib/assistantCatalog.js";
+
+const parseAssistantCatalog = (value) => parseLocalized(value, "en");
 
 const DIGEST = `sha256:${"a".repeat(64)}`;
 const ICON_DIGEST = `sha256:${"b".repeat(64)}`;
@@ -10,6 +12,7 @@ const ICON_DIGEST = `sha256:${"b".repeat(64)}`;
 function catalog() {
   return {
     version: 1,
+    locale: "en",
     assistants: [
       {
         assistant_id: "example-assistant",
@@ -65,6 +68,9 @@ test("projects sorted unique Integration providers for public categorization", (
 test("fails closed on ambiguous or executable catalog data", () => {
   const mutations = [
     (value) => { value.extra = true; },
+    (value) => { delete value.locale; },
+    (value) => { value.locale = "pt"; },
+    (value) => { value.version = 2; },
     (value) => { value.assistants[0].source_digest = "sha256:bad"; },
     (value) => { value.assistants[0].github = "javascript:alert(1)"; },
     (value) => { value.assistants[0].github = "https://example.com/assistant"; },
@@ -107,6 +113,7 @@ test("admits exactly the producer's 1,000-entry catalog and refuses one more", (
   const entry = catalog().assistants[0];
   const entries = (count) => ({
     version: 1,
+    locale: "en",
     assistants: Array.from({ length: count }, (_, index) => ({
       ...entry,
       assistant_id: `assistant-${String(index).padStart(4, "0")}`,
@@ -114,4 +121,29 @@ test("admits exactly the producer's 1,000-entry catalog and refuses one more", (
   });
   assert.equal(parseAssistantCatalog(entries(1000)).length, 1000);
   assert.throws(() => parseAssistantCatalog(entries(1001)), /too large/);
+});
+
+test("accepts only the catalog of exactly the requested interface language", () => {
+  const value = catalog();
+  value.locale = "pt";
+  value.assistants[0].summary = "Um exemplo seguro.";
+  assert.equal(parseLocalized(value, "pt")[0].summary, "Um exemplo seguro.");
+  assert.throws(() => parseLocalized(value, "en"));
+  assert.throws(() => parseLocalized(value, undefined));
+});
+
+test("fetches the catalog for one locale and refuses failures or a catalog in another locale", async () => {
+  const requests = [];
+  const fetcher = (body, ok = true, status = 200) => async (url, options) => {
+    requests.push({ url, options });
+    return { ok, status, json: async () => body };
+  };
+  const portuguese = { ...catalog(), locale: "pt" };
+  assert.equal((await fetchAssistantCatalog(fetcher(portuguese), "pt")).length, 1);
+  assert.deepEqual(requests[0], {
+    url: "/api/assistants?locale=pt",
+    options: { cache: "no-store", headers: { Accept: "application/json" } },
+  });
+  await assert.rejects(fetchAssistantCatalog(fetcher(portuguese), "ja"));
+  await assert.rejects(fetchAssistantCatalog(fetcher({}, false, 503), "pt"), /HTTP 503/);
 });
