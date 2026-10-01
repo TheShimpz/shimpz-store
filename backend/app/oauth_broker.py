@@ -59,7 +59,7 @@ _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")
 _LEASE = re.compile(
-    r"l2\.(\d{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\Z"
+    r"l2\.([0-9]{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\Z"
 )
 
 

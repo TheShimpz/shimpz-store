@@ -6,7 +6,7 @@ from unittest import mock
 from fastapi.testclient import TestClient
 
 from app import main
-from app.oauth_broker import SCOPES, OAuthOutOfBand, OAuthRedirect
+from app.oauth_broker import SCOPES, BrokerLeaseSigner, OAuthBroker, OAuthOutOfBand, OAuthRedirect
 from app.routers import oauth
 
 
@@ -314,3 +314,25 @@ def test_token_routes_reject_browser_origin_duplicate_and_extra_fields() -> None
     assert duplicate.status_code == 400
     assert extra.status_code == 400
     assert broker.calls == []
+
+
+def test_refresh_and_revoke_refuse_a_lease_expiry_with_non_ascii_digits() -> None:
+    digest = "a" * 43
+    lease = f"l2.{'\u0661' * 10}.{digest}.{digest}.{digest}.{digest}"
+    neuron = mock.Mock()
+    real = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32, clock=lambda: 1_800_000_000))
+    with mock.patch.object(oauth, "_BROKER", real), TestClient(main.app) as client:
+        refresh = client.post(
+            "/api/oauth/cloudflare/refresh",
+            json={"refresh_token": "refresh-token-private-123456", "broker_lease": lease, "scopes": list(SCOPES)},
+        )
+        revoke = client.post(
+            "/api/oauth/cloudflare/revoke",
+            json={"token": "access-token-private-123456", "broker_lease": lease},
+        )
+
+    assert refresh.status_code == revoke.status_code == 502
+    assert refresh.json() == revoke.json() == {"detail": "OAuth broker operation failed"}
+    assert refresh.headers["cache-control"] == "private, no-store"
+    neuron.refresh.assert_not_called()
+    neuron.revoke.assert_not_called()
