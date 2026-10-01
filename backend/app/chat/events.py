@@ -91,7 +91,11 @@ async def ws_receive_bounded_json(ws: WebSocket) -> dict:
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) != {"type", "team_id", "team_name", "reply", "clarification"}:
+    if set(value) - {"usage"} != {"type", "team_id", "team_name", "reply", "clarification"}:
+        return None
+    # What the completed turn consumed is presentation only and must match its closed shape.
+    usage = team_contract.canonical_turn_usage(value["usage"]) if "usage" in value else None
+    if "usage" in value and usage is None:
         return None
     team_id = team_contract.canonical_team_id(value["team_id"])
     reply = canonical_chat_reply(value["reply"])
@@ -110,6 +114,7 @@ def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
         "team_name": team_name,
         "reply": reply,
         "clarification": clarification,
+        **({} if usage is None else {"usage": usage}),
     }
 
 

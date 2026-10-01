@@ -101,6 +101,21 @@ def test_terminal_and_stream_projection_reject_nonobjects_and_blank_lines():
     assert events.parsed_stream_event(b"  ", "team") is None
 
 
+_DONE = {"type": "done", "team_id": "team_1", "team_name": "Marketing", "reply": "Ready.", "clarification": None}
+_USAGE = {
+    "duration_ms": 6200,
+    "models": [{"provider": "openai", "model": "gpt-6-luna", "input_tokens": 1331, "output_tokens": 36}],
+}
+
+
+def test_done_relays_only_a_closed_turn_usage():
+    assert events.validated_terminal_event(dict(_DONE), "team_1") == _DONE
+    assert events.validated_terminal_event({**_DONE, "usage": _USAGE}, "team_1") == {**_DONE, "usage": _USAGE}
+    for invalid in (None, {**_USAGE, "models": []}, {**_USAGE, "cost": 1}):
+        assert events.validated_terminal_event({**_DONE, "usage": invalid}, "team_1") is None
+    assert events.validated_terminal_event({**_DONE, "usage": _USAGE, "trace_id": "a" * 32}, "team_1") is None
+
+
 class _Chunks:
     def __init__(self, *chunks):
         self.chunks = iter((*chunks, b""))
