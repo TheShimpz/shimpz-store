@@ -22,22 +22,28 @@ router = APIRouter()
 
 
 def team_id_for(account_id: str, team_name: str) -> str:
-    """Derive a collision-resistant, Docker/PG-safe ID from the complete identity pair."""
-    normalized = re.sub(r"[^a-z0-9_]+", "_", team_name.lower()).strip("_")
-    if not normalized:
+    """Derive a Docker/PG-safe ID that binds the complete Account identity and the exact validated Team name.
+
+    The lossy slug only admits a name and keeps a bounded readable suffix; it never decides identity, so names whose
+    slugs agree remain distinct Teams.
+    """
+    slug = re.sub(r"[^a-z0-9_]+", "_", team_name.lower()).strip("_")
+    try:
+        digest = hashlib.sha256(f"{account_id}\0{team_name}".encode()).hexdigest()[:24]
+    except UnicodeEncodeError:
         return ""
-    digest = hashlib.sha256(f"{account_id}\0{normalized}".encode()).hexdigest()[:24]
-    return f"{digest}_{normalized[:15]}".rstrip("_")
+    return f"{digest}_{slug[:15]}".rstrip("_") if slug else ""
 
 
 def _create_payload(payload: dict, account_id: str) -> tuple[str, dict[str, str]]:
     if set(payload) != {"team_name", "provider", "model"}:
         raise ClientPayloadError(400, "Team requires team_name, provider, and model")
-    team_name = str(payload.get("team_name", "")).strip()
+    raw_name = payload["team_name"]
+    team_name = team_contract.canonical_team_name(raw_name.strip() if isinstance(raw_name, str) else None)
     provider = canonical_provider(payload.get("provider"))
     model = canonical_model(provider, payload.get("model")) if provider is not None else None
-    team_id = team_id_for(account_id, team_name)
-    if not team_name or not team_id.strip("_"):
+    team_id = team_id_for(account_id, team_name) if team_name is not None else ""
+    if not team_id:
         raise ClientPayloadError(400, "bad team name")
     if provider is None:
         raise ClientPayloadError(400, "unsupported model provider")

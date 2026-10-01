@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from app.protocol.http.v1 import payload, progress, websocket
@@ -50,6 +53,19 @@ def test_locale_admits_only_a_closed_interface_language(value) -> None:
 @pytest.mark.parametrize("value", [None, 7, "https://a.com", "https://a.com/" + "a" * 2035])
 def test_help_url_rejects_every_invalid_shape(value) -> None:
     assert payload.canonical_help_url(value) is None
+
+
+_TURN_USAGE = json.loads(Path(payload.__file__).with_name("vectors.json").read_text(encoding="utf-8"))["turn_usage"]
+
+
+@pytest.mark.parametrize("value", _TURN_USAGE["valid"])
+def test_turn_usage_admits_each_valid_vector_exactly(value) -> None:
+    assert payload.canonical_turn_usage(value) == value
+
+
+@pytest.mark.parametrize("value", _TURN_USAGE["invalid"])
+def test_turn_usage_rejects_each_invalid_vector(value) -> None:
+    assert payload.canonical_turn_usage(value) is None
 
 
 @pytest.mark.parametrize("value", [None, 3, "", "a - b", "a \u2014 b", "go to www.x.com", "see https://x.com/"])
