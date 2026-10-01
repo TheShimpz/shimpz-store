@@ -76,6 +76,9 @@ def test_human_request_helpers_reject_invalid_base_and_input():
         _reference("Delete {count} records in {zone}.", count=0, zone="example.com"),
         _reference("Rotate {key}.", key="Key_1.a:b-c"),
         _reference("Publish {count}.", count=10**15 - 1),
+        _reference("Authorize {name}.", name="_acme-challenge.example.com"),
+        _reference("Authorize {name}.", name="_dmarc"),
+        _reference("Authorize {name}.", name=("a" * 63 + ".") * 3 + "b" * 61),
         _reference("Eight", **{f"p{index}": index for index in range(8)}),
     ],
 )
@@ -103,6 +106,11 @@ def test_copy_references_admit_their_closed_shape_and_parameter_grammar(referenc
         _reference("Prose", value="two words"),
         _reference("Long", value="a" * 129),
         _reference("Domain", zone=("a" * 63 + ".") * 4 + "com"),
+        _reference("Wildcard", name="*.example.com"),
+        _reference("Trailing dot", name="_dmarc.example.com."),
+        _reference("Empty label", name="_dmarc..example.com"),
+        _reference("Uppercase", name="_DMARC.example.com"),
+        _reference("Overlong", name=("a" * 63 + ".") * 3 + "b" * 62),
         _reference("Nested", value={"a": 1}),
     ],
 )

@@ -38,10 +38,11 @@ _HUMAN_BASE_FIELDS = frozenset({"kind", "ordinal", "title", "description", "fing
 _MAX_REFERENCE_PARAMS = 8
 _MESSAGE_ID = re.compile(r"[0-9a-f]{64}\Z")
 _PARAM_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
-_DOMAIN_PARAM = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z")
+# Every `domain` value is also a `dns_name` value (an exact DNS record name), so one grammar admits both kinds.
+_DNS_NAME_PARAM = re.compile(r"[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?(?:\.[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?)*\Z")
 _IDENTIFIER_PARAM = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]*\Z")
 _MAX_INTEGER_PARAM = 10**15
-_MAX_DOMAIN_PARAM_CHARS = 253
+_MAX_DNS_NAME_PARAM_CHARS = 253
 _MAX_IDENTIFIER_PARAM_CHARS = 128
 # The localized presentation Team sends beside the canonical request, never inside it (ADR-0091).
 _HUMAN_LOCALIZATION_FIELDS = frozenset({"rendered", "locale", "pack_digest"})
@@ -173,7 +174,7 @@ def _param(value: object) -> bool:
     if type(value) is int:
         return 0 <= value < _MAX_INTEGER_PARAM
     return isinstance(value, str) and (
-        (len(value) <= _MAX_DOMAIN_PARAM_CHARS and _DOMAIN_PARAM.fullmatch(value) is not None)
+        (len(value) <= _MAX_DNS_NAME_PARAM_CHARS and _DNS_NAME_PARAM.fullmatch(value) is not None)
         or (len(value) <= _MAX_IDENTIFIER_PARAM_CHARS and _IDENTIFIER_PARAM.fullmatch(value) is not None)
     )
 
