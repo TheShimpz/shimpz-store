@@ -39,6 +39,7 @@ ALLOWED_SCOPES = frozenset({"dns.read", "dns.write", "offline_access", "zone.rea
 SCOPES = tuple(sorted(ALLOWED_SCOPES))
 AUTHORIZATION_TTL_SECONDS = 300
 GRANT_TTL_SECONDS = 300
+MIN_TOKEN_SECONDS = 30
 LEASE_TTL_SECONDS = 366 * 24 * 60 * 60
 CAPACITY = 4096
 MAX_RESPONSE_BYTES = 32 * 1024
@@ -103,6 +104,7 @@ class _PendingGrant:
     local_state: str
     local_code_challenge: str
     tokens: OAuthTokens
+    token_expires_at: float
     scopes: tuple[str, ...]
     expires_at: float
 
@@ -407,7 +409,7 @@ class NeuronOAuthClient:
         if _scopes(value.get("scopes")) != expected_scopes:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
         expires = value.get("expires_in")
-        if type(expires) is not int or not 30 <= expires <= 31_536_000:
+        if type(expires) is not int or not MIN_TOKEN_SECONDS <= expires <= 31_536_000:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
         return OAuthTokens(
             _code(
@@ -626,6 +628,7 @@ class OAuthBroker:
                 pending.local_state,
                 pending.local_code_challenge,
                 tokens,
+                now + tokens.expires_in,
                 pending.scopes,
                 now + GRANT_TTL_SECONDS,
             )
@@ -651,13 +654,22 @@ class OAuthBroker:
                 raise OAuthBrokerError("OAuth grant is unavailable")
             self._grants.pop(claim, None)
             self._active_local_states.discard(pending.local_state)
-        return self._token_payload(pending.tokens, pending.scopes)
+        # The handoff consumed part of the token lifetime: deliver only what remains.
+        remaining = int(pending.token_expires_at - now)
+        if remaining < MIN_TOKEN_SECONDS:
+            raise OAuthBrokerError("OAuth grant is unavailable")
+        return self._token_payload(pending.tokens, pending.scopes, remaining)
 
-    def _token_payload(self, tokens: OAuthTokens, scopes: tuple[str, ...]) -> dict[str, object]:
+    def _token_payload(
+        self,
+        tokens: OAuthTokens,
+        scopes: tuple[str, ...],
+        expires_in: int,
+    ) -> dict[str, object]:
         return {
             "access_token": tokens.access_token,
             "refresh_token": tokens.refresh_token,
-            "expires_in": tokens.expires_in,
+            "expires_in": expires_in,
             "scopes": list(scopes),
             "broker_lease": self._signer.issue(tokens, scopes),
         }
@@ -666,10 +678,8 @@ class OAuthBroker:
         requested_scopes = _scopes(scopes)
         token = _code(refresh_token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
         self._signer.verify(lease, token, requested_scopes)
-        return self._token_payload(
-            self._neuron.refresh(refresh_token=token, scopes=requested_scopes),
-            requested_scopes,
-        )
+        tokens = self._neuron.refresh(refresh_token=token, scopes=requested_scopes)
+        return self._token_payload(tokens, requested_scopes, tokens.expires_in)
 
     def revoke(self, *, token: object, lease: object) -> None:
         value = _code(token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)

@@ -321,7 +321,7 @@ def test_broker_expires_grants_and_enforces_start_capacity(monkeypatch):
         instance._authorizations[str(index) * 43] = broker._PendingAuthorization(
             state, "c" * 43, "hosted", "v" * 43, broker.SCOPES, 99
         )
-        instance._grants[str(index) * 64] = broker._PendingGrant(state, "c" * 43, tokens, broker.SCOPES, 99)
+        instance._grants[str(index) * 64] = broker._PendingGrant(state, "c" * 43, tokens, 3700, broker.SCOPES, 99)
         instance._active_local_states.add(state)
     instance._expire(100)
     assert not instance._authorizations and not instance._grants and not instance._active_local_states
@@ -398,6 +398,7 @@ def test_broker_callback_retries_claim_collision_and_claim_rejects_shape(monkeyp
         "x" * 43,
         "c" * 43,
         broker.OAuthTokens("a" * 16, "b" * 16, 3600),
+        3700,
         broker.SCOPES,
         200,
     )

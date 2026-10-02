@@ -457,6 +457,64 @@ def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract()
     assert broker.claim(claim=claim, state=state, code_verifier=verifier)["access_token"].startswith("access-token")
 
 
+def _claimable_grant(broker: OAuthBroker, neuron: _Neuron, state: str, verifier: str) -> str:
+    broker.start(
+        local_state=state,
+        local_code_challenge=_pkce_challenge(verifier),
+        callback_mode="loopback",
+        scopes=list(SCOPES),
+    )
+    completion = broker.callback(
+        state=neuron.calls[-1][1][0],
+        code="authorization-code-private-123456",
+        scopes=list(SCOPES),
+    )
+    assert isinstance(completion, OAuthRedirect)
+    return parse_qs(urlsplit(completion.location).query)["claim"][0]
+
+
+def test_broker_claim_delivers_only_the_token_lifetime_left_after_the_handoff() -> None:
+    neuron = _Neuron()
+    now = [100.0]
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    verifier = "v" * 43
+
+    claim = _claimable_grant(broker, neuron, "s" * 43, verifier)
+    now[0] += 100.5
+    payload = broker.claim(claim=claim, state="s" * 43, code_verifier=verifier)
+    assert payload["expires_in"] == 3499
+
+    refreshed = broker.refresh(
+        refresh_token=payload["refresh_token"],
+        lease=payload["broker_lease"],
+        scopes=list(SCOPES),
+    )
+    assert refreshed["expires_in"] == 3600
+
+
+def test_broker_refuses_a_claim_whose_token_lifetime_is_nearly_spent() -> None:
+    class ShortLivedNeuron(_Neuron):
+        def exchange(self, *, code: str, verifier: str, scopes: tuple[str, ...]) -> OAuthTokens:
+            super().exchange(code=code, verifier=verifier, scopes=scopes)
+            return OAuthTokens("access-token-private-123456", "refresh-token-private-123456", 60)
+
+    neuron = ShortLivedNeuron()
+    now = [100.0]
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    verifier = "v" * 43
+
+    claim = _claimable_grant(broker, neuron, "s" * 43, verifier)
+    now[0] += 30
+    assert broker.claim(claim=claim, state="s" * 43, code_verifier=verifier)["expires_in"] == 30
+
+    claim = _claimable_grant(broker, neuron, "t" * 43, verifier)
+    now[0] += 30.5
+    with pytest.raises(OAuthBrokerError, match="grant"):
+        broker.claim(claim=claim, state="t" * 43, code_verifier=verifier)
+    with pytest.raises(OAuthBrokerError, match="grant"):
+        broker.claim(claim=claim, state="t" * 43, code_verifier=verifier)
+
+
 def test_broker_reserves_one_local_state_until_its_grant_is_claimed() -> None:
     neuron = _Neuron()
     broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
