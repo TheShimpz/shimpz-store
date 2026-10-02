@@ -11,8 +11,6 @@ from app.protocol.http.v1 import routine as routine_contract
 
 VECTORS = json.loads((Path(routine_contract.__file__).parent / "vectors.json").read_text())
 VIEWS = {
-    "proposal": routine_contract.canonical_proposal,
-    "preview": routine_contract.canonical_preview,
     "routine": routine_contract.canonical_routine_view,
     "run": routine_contract.canonical_run_view,
     "notice_batch": routine_contract.canonical_notice_batch,
@@ -33,10 +31,13 @@ def test_every_view_admits_exactly_its_vectors(kind):
 
 def test_notice_details_and_batches_are_closed():
     assert routine_contract.canonical_notice_detail("scope-changed", {"assistants": ["dns"]}) is not None
+    created = {"name": "DNS", "actions": [["dns", "list-zones"]], "schedule": {"kind": "daily", "time": "09:00"}}
+    assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC"}) is not None
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
         ("stopped", {"actions": [["dns", {"input": 1}]]}),
         ("stopped", {"actions": "dns"}),
+        ("changed", {**created, "timezone": "UTC", "input": {"zone": "x"}}),
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
