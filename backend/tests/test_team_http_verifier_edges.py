@@ -442,7 +442,7 @@ def test_verifier_rejects_missing_or_drifted_routine_vectors(tmp_path):
         ),
         (lambda v: v["routine_views"].pop("claim"), "routine view vectors are missing"),
         (_set((*views, "claim", "valid"), [{"run": None, "extra": 1}]), "valid routine claim vector"),
-        (_set((*views, "claim", "invalid"), [{"run": None}]), "invalid routine claim vector"),
+        (_set((*views, "claim", "invalid"), [{"run": None, "next_due_at": None}]), "invalid routine claim vector"),
         (lambda v: v.pop("routine_diagnostics"), "routine diagnostics vectors are missing"),
         (
             _set(("routine_diagnostics", "valid"), [{"team_id": "team_1", "run_id": "b" * 32}]),
