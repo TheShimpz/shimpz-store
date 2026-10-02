@@ -10,6 +10,7 @@ import socket
 import socketserver
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import audit
 
@@ -23,6 +24,11 @@ MAX_REQUEST_BYTES = 1024
 MAX_CONCURRENCY = 8
 MAX_SOURCE_CONCURRENCY = 8
 LISTEN_BACKLOG = 8
+# DNS resolution counts against the CONNECT deadline. A lookup that outlives its deadline keeps its worker until
+# getaddrinfo returns, so this fixed pool bounds stuck lookups; a saturated pool fails at once instead of queueing.
+MAX_RESOLUTIONS = MAX_CONCURRENCY
+_RESOLVER = ThreadPoolExecutor(max_workers=MAX_RESOLUTIONS, thread_name_prefix="resolver")
+_RESOLVER_SLOTS = threading.BoundedSemaphore(MAX_RESOLUTIONS)
 EXACT_REQUEST = b"CONNECT neuron.shimpz.com:443 HTTP/1.1\r\nHost: neuron.shimpz.com:443\r\n\r\n"
 _STATUS = {
     200: "Connection established",
@@ -40,10 +46,28 @@ _AUDIT_SUBJECTS = {
 PublicAddresses = tuple[tuple[int, tuple], ...]
 
 
-def resolve_public(host: str, port: int) -> PublicAddresses | None:
+def _lookup(host: str, port: int) -> list:
+    try:
+        return socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    finally:
+        _RESOLVER_SLOTS.release()
+
+
+def _resolve(host: str, port: int, deadline: float) -> list:
+    """Resolve on the bounded resolver, waiting no longer than the remaining CONNECT deadline.
+
+    Raises OSError when the resolver is saturated, the lookup fails, or the deadline passes first.
+    """
+    if not _RESOLVER_SLOTS.acquire(blocking=False):
+        raise OSError("resolver capacity exhausted")
+    lookup = _RESOLVER.submit(_lookup, host, port)
+    return lookup.result(timeout=max(0.0, deadline - time.monotonic()))
+
+
+def resolve_public(host: str, port: int, deadline: float) -> PublicAddresses | None:
     """Return every validated public address in resolver order, rejecting mixed answers."""
     try:
-        addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        addresses = _resolve(host, port, deadline)
     except OSError:
         return None
     public: list[tuple[int, tuple]] = []
@@ -79,12 +103,12 @@ def _read_request(stream: socket.socket) -> bytes | None:
     return bytes(payload)
 
 
-def _admit(request: bytes | None) -> tuple[int, str, PublicAddresses | None]:
+def _admit(request: bytes | None, deadline: float) -> tuple[int, str, PublicAddresses | None]:
     if request is None:
         return 0, "incomplete", None
     if request != EXACT_REQUEST:
         return 400, "request-rejected", None
-    resolved = resolve_public(ALLOWED_HOST, ALLOWED_PORT)
+    resolved = resolve_public(ALLOWED_HOST, ALLOWED_PORT, deadline)
     if resolved is None:
         return 403, "destination-rejected", None
     return 200, "allowed", resolved
@@ -94,12 +118,14 @@ class Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         client = self.request
         client.settimeout(CONNECT_TIMEOUT)
-        code, reason, resolved = _admit(_read_request(client))
+        request = _read_request(client)
+        deadline = time.monotonic() + CONNECT_TIMEOUT
+        code, reason, resolved = _admit(request, deadline)
         if resolved is None:
             if code:
                 self._deny(client, code, reason)
             return
-        self._connect(client, resolved)
+        self._connect(client, resolved, deadline)
 
     @staticmethod
     def _reply(client: socket.socket, code: int) -> None:
@@ -120,8 +146,8 @@ class Handler(socketserver.BaseRequestHandler):
         cls._reply(client, code)
 
     @classmethod
-    def _connect(cls, client: socket.socket, resolved: PublicAddresses) -> None:
-        upstream = _connect_upstream(resolved)
+    def _connect(cls, client: socket.socket, resolved: PublicAddresses, deadline: float) -> None:
+        upstream = _connect_upstream(resolved, deadline)
         if upstream is None:
             cls._deny(client, 502, "upstream-unavailable")
             return
@@ -162,9 +188,8 @@ class Handler(socketserver.BaseRequestHandler):
                 stream.close()
 
 
-def _connect_upstream(resolved: PublicAddresses) -> socket.socket | None:
-    """Connect to the first reachable validated address in resolver order under one total deadline."""
-    deadline = time.monotonic() + CONNECT_TIMEOUT
+def _connect_upstream(resolved: PublicAddresses, deadline: float) -> socket.socket | None:
+    """Connect to the first reachable validated address in resolver order under the deadline resolution shared."""
     for family, address in resolved:
         remaining = deadline - time.monotonic()
         if remaining <= 0:

@@ -11,7 +11,9 @@ import stat
 import sys
 import tempfile
 import threading
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
@@ -33,6 +35,10 @@ with mock.patch.dict("sys.modules", {"audit": audit}):
 healthcheck = _module("store_egress_healthcheck", ROOT / "healthcheck.py")
 
 
+def _later() -> float:
+    return time.monotonic() + app.CONNECT_TIMEOUT
+
+
 class StoreEgressTests(unittest.TestCase):
     def test_wire_contract_is_pinned_independently_of_admission(self) -> None:
         self.assertEqual(
@@ -46,7 +52,7 @@ class StoreEgressTests(unittest.TestCase):
     def test_admission_requires_the_exact_complete_connect_request(self) -> None:
         with mock.patch.object(app, "resolve_public", return_value=((socket.AF_INET, ("104.16.1.2", 443)),)):
             self.assertEqual(
-                app._admit(app.EXACT_REQUEST),
+                app._admit(app.EXACT_REQUEST, _later()),
                 (200, "allowed", ((socket.AF_INET, ("104.16.1.2", 443)),)),
             )
         for payload in (
@@ -57,24 +63,24 @@ class StoreEgressTests(unittest.TestCase):
             app.EXACT_REQUEST.replace(b"\r\n\r\n", b"Proxy-Authorization: secret\r\n\r\n"),
         ):
             with self.subTest(payload=payload):
-                code, _reason, resolved = app._admit(payload)
+                code, _reason, resolved = app._admit(payload, _later())
                 self.assertNotEqual(code, 200)
                 self.assertIsNone(resolved)
         with mock.patch.object(app, "resolve_public", return_value=None):
-            self.assertEqual(app._admit(app.EXACT_REQUEST), (403, "destination-rejected", None))
+            self.assertEqual(app._admit(app.EXACT_REQUEST, _later()), (403, "destination-rejected", None))
 
     def test_resolution_rejects_private_and_mixed_answers(self) -> None:
         public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.2", 443))
         private = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.2", 443))
         with mock.patch.object(app.socket, "getaddrinfo", return_value=[public]):
             self.assertEqual(
-                app.resolve_public(app.ALLOWED_HOST, 443),
+                app.resolve_public(app.ALLOWED_HOST, 443, _later()),
                 ((socket.AF_INET, ("104.16.1.2", 443)),),
             )
         second = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.3", 443))
         with mock.patch.object(app.socket, "getaddrinfo", return_value=[public, second]):
             self.assertEqual(
-                app.resolve_public(app.ALLOWED_HOST, 443),
+                app.resolve_public(app.ALLOWED_HOST, 443, _later()),
                 ((socket.AF_INET, ("104.16.1.2", 443)), (socket.AF_INET, ("104.16.1.3", 443))),
             )
         for answers in ([private], [public, private], []):
@@ -82,14 +88,14 @@ class StoreEgressTests(unittest.TestCase):
                 self.subTest(answers=answers),
                 mock.patch.object(app.socket, "getaddrinfo", return_value=answers),
             ):
-                self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443))
+                self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443, _later()))
 
     def test_resolution_rejects_dns_and_malformed_answers(self) -> None:
         with mock.patch.object(app.socket, "getaddrinfo", side_effect=OSError("dns")):
-            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443))
+            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443, _later()))
         malformed = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("invalid", 443))]
         with mock.patch.object(app.socket, "getaddrinfo", return_value=malformed):
-            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443))
+            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443, _later()))
 
     def test_request_reader_handles_chunks_and_closed_inputs(self) -> None:
         complete = mock.Mock()
@@ -130,7 +136,7 @@ class StoreEgressTests(unittest.TestCase):
     def test_connect_uses_the_validated_address_without_reresolving(self) -> None:
         upstream = mock.Mock()
         with mock.patch.object(app.socket, "socket", return_value=upstream) as constructor:
-            self.assertIs(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)), upstream)
+            self.assertIs(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),), _later()), upstream)
         constructor.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
         upstream.connect.assert_called_once_with(("104.16.1.2", 443))
 
@@ -140,7 +146,7 @@ class StoreEgressTests(unittest.TestCase):
         refused, live = mock.Mock(), mock.Mock()
         refused.connect.side_effect = ConnectionRefusedError("refused")
         with mock.patch.object(app.socket, "socket", side_effect=[refused, live]):
-            self.assertIs(app._connect_upstream(self.TWO_ADDRESSES), live)
+            self.assertIs(app._connect_upstream(self.TWO_ADDRESSES, _later()), live)
         refused.connect.assert_called_once_with(("104.16.1.2", 443))
         refused.close.assert_called_once_with()
         live.connect.assert_called_once_with(("104.16.1.3", 443))
@@ -155,7 +161,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app.socket, "socket", side_effect=upstreams),
             mock.patch.object(audit, "record") as record,
         ):
-            app.Handler._connect(client, self.TWO_ADDRESSES)
+            app.Handler._connect(client, self.TWO_ADDRESSES, _later())
         record.assert_called_once_with(
             result="error",
             code=502,
@@ -175,18 +181,18 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app.socket, "getaddrinfo", return_value=answers),
             mock.patch.object(app.socket, "socket") as constructor,
         ):
-            self.assertEqual(app._admit(app.EXACT_REQUEST), (403, "destination-rejected", None))
+            self.assertEqual(app._admit(app.EXACT_REQUEST, _later()), (403, "destination-rejected", None))
         constructor.assert_not_called()
 
     def test_attempts_share_one_total_connect_deadline(self) -> None:
         slow, unused = mock.Mock(), mock.Mock()
         slow.connect.side_effect = TimeoutError("timed out")
-        clock = iter([50.0, 50.0, 50.0 + app.CONNECT_TIMEOUT])
+        clock = iter([50.0, 50.0 + app.CONNECT_TIMEOUT])
         with (
             mock.patch.object(app.time, "monotonic", side_effect=lambda: next(clock)),
             mock.patch.object(app.socket, "socket", side_effect=[slow, unused]) as constructor,
         ):
-            self.assertIsNone(app._connect_upstream(self.TWO_ADDRESSES))
+            self.assertIsNone(app._connect_upstream(self.TWO_ADDRESSES, 50.0 + app.CONNECT_TIMEOUT))
         slow.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT)
         constructor.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
         unused.connect.assert_not_called()
@@ -199,7 +205,9 @@ class StoreEgressTests(unittest.TestCase):
         closed.close()
         live = listener.getsockname()
 
-        upstream = app._connect_upstream(((socket.AF_INET, ("127.0.0.1", refused_port)), (socket.AF_INET, live)))
+        upstream = app._connect_upstream(
+            ((socket.AF_INET, ("127.0.0.1", refused_port)), (socket.AF_INET, live)), _later()
+        )
         self.assertIsNotNone(upstream)
         self.addCleanup(upstream.close)
         accepted, _peer = listener.accept()
@@ -207,14 +215,89 @@ class StoreEgressTests(unittest.TestCase):
 
         self.assertEqual(upstream.getpeername(), live)
 
+    ANSWER = ((socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.2", 443)),)
+
+    def _isolate_resolver(self) -> None:
+        """Give the test a private one-slot resolver so a stuck lookup never reaches the shared pool."""
+        self.resolver = ThreadPoolExecutor(max_workers=1)
+        self.release = threading.Event()
+        self.addCleanup(self.resolver.shutdown, wait=True)
+        self.addCleanup(self.release.set)
+        for name, value in (("_RESOLVER", self.resolver), ("_RESOLVER_SLOTS", threading.BoundedSemaphore(1))):
+            patcher = mock.patch.object(app, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _stuck_lookup(self, *_args, **_kwargs) -> list:
+        self.release.wait(5)
+        return list(self.ANSWER)
+
+    @staticmethod
+    def _handle_exact_request(lookup: object, upstream: mock.Mock) -> tuple[mock.Mock, mock.Mock]:
+        handler = object.__new__(app.Handler)
+        handler.request = mock.Mock()
+        with (
+            mock.patch.object(app, "_read_request", return_value=app.EXACT_REQUEST),
+            mock.patch.object(app.socket, "getaddrinfo", side_effect=lookup),
+            mock.patch.object(app.socket, "socket", return_value=upstream),
+            mock.patch.object(app.Handler, "_tunnel"),
+            mock.patch.object(audit, "record") as record,
+        ):
+            handler.handle()
+        return handler.request, record
+
+    def test_slow_resolution_beyond_the_deadline_gets_the_existing_denial(self) -> None:
+        self._isolate_resolver()
+        never = mock.Mock()
+        with mock.patch.object(app, "CONNECT_TIMEOUT", 0.05):
+            client, record = self._handle_exact_request(self._stuck_lookup, never)
+
+        client.sendall.assert_called_once_with(b"HTTP/1.1 403 Forbidden\r\n\r\n")
+        record.assert_called_once_with(
+            result="denied", code=403, reason="destination-rejected", subject="rejected-target"
+        )
+        self.assertEqual(never.method_calls, [])
+
+    def test_resolution_and_connect_share_one_budget(self) -> None:
+        self._isolate_resolver()
+        for spent, expected in ((6.0, b"HTTP/1.1 200"), (app.CONNECT_TIMEOUT, b"HTTP/1.1 502")):
+            with self.subTest(spent=spent):
+                now = [100.0]
+
+                def slow_lookup(*_args, spent=spent, now=now, **_kwargs) -> list:
+                    now[0] += spent
+                    return list(self.ANSWER)
+
+                upstream = mock.Mock()
+                with mock.patch.object(app.time, "monotonic", side_effect=lambda now=now: now[0]):
+                    client, _record = self._handle_exact_request(slow_lookup, upstream)
+
+                self.assertTrue(client.sendall.call_args.args[0].startswith(expected))
+                if spent < app.CONNECT_TIMEOUT:
+                    upstream.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT - spent)
+                else:
+                    self.assertEqual(upstream.method_calls, [])
+
+    def test_a_saturated_resolver_fails_fast_until_a_stuck_lookup_returns(self) -> None:
+        self._isolate_resolver()
+        with mock.patch.object(app.socket, "getaddrinfo", side_effect=self._stuck_lookup) as lookup:
+            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443, time.monotonic() + 0.05))
+            started = time.monotonic()
+            self.assertIsNone(app.resolve_public(app.ALLOWED_HOST, 443, _later()))
+            self.assertLess(time.monotonic() - started, 1.0)
+            lookup.assert_called_once()
+            self.release.set()
+            self.resolver.submit(lambda: None).result()
+            self.assertEqual(app.resolve_public(app.ALLOWED_HOST, 443, _later()), (self.ANSWER[0][0::4],))
+
     def test_upstream_connection_failures_close_partial_sockets(self) -> None:
         with mock.patch.object(app.socket, "socket", side_effect=OSError("closed")):
-            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)))
+            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),), _later()))
 
         upstream = mock.Mock()
         upstream.connect.side_effect = OSError("closed")
         with mock.patch.object(app.socket, "socket", return_value=upstream):
-            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)))
+            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),), _later()))
         upstream.close.assert_called_once_with()
 
     def test_audit_is_bounded_and_contains_no_request_material(self) -> None:
@@ -339,7 +422,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(handler, "_connect") as connect,
         ):
             handler.handle()
-        connect.assert_called_once_with(handler.request, resolved)
+        connect.assert_called_once_with(handler.request, resolved, mock.ANY)
 
     def test_denial_and_connect_fail_closed_when_audit_is_unavailable(self) -> None:
         client = mock.Mock()
@@ -351,7 +434,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app, "_connect_upstream", return_value=None),
             mock.patch.object(app.Handler, "_deny") as deny,
         ):
-            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),), _later())
         deny.assert_called_once_with(client, 502, "upstream-unavailable")
 
         upstream = mock.Mock()
@@ -359,7 +442,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app, "_connect_upstream", return_value=upstream),
             mock.patch.object(audit, "record", side_effect=audit.AuditError("closed")),
         ):
-            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),), _later())
         upstream.close.assert_called_once_with()
 
     def test_connect_audits_replies_and_tunnels_after_admission(self) -> None:
@@ -371,7 +454,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app.Handler, "_reply") as reply,
             mock.patch.object(app.Handler, "_tunnel") as tunnel,
         ):
-            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),), _later())
         record.assert_called_once_with(
             result="ok",
             code=200,
