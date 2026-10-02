@@ -25,6 +25,8 @@ _HUMAN_AUTH_KINDS = frozenset(
         "auth:passkey",
     }
 )
+# The requests that authorize an Action; only these may disclose the file their approval delivers (ADR-0093).
+_AUTHORIZATION_KINDS = frozenset({"approval", *_HUMAN_AUTH_KINDS})
 _HUMAN_LENGTH_KINDS = {
     "input:text": 4096,
     "input:textarea": 16_000,
@@ -104,11 +106,19 @@ async def ws_receive_bounded_json(ws: WebSocket) -> dict:
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) - {"usage"} != {"type", "team_id", "team_name", "reply", "clarification"}:
+    if set(value) - {"usage", "restricted_actions"} != {"type", "team_id", "team_name", "reply", "clarification"}:
         return None
     # What the completed turn consumed is presentation only and must match its closed shape.
     usage = team_contract.canonical_turn_usage(value["usage"]) if "usage" in value else None
     if "usage" in value and usage is None:
+        return None
+    # The Actions the turn withheld for its attachment content, named for guidance only (ADR-0093).
+    restricted = (
+        team_contract.canonical_restricted_actions(value["restricted_actions"])
+        if "restricted_actions" in value
+        else None
+    )
+    if "restricted_actions" in value and restricted is None:
         return None
     team_id = team_contract.canonical_team_id(value["team_id"])
     reply = canonical_chat_reply(value["reply"])
@@ -128,6 +138,7 @@ def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
         "reply": reply,
         "clarification": clarification,
         **({} if usage is None else {"usage": usage}),
+        **({} if restricted is None else {"restricted_actions": restricted}),
     }
 
 
@@ -372,8 +383,11 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
     # The Brain's optional task-bound purpose and a Stored Input request's reviewed key page (ADR-0090).
     purpose = team_contract.canonical_purpose(value.get("purpose")) if "purpose" in value else None
     help_url = team_contract.canonical_help_url(value.get("help_url")) if "help_url" in value else None
+    # The one file an authorization of a file-taking Action discloses, and only its approval delivers (ADR-0093).
+    file = team_contract.canonical_file_disclosure(value.get("file")) if "file" in value else None
     if (
-        set(value) - {"purpose", "help_url"} != expected | _HUMAN_LOCALIZATION_FIELDS
+        set(value) - {"purpose", "help_url", "file"} != expected | _HUMAN_LOCALIZATION_FIELDS
+        or ("file" in value and (file is None or request is None or request["kind"] not in _AUTHORIZATION_KINDS))
         or rendered is None
         or locale is None
         or pack_digest is None
@@ -402,6 +416,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "pack_digest": pack_digest,
         **({} if purpose is None else {"purpose": purpose}),
         **({} if help_url is None else {"help_url": help_url}),
+        **({} if file is None else {"file": file}),
     }
 
 

@@ -559,3 +559,63 @@ _FIRST, _SECOND = _portuguese_choice()["rendered"]["options"]
 )
 def test_terminal_event_contract_refuses_a_challenge_without_exactly_its_localized_copy(event: dict):
     assert _validated_terminal_event(event, TEST_TEAM_ID) is None
+
+
+DISCLOSED_FILE = {
+    "id": "0123456789abcdef0123456789abcdef",
+    "name": "Relatório de março.pdf",
+    "media_type": "application/pdf",
+    "size": 482113,
+    "sha256": "a" * 64,
+}
+
+
+def test_an_authorization_challenge_relays_the_file_it_discloses():
+    for request in (_human_request("approval"), _human_request("auth:totp")):
+        projected = _validated_terminal_event(
+            {**_human_challenge(request=request), "file": DISCLOSED_FILE}, TEST_TEAM_ID
+        )
+        assert projected is not None
+        assert projected["file"] == DISCLOSED_FILE
+    assert "file" not in _validated_terminal_event(_human_challenge(), TEST_TEAM_ID)
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {**_human_challenge(), "file": {**DISCLOSED_FILE, "size": 8 * 1024 * 1024 + 1}},
+        {**_human_challenge(), "file": {**DISCLOSED_FILE, "name": "a/b.pdf"}},
+        {**_human_challenge(), "file": {**DISCLOSED_FILE, "media_type": "PDF"}},
+        {**_human_challenge(), "file": {**DISCLOSED_FILE, "content": "withheld"}},
+        {**_human_challenge(), "file": None},
+        {**_human_challenge(request=_stored_input_request()), "file": DISCLOSED_FILE},
+        {
+            **_human_challenge(
+                request=_human_request(
+                    "input:text", label="Zone", required=True, placeholder=None, min_length=1, max_length=64
+                )
+            ),
+            "file": DISCLOSED_FILE,
+        },
+    ],
+)
+def test_a_malformed_or_misplaced_file_disclosure_is_refused(event: dict):
+    assert _validated_terminal_event(event, TEST_TEAM_ID) is None
+
+
+RESTRICTED = {"actions": [{"assistant": "shimpz-cloudflare", "action": "list-zones"}], "total": 1}
+
+
+def test_a_completed_turn_relays_the_actions_its_attachments_withheld():
+    done = {**_done(), "clarification": None}
+    projected = _validated_terminal_event({**done, "restricted_actions": RESTRICTED}, TEST_TEAM_ID)
+    assert projected is not None
+    assert projected["restricted_actions"] == RESTRICTED
+    assert "restricted_actions" not in _validated_terminal_event(done, TEST_TEAM_ID)
+    for invalid in (
+        {"actions": [], "total": 0},
+        {**RESTRICTED, "total": 0},
+        {"actions": [{"assistant": "Shimpz", "action": "list-zones"}], "total": 1},
+        None,
+    ):
+        assert _validated_terminal_event({**done, "restricted_actions": invalid}, TEST_TEAM_ID) is None
