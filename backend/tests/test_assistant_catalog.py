@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import hashlib
+import threading
 
 import pytest
 from app import catalog
+from app.concurrency import ExecutorSaturatedError
 from app.main import app
 from app.routers import public
 from fastapi.testclient import TestClient
@@ -142,16 +145,61 @@ def test_an_assistant_with_the_producer_maximum_of_actions_is_projected() -> Non
 
 
 def test_public_route_caches_only_a_valid_developers_catalog(monkeypatch) -> None:
-    async def valid_catalog(*_args, **_kwargs):
+    def valid_catalog(*_args, **_kwargs):
         return 200, {"version": 1, "assistants": [_assistant()]}
 
-    monkeypatch.setattr(public, "call_bounded", valid_catalog)
+    monkeypatch.setattr(public, "call", valid_catalog)
     with TestClient(app) as client:
         response = client.get("/api/assistants")
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "public, max-age=60, s-maxage=300"
     assert response.json()["assistants"][0]["source_digest"] == DIGEST
+
+
+def test_public_route_projects_and_serializes_the_catalog_off_the_event_loop(monkeypatch) -> None:
+    workers: list[tuple[str, bool]] = []
+    project = catalog.project_catalog
+
+    def on_loop() -> bool:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return False
+        return True
+
+    def valid_catalog(*_args, **_kwargs):
+        workers.append((threading.current_thread().name, on_loop()))
+        return 200, {"version": 1, "assistants": [_assistant()]}
+
+    def projected(value):
+        workers.append((threading.current_thread().name, on_loop()))
+        return project(value)
+
+    monkeypatch.setattr(public, "call", valid_catalog)
+    monkeypatch.setattr(public.catalog, "project_catalog", projected)
+    with TestClient(app) as client:
+        response = client.get("/api/assistants")
+
+    assert response.status_code == 200
+    assert len(workers) == 2
+    assert all(name.startswith("shimpz-control") and not loop for name, loop in workers)
+
+
+def test_public_route_refuses_the_catalog_when_control_admission_is_full(monkeypatch) -> None:
+    def must_not_run(*_args, **_kwargs):
+        raise AssertionError("a saturated control executor must not run the catalog")
+
+    def saturated(*_args, **_kwargs):
+        raise ExecutorSaturatedError("blocking worker admission is full")
+
+    monkeypatch.setattr(public, "call", must_not_run)
+    monkeypatch.setattr(public.CONTROL_EXECUTOR, "submit", saturated)
+    with TestClient(app) as client:
+        response = client.get("/api/assistants")
+
+    assert response.status_code == 429
+    assert "assistants" not in response.text
 
 
 def test_public_icon_route_verifies_and_immutably_caches_exact_bytes(monkeypatch) -> None:
@@ -185,10 +233,10 @@ def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
 
 @pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "assistants": "bad"})])
 def test_public_route_fails_closed_without_cache(monkeypatch, upstream) -> None:
-    async def invalid_catalog(*_args, **_kwargs):
+    def invalid_catalog(*_args, **_kwargs):
         return upstream
 
-    monkeypatch.setattr(public, "call_bounded", invalid_catalog)
+    monkeypatch.setattr(public, "call", invalid_catalog)
     with TestClient(app) as client:
         response = client.get("/api/assistants")
 
@@ -217,10 +265,10 @@ def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(mo
 
     upstream_value = {"version": 1, "assistants": [entry(index) for index in range(1000)]}
 
-    async def full_catalog(*_args, **_kwargs):
+    def full_catalog(*_args, **_kwargs):
         return 200, upstream_value
 
-    monkeypatch.setattr(public, "call_bounded", full_catalog)
+    monkeypatch.setattr(public, "call", full_catalog)
     with TestClient(app) as client:
         response = client.get("/api/assistants")
     assert response.status_code == 200

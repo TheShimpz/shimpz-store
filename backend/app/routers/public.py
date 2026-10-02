@@ -10,8 +10,9 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app import catalog, config
+from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
-from app.upstream import VERIFY_TIMEOUT_SECONDS, call_asset_bounded, call_bounded
+from app.upstream import VERIFY_TIMEOUT_SECONDS, call, call_asset_bounded
 
 router = APIRouter()
 _HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
@@ -22,25 +23,28 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/api/assistants")
-async def assistant_catalog() -> Response:
-    status, value = await call_bounded(
-        CONTROL_EXECUTOR,
+def _catalog_body() -> bytes | None:
+    """Read, validate, project, and serialize the catalog inside one control worker."""
+    status, value = call(
         config.DEVELOPERS_URL,
         "GET",
         "/api/v1/assistants",
         timeout=VERIFY_TIMEOUT_SECONDS,
     )
     if status != 200:
-        return Response(
-            content='{"detail":"Assistant catalog is unavailable"}',
-            status_code=503,
-            media_type="application/json",
-            headers={"Cache-Control": "no-store"},
-        )
+        return None
     try:
         projected = catalog.project_catalog(value)
     except catalog.CatalogError:
+        return None
+    # UTF-8, not ASCII escapes: escaping multibyte text would inflate a full catalog past its consumers' limit.
+    return json.dumps(projected, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+
+
+@router.get("/api/assistants")
+async def assistant_catalog() -> Response:
+    body = await run_bounded(CONTROL_EXECUTOR, _catalog_body)
+    if body is None:
         return Response(
             content='{"detail":"Assistant catalog is unavailable"}',
             status_code=503,
@@ -48,8 +52,7 @@ async def assistant_catalog() -> Response:
             headers={"Cache-Control": "no-store"},
         )
     return Response(
-        # UTF-8, not ASCII escapes: escaping multibyte text would inflate a full catalog past its consumers' limit.
-        content=json.dumps(projected, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode(),
+        content=body,
         media_type="application/json",
         headers={"Cache-Control": "public, max-age=60, s-maxage=300"},
     )
