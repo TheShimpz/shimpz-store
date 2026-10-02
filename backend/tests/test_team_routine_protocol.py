@@ -31,13 +31,15 @@ def test_every_view_admits_exactly_its_vectors(kind):
 
 def test_notice_details_and_batches_are_closed():
     assert routine_contract.canonical_notice_detail("scope-changed", {"assistants": ["dns"]}) is not None
-    created = {"name": "DNS", "actions": [["dns", "list-zones"]], "schedule": {"kind": "daily", "time": "09:00"}}
+    step = {"id": "zones", "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
+    created = {"name": "DNS", "steps": [step], "schedule": {"kind": "daily", "time": "09:00"}}
     assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC"}) is not None
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
         ("stopped", {"actions": [["dns", {"input": 1}]]}),
         ("stopped", {"actions": "dns"}),
         ("changed", {**created, "timezone": "UTC", "input": {"zone": "x"}}),
+        ("changed", {**created, "timezone": "UTC", "steps": [{**step, "stored_inputs": ["API key"]}]}),
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
@@ -52,3 +54,16 @@ def test_run_diagnostics_admit_exactly_the_golden_vectors():
     assert routine_contract.canonical_diagnostic([]) is None
     assert not routine_contract._diagnostic_text("lone \ud800 surrogate")
     assert not routine_contract._diagnostic_text(7)
+
+
+def test_the_plan_projection_is_closed_and_its_previews_bounded():
+    assert routine_contract.literal_preview({"a": "x‮"}) == '{"a":"x\\u202e"}'
+    assert len(routine_contract.literal_preview("y" * 300)) == routine_contract.MAX_PREVIEW_CHARS
+    step = {"id": "zones", "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
+    assert routine_contract.canonical_steps([step]) == [step]
+    for steps in (
+        ["x"],
+        [{**step, "inputs": ["x"]}],
+        [{**step, "inputs": [{"member": "", "source": "literal", "value": "1"}]}],
+    ):
+        assert routine_contract.canonical_steps(steps) is None
