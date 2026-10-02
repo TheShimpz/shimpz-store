@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -67,3 +68,12 @@ def test_the_plan_projection_is_closed_and_its_previews_bounded():
         [{**step, "inputs": [{"member": "", "source": "literal", "value": "1"}]}],
     ):
         assert routine_contract.canonical_steps(steps) is None
+
+
+def test_every_schedule_has_a_whole_rolling_cap_and_one_run_mode():
+    for vector in VECTORS["routine_schedule"]["daily_rate"]:
+        schedule = vector["schedule"]
+        assert routine_contract.daily_cap(schedule) == -(-Fraction(vector["rate"]) // 1)
+        expected = "continuous" if schedule["kind"] == "continuous" else "scheduled"
+        assert routine_contract.run_mode(schedule) == expected
+        assert expected in routine_contract.RUN_MODES
