@@ -40,3 +40,14 @@ def test_notice_details_and_batches_are_closed():
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
+
+
+def test_run_diagnostics_admit_exactly_the_golden_vectors():
+    for value in VECTORS["routine_diagnostics"]["valid"]:
+        assert routine_contract.canonical_diagnostics(value) == value
+    for value in VECTORS["routine_diagnostics"]["invalid"]:
+        assert routine_contract.canonical_diagnostics(value) is None
+    assert routine_contract.canonical_failure([]) is None
+    assert routine_contract.canonical_diagnostic([]) is None
+    assert not routine_contract._diagnostic_text("lone \ud800 surrogate")
+    assert not routine_contract._diagnostic_text(7)
