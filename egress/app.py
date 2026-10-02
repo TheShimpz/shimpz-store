@@ -37,10 +37,11 @@ _AUDIT_SUBJECTS = {
     "request-rejected": "rejected-target",
     "destination-rejected": "rejected-target",
 }
+PublicAddresses = tuple[tuple[int, tuple], ...]
 
 
-def resolve_public(host: str, port: int) -> tuple[int, tuple] | None:
-    """Return one already-validated public address, rejecting mixed answers."""
+def resolve_public(host: str, port: int) -> PublicAddresses | None:
+    """Return every validated public address in resolver order, rejecting mixed answers."""
     try:
         addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except OSError:
@@ -54,7 +55,7 @@ def resolve_public(host: str, port: int) -> tuple[int, tuple] | None:
         if not parsed.is_global:
             return None
         public.append((family, address))
-    return public[0] if public else None
+    return tuple(public) if public else None
 
 
 def _read_request(stream: socket.socket) -> bytes | None:
@@ -78,7 +79,7 @@ def _read_request(stream: socket.socket) -> bytes | None:
     return bytes(payload)
 
 
-def _admit(request: bytes | None) -> tuple[int, str, tuple[int, tuple] | None]:
+def _admit(request: bytes | None) -> tuple[int, str, PublicAddresses | None]:
     if request is None:
         return 0, "incomplete", None
     if request != EXACT_REQUEST:
@@ -119,7 +120,7 @@ class Handler(socketserver.BaseRequestHandler):
         cls._reply(client, code)
 
     @classmethod
-    def _connect(cls, client: socket.socket, resolved: tuple[int, tuple]) -> None:
+    def _connect(cls, client: socket.socket, resolved: PublicAddresses) -> None:
         upstream = _connect_upstream(resolved)
         if upstream is None:
             cls._deny(client, 502, "upstream-unavailable")
@@ -161,18 +162,24 @@ class Handler(socketserver.BaseRequestHandler):
                 stream.close()
 
 
-def _connect_upstream(resolved: tuple[int, tuple]) -> socket.socket | None:
-    family, address = resolved
-    upstream: socket.socket | None = None
-    try:
-        upstream = socket.socket(family, socket.SOCK_STREAM)
-        upstream.settimeout(CONNECT_TIMEOUT)
-        upstream.connect(address)
-    except OSError:
-        if upstream is not None:
-            upstream.close()
-        return None
-    return upstream
+def _connect_upstream(resolved: PublicAddresses) -> socket.socket | None:
+    """Connect to the first reachable validated address in resolver order under one total deadline."""
+    deadline = time.monotonic() + CONNECT_TIMEOUT
+    for family, address in resolved:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        upstream: socket.socket | None = None
+        try:
+            upstream = socket.socket(family, socket.SOCK_STREAM)
+            upstream.settimeout(remaining)
+            upstream.connect(address)
+        except OSError:
+            if upstream is not None:
+                upstream.close()
+            continue
+        return upstream
+    return None
 
 
 class Server(socketserver.ThreadingTCPServer):

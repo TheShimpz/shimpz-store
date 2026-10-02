@@ -44,10 +44,10 @@ class StoreEgressTests(unittest.TestCase):
         stream.sendall.assert_called_once_with(b"HTTP/1.1 200 Connection established\r\n\r\n")
 
     def test_admission_requires_the_exact_complete_connect_request(self) -> None:
-        with mock.patch.object(app, "resolve_public", return_value=(socket.AF_INET, ("104.16.1.2", 443))):
+        with mock.patch.object(app, "resolve_public", return_value=((socket.AF_INET, ("104.16.1.2", 443)),)):
             self.assertEqual(
                 app._admit(app.EXACT_REQUEST),
-                (200, "allowed", (socket.AF_INET, ("104.16.1.2", 443))),
+                (200, "allowed", ((socket.AF_INET, ("104.16.1.2", 443)),)),
             )
         for payload in (
             None,
@@ -69,7 +69,13 @@ class StoreEgressTests(unittest.TestCase):
         with mock.patch.object(app.socket, "getaddrinfo", return_value=[public]):
             self.assertEqual(
                 app.resolve_public(app.ALLOWED_HOST, 443),
-                (socket.AF_INET, ("104.16.1.2", 443)),
+                ((socket.AF_INET, ("104.16.1.2", 443)),),
+            )
+        second = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.3", 443))
+        with mock.patch.object(app.socket, "getaddrinfo", return_value=[public, second]):
+            self.assertEqual(
+                app.resolve_public(app.ALLOWED_HOST, 443),
+                ((socket.AF_INET, ("104.16.1.2", 443)), (socket.AF_INET, ("104.16.1.3", 443))),
             )
         for answers in ([private], [public, private], []):
             with (
@@ -124,18 +130,91 @@ class StoreEgressTests(unittest.TestCase):
     def test_connect_uses_the_validated_address_without_reresolving(self) -> None:
         upstream = mock.Mock()
         with mock.patch.object(app.socket, "socket", return_value=upstream) as constructor:
-            self.assertIs(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))), upstream)
+            self.assertIs(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)), upstream)
         constructor.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
         upstream.connect.assert_called_once_with(("104.16.1.2", 443))
 
+    TWO_ADDRESSES = ((socket.AF_INET, ("104.16.1.2", 443)), (socket.AF_INET, ("104.16.1.3", 443)))
+
+    def test_a_refused_first_address_falls_through_to_the_second(self) -> None:
+        refused, live = mock.Mock(), mock.Mock()
+        refused.connect.side_effect = ConnectionRefusedError("refused")
+        with mock.patch.object(app.socket, "socket", side_effect=[refused, live]):
+            self.assertIs(app._connect_upstream(self.TWO_ADDRESSES), live)
+        refused.connect.assert_called_once_with(("104.16.1.2", 443))
+        refused.close.assert_called_once_with()
+        live.connect.assert_called_once_with(("104.16.1.3", 443))
+        live.close.assert_not_called()
+
+    def test_every_refused_address_yields_the_existing_upstream_failure(self) -> None:
+        upstreams = [mock.Mock(), mock.Mock()]
+        for upstream in upstreams:
+            upstream.connect.side_effect = ConnectionRefusedError("refused")
+        client = mock.Mock()
+        with (
+            mock.patch.object(app.socket, "socket", side_effect=upstreams),
+            mock.patch.object(audit, "record") as record,
+        ):
+            app.Handler._connect(client, self.TWO_ADDRESSES)
+        record.assert_called_once_with(
+            result="error",
+            code=502,
+            reason="upstream-unavailable",
+            subject="neuron.shimpz.com:443",
+        )
+        client.sendall.assert_called_once_with(b"HTTP/1.1 502 Bad Gateway\r\n\r\n")
+        for upstream in upstreams:
+            upstream.close.assert_called_once_with()
+
+    def test_a_mixed_public_private_answer_is_refused_before_any_connection(self) -> None:
+        answers = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("104.16.1.2", 443)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("fd00::2", 443, 0, 0)),
+        ]
+        with (
+            mock.patch.object(app.socket, "getaddrinfo", return_value=answers),
+            mock.patch.object(app.socket, "socket") as constructor,
+        ):
+            self.assertEqual(app._admit(app.EXACT_REQUEST), (403, "destination-rejected", None))
+        constructor.assert_not_called()
+
+    def test_attempts_share_one_total_connect_deadline(self) -> None:
+        slow, unused = mock.Mock(), mock.Mock()
+        slow.connect.side_effect = TimeoutError("timed out")
+        clock = iter([50.0, 50.0, 50.0 + app.CONNECT_TIMEOUT])
+        with (
+            mock.patch.object(app.time, "monotonic", side_effect=lambda: next(clock)),
+            mock.patch.object(app.socket, "socket", side_effect=[slow, unused]) as constructor,
+        ):
+            self.assertIsNone(app._connect_upstream(self.TWO_ADDRESSES))
+        slow.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT)
+        constructor.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        unused.connect.assert_not_called()
+
+    def test_a_real_refused_endpoint_falls_through_to_a_live_one(self) -> None:
+        listener = socket.create_server(("127.0.0.1", 0))
+        self.addCleanup(listener.close)
+        closed = socket.create_server(("127.0.0.1", 0))
+        refused_port = closed.getsockname()[1]
+        closed.close()
+        live = listener.getsockname()
+
+        upstream = app._connect_upstream(((socket.AF_INET, ("127.0.0.1", refused_port)), (socket.AF_INET, live)))
+        self.assertIsNotNone(upstream)
+        self.addCleanup(upstream.close)
+        accepted, _peer = listener.accept()
+        accepted.close()
+
+        self.assertEqual(upstream.getpeername(), live)
+
     def test_upstream_connection_failures_close_partial_sockets(self) -> None:
         with mock.patch.object(app.socket, "socket", side_effect=OSError("closed")):
-            self.assertIsNone(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))))
+            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)))
 
         upstream = mock.Mock()
         upstream.connect.side_effect = OSError("closed")
         with mock.patch.object(app.socket, "socket", return_value=upstream):
-            self.assertIsNone(app._connect_upstream((socket.AF_INET, ("104.16.1.2", 443))))
+            self.assertIsNone(app._connect_upstream(((socket.AF_INET, ("104.16.1.2", 443)),)))
         upstream.close.assert_called_once_with()
 
     def test_audit_is_bounded_and_contains_no_request_material(self) -> None:
@@ -253,7 +332,7 @@ class StoreEgressTests(unittest.TestCase):
             handler.handle()
         deny.assert_called_once_with(handler.request, 400, "request-rejected")
 
-        resolved = (socket.AF_INET, ("104.16.1.2", 443))
+        resolved = ((socket.AF_INET, ("104.16.1.2", 443)),)
         with (
             mock.patch.object(app, "_read_request", return_value=app.EXACT_REQUEST),
             mock.patch.object(app, "resolve_public", return_value=resolved),
@@ -272,7 +351,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app, "_connect_upstream", return_value=None),
             mock.patch.object(app.Handler, "_deny") as deny,
         ):
-            app.Handler._connect(client, (socket.AF_INET, ("104.16.1.2", 443)))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
         deny.assert_called_once_with(client, 502, "upstream-unavailable")
 
         upstream = mock.Mock()
@@ -280,7 +359,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app, "_connect_upstream", return_value=upstream),
             mock.patch.object(audit, "record", side_effect=audit.AuditError("closed")),
         ):
-            app.Handler._connect(client, (socket.AF_INET, ("104.16.1.2", 443)))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
         upstream.close.assert_called_once_with()
 
     def test_connect_audits_replies_and_tunnels_after_admission(self) -> None:
@@ -292,7 +371,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app.Handler, "_reply") as reply,
             mock.patch.object(app.Handler, "_tunnel") as tunnel,
         ):
-            app.Handler._connect(client, (socket.AF_INET, ("104.16.1.2", 443)))
+            app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),))
         record.assert_called_once_with(
             result="ok",
             code=200,
