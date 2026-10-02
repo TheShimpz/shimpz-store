@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import re
-
+from app import catalog
 from app.config import MAX_CHAT_ASSISTANTS
 from app.protocol.http.v1 import payload as team_contract
-
-_ASSISTANT_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 
 
 def _assistant_inventory_item(value: object) -> tuple[str, str] | None:
@@ -25,7 +22,7 @@ def _assistant_inventory_item(value: object) -> tuple[str, str] | None:
     if (
         assistant is None
         or not isinstance(version, str)
-        or _ASSISTANT_VERSION.fullmatch(version) is None
+        or catalog.VERSION_RE.fullmatch(version) is None
         or provenance != "published"
         or not isinstance(status, str)
     ):

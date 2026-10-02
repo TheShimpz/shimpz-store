@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 
 from fastapi import APIRouter
 from fastapi.responses import Response
@@ -12,10 +11,10 @@ from fastapi.responses import Response
 from app import catalog, config
 from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
+from app.protocol.http.v1 import payload as team_contract
 from app.upstream import VERIFY_TIMEOUT_SECONDS, call, call_asset_bounded
 
 router = APIRouter()
-_HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 
 
 @router.get("/api/health")
@@ -60,7 +59,7 @@ async def assistant_catalog() -> Response:
 
 @router.get("/api/assistant-icons/{source_hash}/{icon_hash}.png")
 async def assistant_icon(source_hash: str, icon_hash: str) -> Response:
-    if _HEX_DIGEST.fullmatch(source_hash) is None or _HEX_DIGEST.fullmatch(icon_hash) is None:
+    if team_contract.SHA256_RE.fullmatch(source_hash) is None or team_contract.SHA256_RE.fullmatch(icon_hash) is None:
         return _icon_unavailable()
     status, contents = await call_asset_bounded(
         CONTROL_EXECUTOR,

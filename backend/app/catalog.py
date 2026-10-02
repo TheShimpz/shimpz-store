@@ -9,14 +9,12 @@ from app.protocol.http.v1 import payload as team_contract
 MAX_ASSISTANTS = 1000
 # Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
 MAX_ACTIONS = 128
-_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
-_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 _CREATOR = re.compile(r"^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 _GITHUB = re.compile(
     r"^https://github\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/"
     r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$"
 )
-_ACTION_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _HUMAN_REQUEST_KINDS = {
     "approval",
     "input:text",
@@ -90,7 +88,7 @@ def _integrations(value: object) -> list[dict[str, object]]:
         if (
             not isinstance(integration_id, str)
             or integration_id != provider
-            or _ACTION_ID.fullmatch(integration_id) is None
+            or team_contract.ASSISTANT_ID_RE.fullmatch(integration_id) is None
         ):
             raise CatalogError("catalog Integration identity is invalid")
         projected.append({"id": integration_id, "provider": provider, "scopes": scopes})
@@ -108,7 +106,7 @@ def _stored_inputs(value: object) -> frozenset[str]:
             or set(item) != {"id", "kind", "label", "description"}
             or not isinstance(item["id"], str)
             or len(item["id"]) > 64
-            or _ACTION_ID.fullmatch(item["id"]) is None
+            or team_contract.ASSISTANT_ID_RE.fullmatch(item["id"]) is None
             or item["kind"] != "password"
         ):
             raise CatalogError("catalog Stored Input is invalid")
@@ -129,7 +127,7 @@ def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, obj
             not isinstance(item, dict)
             or set(item) != _ACTION_FIELDS
             or not isinstance(item["id"], str)
-            or _ACTION_ID.fullmatch(item["id"]) is None
+            or team_contract.ASSISTANT_ID_RE.fullmatch(item["id"]) is None
         ):
             raise CatalogError("catalog Action is invalid")
         human_requests = _closed_strings(item["human_requests"], 11, 25)
@@ -158,11 +156,11 @@ def _assistant(value: object) -> dict[str, object]:
     icon_digest = value["icon_digest"]
     platforms = value["platforms"]
     github = value["github"]
-    if not isinstance(version, str) or _VERSION.fullmatch(version) is None:
+    if not isinstance(version, str) or VERSION_RE.fullmatch(version) is None:
         raise CatalogError("catalog Assistant version is invalid")
-    if not isinstance(digest, str) or _DIGEST.fullmatch(digest) is None:
+    if not isinstance(digest, str) or team_contract.SOURCE_DIGEST_RE.fullmatch(digest) is None:
         raise CatalogError("catalog source digest is invalid")
-    if not isinstance(icon_digest, str) or _DIGEST.fullmatch(icon_digest) is None:
+    if not isinstance(icon_digest, str) or team_contract.SOURCE_DIGEST_RE.fullmatch(icon_digest) is None:
         raise CatalogError("catalog icon digest is invalid")
     if platforms != ["linux/amd64", "linux/arm64"]:
         raise CatalogError("catalog platforms are invalid")

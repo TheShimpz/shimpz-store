@@ -199,7 +199,7 @@ def _human_request_base(value: object) -> dict[str, object] | None:
         or title is None
         or description is None
         or not isinstance(fingerprint, str)
-        or re.fullmatch(r"[0-9a-f]{64}", fingerprint) is None
+        or team_contract.SHA256_RE.fullmatch(fingerprint) is None
     ):
         return None
     return {
