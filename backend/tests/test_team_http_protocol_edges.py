@@ -422,3 +422,9 @@ def test_human_response_accepts_submit_and_deny():
     deny = {"type": "human-response", "challenge_id": challenge, "decision": "deny"}
     assert websocket.canonical_human_response(submit) == submit
     assert websocket.canonical_human_response(deny) == deny
+
+
+def test_a_request_identity_expires_exclusively_at_its_window():
+    assert payload.request_identity_fresh(1_000_000, 1_000_899)
+    assert not payload.request_identity_fresh(1_000_000, 1_000_900)
+    assert not payload.request_identity_fresh(1_000_061, 1_000_000)

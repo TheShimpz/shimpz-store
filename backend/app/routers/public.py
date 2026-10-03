@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from app import catalog, config
@@ -22,18 +22,24 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-def _catalog_body() -> bytes | None:
-    """Read, validate, project, and serialize the catalog inside one control worker."""
+def _catalog_locale(request: Request) -> str | None:
+    """Admit exactly one closed `locale` query parameter and nothing else."""
+    query = request.url.query
+    return team_contract.canonical_locale(query.removeprefix("locale=")) if query.startswith("locale=") else None
+
+
+def _catalog_body(locale: str) -> bytes | None:
+    """Read, validate, project, and serialize one locale's catalog inside one control worker."""
     status, value = call(
         config.DEVELOPERS_URL,
         "GET",
-        "/api/v1/assistants",
+        f"/api/v1/assistants?locale={locale}",
         timeout=VERIFY_TIMEOUT_SECONDS,
     )
     if status != 200:
         return None
     try:
-        projected = catalog.project_catalog(value)
+        projected = catalog.project_catalog(value, locale)
     except catalog.CatalogError:
         return None
     # UTF-8, not ASCII escapes: escaping multibyte text would inflate a full catalog past its consumers' limit.
@@ -41,8 +47,17 @@ def _catalog_body() -> bytes | None:
 
 
 @router.get("/api/assistants")
-async def assistant_catalog() -> Response:
-    body = await run_bounded(CONTROL_EXECUTOR, _catalog_body)
+async def assistant_catalog(request: Request) -> Response:
+    # The visitor's interface language selects the catalog; caches key it by this exact URL.
+    locale = _catalog_locale(request)
+    if locale is None:
+        return Response(
+            content='{"detail":"Assistant catalog locale is invalid"}',
+            status_code=400,
+            media_type="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
+    body = await run_bounded(CONTROL_EXECUTOR, _catalog_body, locale)
     if body is None:
         return Response(
             content='{"detail":"Assistant catalog is unavailable"}',

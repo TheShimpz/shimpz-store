@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
-  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
+  import { fetchAssistantCatalog, parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import {
     ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
     acceptAssistantStoreContext,
@@ -143,21 +143,29 @@
     return tr(failed ? "assistants_request_failed" : "assistants_request_sent", lang);
   }
 
+  let embeddedCatalogRequest = 0;
+
+  // The embedded catalog follows the frame's language; a newer language's request supersedes an older one.
   async function loadAssistantCatalog() {
+    const request = ++embeddedCatalogRequest;
+    const locale = lang;
     embeddedCatalogState = "loading";
     try {
-      const response = await fetch("/api/assistants", {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      embeddedAssistants = parseAssistantCatalog(await response.json());
+      const next = await fetchAssistantCatalog(fetch, locale);
+      if (request !== embeddedCatalogRequest) return;
+      embeddedAssistants = next;
       embeddedCatalogState = "ready";
     } catch {
+      if (request !== embeddedCatalogRequest) return;
       embeddedAssistants = [];
       embeddedCatalogState = "error";
     }
   }
+
+  $effect(() => {
+    void lang;
+    if (embedded) untrack(() => { void loadAssistantCatalog(); });
+  });
 
   function measureFrameHeight(): number {
     const contentBottom = storeElement
@@ -231,7 +239,6 @@
   onMount(() => {
     if (!embedded) return;
     document.body.classList.add("assistant-store-embedded");
-    void loadAssistantCatalog();
     window.addEventListener("message", receiveStoreMessage);
     let mounted = true;
     let resizeObserver: ResizeObserver | undefined;

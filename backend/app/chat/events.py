@@ -25,6 +25,8 @@ _HUMAN_AUTH_KINDS = frozenset(
         "auth:passkey",
     }
 )
+# The requests that authorize an Action; only these may disclose the file their approval delivers (ADR-0093).
+_AUTHORIZATION_KINDS = frozenset({"approval", *_HUMAN_AUTH_KINDS})
 _HUMAN_LENGTH_KINDS = {
     "input:text": 4096,
     "input:textarea": 16_000,
@@ -33,6 +35,19 @@ _HUMAN_LENGTH_KINDS = {
 }
 _HUMAN_SINGLE_CHOICE_KINDS = frozenset({"input:select", "input:choice"})
 _HUMAN_BASE_FIELDS = frozenset({"kind", "ordinal", "title", "description", "fingerprint"})
+# Every copy field of a request is a catalog reference (Assistant Spec v1, ADR-0091). Store never holds the reviewed
+# catalog, so it admits each reference's closed shape and parameter grammar; Team resolves the declared message.
+_MAX_REFERENCE_PARAMS = 8
+_MESSAGE_ID = re.compile(r"[0-9a-f]{64}\Z")
+_PARAM_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
+# Every `domain` value is also a `dns_name` value (an exact DNS record name), so one grammar admits both kinds.
+_DNS_NAME_PARAM = re.compile(r"[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?(?:\.[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?)*\Z")
+_IDENTIFIER_PARAM = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]*\Z")
+_MAX_INTEGER_PARAM = 10**15
+_MAX_DNS_NAME_PARAM_CHARS = 253
+_MAX_IDENTIFIER_PARAM_CHARS = 128
+# The localized presentation Team sends beside the canonical request, never inside it (ADR-0091).
+_HUMAN_LOCALIZATION_FIELDS = frozenset({"rendered", "locale", "pack_digest"})
 
 
 def canonical_chat_reply(value: object) -> str | None:
@@ -91,11 +106,19 @@ async def ws_receive_bounded_json(ws: WebSocket) -> dict:
 
 
 def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
-    if set(value) - {"usage"} != {"type", "team_id", "team_name", "reply", "clarification"}:
+    if set(value) - {"usage", "restricted_actions"} != {"type", "team_id", "team_name", "reply", "clarification"}:
         return None
     # What the completed turn consumed is presentation only and must match its closed shape.
     usage = team_contract.canonical_turn_usage(value["usage"]) if "usage" in value else None
     if "usage" in value and usage is None:
+        return None
+    # The Actions the turn withheld for its attachment content, named for guidance only (ADR-0093).
+    restricted = (
+        team_contract.canonical_restricted_actions(value["restricted_actions"])
+        if "restricted_actions" in value
+        else None
+    )
+    if "restricted_actions" in value and restricted is None:
         return None
     team_id = team_contract.canonical_team_id(value["team_id"])
     reply = canonical_chat_reply(value["reply"])
@@ -115,6 +138,7 @@ def _validated_done_event(value: dict, expected_team_id: str) -> dict | None:
         "reply": reply,
         "clarification": clarification,
         **({} if usage is None else {"usage": usage}),
+        **({} if restricted is None else {"restricted_actions": restricted}),
     }
 
 
@@ -162,6 +186,32 @@ def _public_text(value: object, maximum: int) -> str | None:
     return value
 
 
+def _param(value: object) -> bool:
+    if type(value) is int:
+        return 0 <= value < _MAX_INTEGER_PARAM
+    return isinstance(value, str) and (
+        (len(value) <= _MAX_DNS_NAME_PARAM_CHARS and _DNS_NAME_PARAM.fullmatch(value) is not None)
+        or (len(value) <= _MAX_IDENTIFIER_PARAM_CHARS and _IDENTIFIER_PARAM.fullmatch(value) is not None)
+    )
+
+
+def _copy_reference(value: object) -> dict[str, object] | None:
+    """One exact `{message, params}` catalog reference with bounded integer, domain, or identifier parameters."""
+    if not isinstance(value, dict) or set(value) != {"message", "params"}:
+        return None
+    message = value["message"]
+    params = value["params"]
+    if (
+        not isinstance(message, str)
+        or _MESSAGE_ID.fullmatch(message) is None
+        or not isinstance(params, dict)
+        or len(params) > _MAX_REFERENCE_PARAMS
+        or not all(_PARAM_NAME.fullmatch(name) is not None and _param(item) for name, item in params.items())
+    ):
+        return None
+    return {"message": message, "params": dict(params)}
+
+
 def _human_identity(value: object, label: str, maximum: int) -> dict[str, str] | None:
     if not isinstance(value, dict) or set(value) != {"id", label}:
         return None
@@ -188,8 +238,8 @@ def _human_request_base(value: object) -> dict[str, object] | None:
         return None
     kind = value.get("kind")
     ordinal = value.get("ordinal")
-    title = _public_text(value.get("title"), 80)
-    description = _public_text(value.get("description"), 500)
+    title = _copy_reference(value.get("title"))
+    description = _copy_reference(value.get("description"))
     fingerprint = value.get("fingerprint")
     if (
         not isinstance(kind, str)
@@ -212,7 +262,7 @@ def _human_request_base(value: object) -> dict[str, object] | None:
 
 
 def _human_input_base(value: dict, base: dict[str, object]) -> dict[str, object] | None:
-    label = _public_text(value.get("label"), 80)
+    label = _copy_reference(value.get("label"))
     required = value.get("required")
     if label is None or not isinstance(required, bool):
         return None
@@ -229,12 +279,13 @@ def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dic
         expected |= {"stored_input"}
     input_base = _human_input_base(value, base)
     placeholder = value.get("placeholder")
+    placeholder_reference = None if placeholder is None else _copy_reference(placeholder)
     minimum = value.get("min_length")
     maximum = value.get("max_length")
     if (
         set(value) != expected
         or input_base is None
-        or (placeholder is not None and _public_text(placeholder, 120) is None)
+        or (placeholder is not None and placeholder_reference is None)
         or isinstance(minimum, bool)
         or not isinstance(minimum, int)
         or isinstance(maximum, bool)
@@ -244,28 +295,24 @@ def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dic
         return None
     return {
         **input_base,
-        "placeholder": placeholder,
+        "placeholder": placeholder_reference,
         "min_length": minimum,
         "max_length": maximum,
         **({} if stored_input is None else {"stored_input": stored_input}),
     }
 
 
-def _human_options(value: object) -> list[dict[str, str | None]] | None:
+def _human_options(value: object) -> list[dict[str, object]] | None:
     if not isinstance(value, list) or not 2 <= len(value) <= 32:
         return None
-    options: list[dict[str, str | None]] = []
+    options: list[dict[str, object]] = []
     for option in value:
         if not isinstance(option, dict) or set(option) != {"value", "label", "description"}:
             return None
         option_value = _public_text(option["value"], 128)
-        label = _public_text(option["label"], 80)
-        description = option["description"]
-        if (
-            option_value is None
-            or label is None
-            or (description is not None and _public_text(description, 160) is None)
-        ):
+        label = _copy_reference(option["label"])
+        description = None if option["description"] is None else _copy_reference(option["description"])
+        if option_value is None or label is None or (option["description"] is not None and description is None):
             return None
         options.append({"value": option_value, "label": label, "description": description})
     if len({option["value"] for option in options}) != len(options):
@@ -329,11 +376,21 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
     assistant = _human_assistant(value.get("assistant"))
     action = _human_identity(value.get("action"), "summary", 160)
     request = _human_request(value.get("request"))
+    # The rendered copy of exactly the request's references, its concrete locale, and the pack (ADR-0091).
+    rendered = team_contract.canonical_rendered(value.get("rendered"), request)
+    locale = team_contract.canonical_locale(value.get("locale"))
+    pack_digest = team_contract.canonical_pack_digest(value.get("pack_digest"))
     # The Brain's optional task-bound purpose and a Stored Input request's reviewed key page (ADR-0090).
     purpose = team_contract.canonical_purpose(value.get("purpose")) if "purpose" in value else None
     help_url = team_contract.canonical_help_url(value.get("help_url")) if "help_url" in value else None
+    # The one file an authorization of a file-taking Action discloses, and only its approval delivers (ADR-0093).
+    file = team_contract.canonical_file_disclosure(value.get("file")) if "file" in value else None
     if (
-        set(value) - {"purpose", "help_url"} != expected
+        set(value) - {"purpose", "help_url", "file"} != expected | _HUMAN_LOCALIZATION_FIELDS
+        or ("file" in value and (file is None or request is None or request["kind"] not in _AUTHORIZATION_KINDS))
+        or rendered is None
+        or locale is None
+        or pack_digest is None
         or ("purpose" in value and purpose is None)
         or ("help_url" in value and (help_url is None or request is None or "stored_input" not in request))
         or value.get("type") != "human-required"
@@ -354,8 +411,12 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "assistant": assistant,
         "action": action,
         "request": request,
+        "rendered": rendered,
+        "locale": locale,
+        "pack_digest": pack_digest,
         **({} if purpose is None else {"purpose": purpose}),
         **({} if help_url is None else {"help_url": help_url}),
+        **({} if file is None else {"file": file}),
     }
 
 

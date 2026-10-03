@@ -48,11 +48,17 @@ def _assistant(**changes) -> dict[str, object]:
     return value
 
 
+def _catalog(*assistants: dict[str, object], locale: str = "en") -> dict[str, object]:
+    """The exact envelope Developers serves for one requested locale."""
+    return {"version": 1, "locale": locale, "assistants": list(assistants)}
+
+
 def test_projects_only_bounded_browser_metadata() -> None:
-    projected = catalog.project_catalog({"version": 1, "assistants": [_assistant()]})
+    projected = catalog.project_catalog(_catalog(_assistant()), "en")
 
     assert projected == {
         "version": 1,
+        "locale": "en",
         "assistants": [
             {
                 "assistant_id": "hello-world",
@@ -87,6 +93,10 @@ def test_projects_only_bounded_browser_metadata() -> None:
     "mutate",
     [
         lambda value: value.update(extra=True),
+        lambda value: value.pop("locale"),
+        lambda value: value.update(locale="pt"),
+        lambda value: value.update(locale=None),
+        lambda value: value.update(version=2),
         lambda value: value["assistants"][0].update(name="bad\nname"),
         lambda value: value["assistants"][0].update(creators=[]),
         lambda value: value["assistants"][0].update(integrations="invalid"),
@@ -125,11 +135,24 @@ def test_projects_only_bounded_browser_metadata() -> None:
     ],
 )
 def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:
-    value = {"version": 1, "assistants": [_assistant()]}
+    value = _catalog(_assistant())
     mutate(value)
 
     with pytest.raises(catalog.CatalogError):
-        catalog.project_catalog(value)
+        catalog.project_catalog(value, "en")
+
+
+@pytest.mark.parametrize("locale", ["ar", "de", "en", "es", "fr", "ja", "pt", "zh"])
+def test_projects_exactly_the_requested_locale(locale) -> None:
+    projected = catalog.project_catalog(_catalog(_assistant(summary=f"Summary ({locale})."), locale=locale), locale)
+    assert projected["locale"] == locale
+    assert projected["assistants"][0]["summary"] == f"Summary ({locale})."
+
+
+@pytest.mark.parametrize("requested", ["it", "EN", "", None])
+def test_refuses_a_locale_outside_the_closed_set(requested) -> None:
+    with pytest.raises(catalog.CatalogError):
+        catalog.project_catalog(_catalog(_assistant(), locale=requested), requested)
 
 
 def _with_actions(count: int) -> dict[str, object]:
@@ -138,23 +161,62 @@ def _with_actions(count: int) -> dict[str, object]:
 
 
 def test_an_assistant_with_the_producer_maximum_of_actions_is_projected() -> None:
-    projected = catalog.project_catalog({"version": 1, "assistants": [_with_actions(128)]})
+    projected = catalog.project_catalog(_catalog(_with_actions(128)), "en")
     assert len(projected["assistants"][0]["actions"]) == 128
     with pytest.raises(catalog.CatalogError):
-        catalog.project_catalog({"version": 1, "assistants": [_with_actions(129)]})
+        catalog.project_catalog(_catalog(_with_actions(129)), "en")
 
 
-def test_public_route_caches_only_a_valid_developers_catalog(monkeypatch) -> None:
-    def valid_catalog(*_args, **_kwargs):
-        return 200, {"version": 1, "assistants": [_assistant()]}
+def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypatch) -> None:
+    requested: list[str] = []
+
+    def valid_catalog(*args, **_kwargs):
+        path = args[2]
+        requested.append(path)
+        locale = path.rpartition("=")[2]
+        return 200, _catalog(_assistant(summary=f"Summary ({locale})."), locale=locale)
 
     monkeypatch.setattr(public, "call", valid_catalog)
     with TestClient(app) as client:
-        response = client.get("/api/assistants")
+        english = client.get("/api/assistants?locale=en")
+        portuguese = client.get("/api/assistants?locale=pt")
 
-    assert response.status_code == 200
-    assert response.headers["cache-control"] == "public, max-age=60, s-maxage=300"
-    assert response.json()["assistants"][0]["source_digest"] == DIGEST
+    assert requested == ["/api/v1/assistants?locale=en", "/api/v1/assistants?locale=pt"]
+    for response, locale in ((english, "en"), (portuguese, "pt")):
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "public, max-age=60, s-maxage=300"
+        assert response.json()["locale"] == locale
+        assert response.json()["assistants"][0]["summary"] == f"Summary ({locale})."
+        assert response.json()["assistants"][0]["source_digest"] == DIGEST
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["", "?locale=", "?locale=it", "?locale=EN", "?locale=pt&locale=en", "?locale=pt&page=2", "?page=2&locale=pt"],
+)
+def test_public_route_refuses_any_query_but_one_closed_locale(monkeypatch, query) -> None:
+    def unexpected(*_args, **_kwargs):
+        raise AssertionError("Developers must not be called for an invalid locale")
+
+    monkeypatch.setattr(public, "call", unexpected)
+    with TestClient(app) as client:
+        response = client.get(f"/api/assistants{query}")
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"detail": "Assistant catalog locale is invalid"}
+
+
+def test_public_route_refuses_a_catalog_in_another_locale(monkeypatch) -> None:
+    def mismatched(*_args, **_kwargs):
+        return 200, _catalog(_assistant(), locale="en")
+
+    monkeypatch.setattr(public, "call", mismatched)
+    with TestClient(app) as client:
+        response = client.get("/api/assistants?locale=pt")
+
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_public_route_projects_and_serializes_the_catalog_off_the_event_loop(monkeypatch) -> None:
@@ -170,16 +232,16 @@ def test_public_route_projects_and_serializes_the_catalog_off_the_event_loop(mon
 
     def valid_catalog(*_args, **_kwargs):
         workers.append((threading.current_thread().name, on_loop()))
-        return 200, {"version": 1, "assistants": [_assistant()]}
+        return 200, _catalog(_assistant())
 
-    def projected(value):
+    def projected(value, locale):
         workers.append((threading.current_thread().name, on_loop()))
-        return project(value)
+        return project(value, locale)
 
     monkeypatch.setattr(public, "call", valid_catalog)
     monkeypatch.setattr(public.catalog, "project_catalog", projected)
     with TestClient(app) as client:
-        response = client.get("/api/assistants")
+        response = client.get("/api/assistants?locale=en")
 
     assert response.status_code == 200
     assert len(workers) == 2
@@ -196,7 +258,7 @@ def test_public_route_refuses_the_catalog_when_control_admission_is_full(monkeyp
     monkeypatch.setattr(public, "call", must_not_run)
     monkeypatch.setattr(public.CONTROL_EXECUTOR, "submit", saturated)
     with TestClient(app) as client:
-        response = client.get("/api/assistants")
+        response = client.get("/api/assistants?locale=en")
 
     assert response.status_code == 429
     assert "assistants" not in response.text
@@ -231,14 +293,14 @@ def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
     assert response.headers["cache-control"] == "no-store"
 
 
-@pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "assistants": "bad"})])
+@pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "locale": "en", "assistants": "bad"})])
 def test_public_route_fails_closed_without_cache(monkeypatch, upstream) -> None:
     def invalid_catalog(*_args, **_kwargs):
         return upstream
 
     monkeypatch.setattr(public, "call", invalid_catalog)
     with TestClient(app) as client:
-        response = client.get("/api/assistants")
+        response = client.get("/api/assistants?locale=en")
 
     assert response.status_code == 503
     assert response.headers["cache-control"] == "no-store"
@@ -263,14 +325,14 @@ def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(mo
             allowed_hosts=[f"{'á' * 60}{host:02d}.example.com" for host in range(16)],
         )
 
-    upstream_value = {"version": 1, "assistants": [entry(index) for index in range(1000)]}
+    upstream_value = _catalog(*(entry(index) for index in range(1000)))
 
     def full_catalog(*_args, **_kwargs):
         return 200, upstream_value
 
     monkeypatch.setattr(public, "call", full_catalog)
     with TestClient(app) as client:
-        response = client.get("/api/assistants")
+        response = client.get("/api/assistants?locale=en")
     assert response.status_code == 200
     assert len(response.content) <= ADMIN_CATALOG_BYTE_LIMIT
     assert name in response.text

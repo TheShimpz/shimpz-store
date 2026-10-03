@@ -306,6 +306,27 @@ def test_verifier_rejects_missing_presentation_vectors(tmp_path, family):
         _execute(root)
 
 
+def test_verifier_rejects_missing_or_drifted_rendered_copy_vectors(tmp_path):
+    def missing(value):
+        value["rendered_copy"]["invalid"] = []
+
+    def accepted_invalid(value):
+        value["rendered_copy"]["invalid"] = value["rendered_copy"]["valid"][:1]
+
+    def rejected_valid(value):
+        value["rendered_copy"]["valid"] = value["rendered_copy"]["invalid"][:1]
+
+    for name, mutate, message in (
+        ("missing", missing, "Team HTTP rendered copy vectors are missing"),
+        ("accepted", accepted_invalid, "Team HTTP rendered copy negative vector differs"),
+        ("rejected", rejected_valid, "Team HTTP rendered copy positive vector differs"),
+    ):
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):
     def missing(value):
         value["skills"]["invalid"] = []
@@ -414,15 +435,23 @@ def test_verifier_rejects_missing_or_drifted_routine_vectors(tmp_path):
         (_set(("routine_timezone", "valid"), []), "routine timezone vectors are missing"),
         (_set(("routine_timezone", "valid"), ["../UTC"]), "valid routine timezone vector"),
         (_set(("routine_timezone", "invalid"), ["UTC"]), "invalid routine timezone vector"),
-        (_set(("routine_change", "valid"), []), "routine change vectors are missing"),
+        (_set(("chat_request_identity", "valid"), []), "chat_request_identity vectors are missing"),
         (
-            _set(("routine_change", "valid"), lambda v: [{**v["routine_change"]["valid"][0], "extra": 1}]),
-            "valid routine change vector",
+            _set(("chat_request_identity", "invalid"), lambda v: [v["chat_request_identity"]["valid"][0]]),
+            "chat_request_identity negative vector differs",
         ),
-        (_set(("routine_change", "invalid"), lambda v: [v["routine_change"]["valid"][0]]), "invalid routine change"),
         (lambda v: v["routine_views"].pop("claim"), "routine view vectors are missing"),
         (_set((*views, "claim", "valid"), [{"run": None, "extra": 1}]), "valid routine claim vector"),
-        (_set((*views, "claim", "invalid"), [{"run": None}]), "invalid routine claim vector"),
+        (_set((*views, "claim", "invalid"), [{"run": None, "next_due_at": None}]), "invalid routine claim vector"),
+        (lambda v: v.pop("routine_diagnostics"), "routine diagnostics vectors are missing"),
+        (
+            _set(("routine_diagnostics", "valid"), [{"team_id": "team_1", "run_id": "b" * 32}]),
+            "valid routine diagnostics vector",
+        ),
+        (
+            _set(("routine_diagnostics", "invalid"), [{"team_id": "team_1", "run_id": "b" * 32, "diagnostics": []}]),
+            "invalid routine diagnostics vector",
+        ),
     )
     for index, (mutate, message) in enumerate(cases):
         root = _copy(tmp_path / str(index))
