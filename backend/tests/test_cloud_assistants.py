@@ -1,14 +1,14 @@
 import contextlib
 import json
 import tempfile
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import ClassVar
 
 from fastapi.testclient import TestClient
 
 from app import authn, config, main
+from tests.loopback import loopback_server
 
 VERIFY_CAPABILITY = "a" * 64
 
@@ -100,23 +100,14 @@ def _assistant_control_plane(*, assistant_status: int = 200, assistants: list[di
         token_path = Path(temporary) / "account-verify"
         token_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
         token_path.chmod(0o440)
-        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        worker = threading.Thread(
-            target=server.serve_forever,
-            kwargs={"poll_interval": 0.01},
-            daemon=True,
-        )
-        worker.start()
-        previous = authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL
-        authn.ACCOUNT_URL = config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
-        authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
-        try:
-            yield calls
-        finally:
-            authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL = previous
-            server.shutdown()
-            server.server_close()
-            worker.join(timeout=5)
+        with loopback_server(handler) as port:
+            previous = authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL
+            authn.ACCOUNT_URL = config.TEAM_URL = f"http://127.0.0.1:{port}"
+            authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
+            try:
+                yield calls
+            finally:
+                authn.ACCOUNT_URL, authn.ACCOUNT_VERIFY_TOKEN_FILE, config.TEAM_URL = previous
 
 
 def _authenticate(client: TestClient) -> None:

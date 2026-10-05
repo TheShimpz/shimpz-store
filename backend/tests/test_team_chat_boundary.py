@@ -2,8 +2,7 @@ import contextlib
 import hashlib
 import json
 import tempfile
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import ClassVar
 
@@ -11,6 +10,7 @@ from app import authn, config, main
 from app.protocol.http.v1 import payload as team_contract
 from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
+from tests.loopback import loopback_server
 
 FILE_ID = "a" * 32
 VERIFY_CAPABILITY = "b" * 64
@@ -116,29 +116,20 @@ def _control_plane():
         token_path = Path(temporary) / "account-verify"
         token_path.write_text(VERIFY_CAPABILITY, encoding="ascii")
         token_path.chmod(0o440)
-        server = ThreadingHTTPServer(("127.0.0.1", 0), _ControlPlaneHandler)
-        worker = threading.Thread(
-            target=server.serve_forever,
-            kwargs={"poll_interval": 0.01},
-            daemon=True,
-        )
-        worker.start()
-        base = f"http://127.0.0.1:{server.server_port}"
-        previous_account_url = authn.ACCOUNT_URL
-        previous_verify = authn.ACCOUNT_VERIFY_TOKEN_FILE
-        previous_team = config.TEAM_URL
-        authn.ACCOUNT_URL = base
-        authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
-        config.TEAM_URL = base
-        try:
-            yield calls
-        finally:
-            authn.ACCOUNT_URL = previous_account_url
-            authn.ACCOUNT_VERIFY_TOKEN_FILE = previous_verify
-            config.TEAM_URL = previous_team
-            server.shutdown()
-            server.server_close()
-            worker.join(timeout=5)
+        with loopback_server(_ControlPlaneHandler) as port:
+            base = f"http://127.0.0.1:{port}"
+            previous_account_url = authn.ACCOUNT_URL
+            previous_verify = authn.ACCOUNT_VERIFY_TOKEN_FILE
+            previous_team = config.TEAM_URL
+            authn.ACCOUNT_URL = base
+            authn.ACCOUNT_VERIFY_TOKEN_FILE = token_path
+            config.TEAM_URL = base
+            try:
+                yield calls
+            finally:
+                authn.ACCOUNT_URL = previous_account_url
+                authn.ACCOUNT_VERIFY_TOKEN_FILE = previous_verify
+                config.TEAM_URL = previous_team
 
 
 def _authenticated_client() -> TestClient:

@@ -3,8 +3,7 @@ import json
 import re
 import secrets
 import tempfile
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +13,7 @@ from app import authn, config, main, upstream
 from app.config import ACCOUNT_COOKIE
 from app.main import app
 from app.protocol.http.v1 import payload as team_contract
+from tests.loopback import loopback_server
 
 VERIFY_CAPABILITY = "c" * 64
 ORIGIN = {"Origin": "https://shimpz.com"}
@@ -232,36 +232,27 @@ def _brain_control_plane(*, finalize_token_available: bool = True):
         verify_path.chmod(0o440)
         if finalize_token_available:
             token_path.write_text(finalize_token)
-        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        worker = threading.Thread(
-            target=server.serve_forever,
-            kwargs={"poll_interval": 0.01},
-            daemon=True,
-        )
-        worker.start()
-        base = f"http://127.0.0.1:{server.server_port}"
-        previous = (
-            config.ACCOUNT_URL,
-            config.TEAM_URL,
-            config.BRAIN_FINALIZE_TOKEN_FILE,
-            authn.ACCOUNT_VERIFY_TOKEN_FILE,
-        )
-        authn.ACCOUNT_URL = config.ACCOUNT_URL = config.TEAM_URL = base
-        config.BRAIN_FINALIZE_TOKEN_FILE = token_path
-        authn.ACCOUNT_VERIFY_TOKEN_FILE = verify_path
-        try:
-            yield calls
-        finally:
-            (
+        with loopback_server(handler) as port:
+            base = f"http://127.0.0.1:{port}"
+            previous = (
                 config.ACCOUNT_URL,
                 config.TEAM_URL,
                 config.BRAIN_FINALIZE_TOKEN_FILE,
                 authn.ACCOUNT_VERIFY_TOKEN_FILE,
-            ) = previous
-            authn.ACCOUNT_URL = config.ACCOUNT_URL
-            server.shutdown()
-            server.server_close()
-            worker.join(timeout=5)
+            )
+            authn.ACCOUNT_URL = config.ACCOUNT_URL = config.TEAM_URL = base
+            config.BRAIN_FINALIZE_TOKEN_FILE = token_path
+            authn.ACCOUNT_VERIFY_TOKEN_FILE = verify_path
+            try:
+                yield calls
+            finally:
+                (
+                    config.ACCOUNT_URL,
+                    config.TEAM_URL,
+                    config.BRAIN_FINALIZE_TOKEN_FILE,
+                    authn.ACCOUNT_VERIFY_TOKEN_FILE,
+                ) = previous
+                authn.ACCOUNT_URL = config.ACCOUNT_URL
 
 
 def test_provider_key_delete_revokes_generation_without_touching_teams():

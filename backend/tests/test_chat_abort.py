@@ -4,7 +4,7 @@ import contextlib
 import json
 import threading
 from collections.abc import Callable
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 
 import pytest
 from fastapi import WebSocket
@@ -15,6 +15,7 @@ from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
 from tests.chat_relay_fixture import scripted_websocket as _websocket
+from tests.loopback import loopback_server
 
 TEST_TEAM_ID = "test_team"
 
@@ -102,22 +103,13 @@ def _real_relay_abort_team(on_stop: Callable[[], None] | None = None):
         def log_message(self, *_args) -> None:
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    previous = config.TEAM_URL
-    config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
-    try:
-        yield calls
-    finally:
-        config.TEAM_URL = previous
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with loopback_server(Handler) as port:
+        previous = config.TEAM_URL
+        config.TEAM_URL = f"http://127.0.0.1:{port}"
+        try:
+            yield calls
+        finally:
+            config.TEAM_URL = previous
 
 
 def test_local_relay_eof_stops_provider_before_browser_error():

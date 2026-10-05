@@ -3,7 +3,7 @@ import contextlib
 import http.client
 import json
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 
 import pytest
 
@@ -13,6 +13,7 @@ from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
 from tests.chat_relay_fixture import scripted_websocket as _websocket
+from tests.loopback import loopback_server
 
 TEST_TEAM_ID = "test_team"
 
@@ -46,22 +47,13 @@ def _real_upstream(body: bytes):
         def log_message(self, *_args) -> None:
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
-    try:
-        connection.request("GET", "/stream")
-        yield connection.getresponse()
-    finally:
-        connection.close()
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with loopback_server(Handler) as port:
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        try:
+            connection.request("GET", "/stream")
+            yield connection.getresponse()
+        finally:
+            connection.close()
 
 
 def _relay(body: bytes, team_id: str = TEST_TEAM_ID) -> dict:
@@ -94,23 +86,14 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
         def log_message(self, *_args) -> None:
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
-    try:
-        connection.request("GET", "/stream")
-        yield connection.getresponse(), first_flushed, release_rest
-    finally:
-        release_rest.set()
-        connection.close()
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with loopback_server(Handler) as port:
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        try:
+            connection.request("GET", "/stream")
+            yield connection.getresponse(), first_flushed, release_rest
+        finally:
+            release_rest.set()
+            connection.close()
 
 
 def test_upstream_relay_releases_nothing_before_one_complete_terminal_event():

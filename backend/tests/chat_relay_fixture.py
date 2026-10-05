@@ -2,13 +2,13 @@
 
 import asyncio
 import contextlib
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 
 from starlette.websockets import WebSocket
 
 from app import config
 from app.chat import ws
+from tests.loopback import loopback_server
 
 
 @contextlib.contextmanager
@@ -28,22 +28,13 @@ def real_stream_team(response_body: bytes, *, status: int = 200):
         def log_message(self, *_args) -> None:
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    worker = threading.Thread(
-        target=server.serve_forever,
-        kwargs={"poll_interval": 0.01},
-        daemon=True,
-    )
-    worker.start()
-    previous = config.TEAM_URL
-    config.TEAM_URL = f"http://127.0.0.1:{server.server_port}"
-    try:
-        yield requests
-    finally:
-        config.TEAM_URL = previous
-        server.shutdown()
-        server.server_close()
-        worker.join(timeout=5)
+    with loopback_server(Handler) as port:
+        previous = config.TEAM_URL
+        config.TEAM_URL = f"http://127.0.0.1:{port}"
+        try:
+            yield requests
+        finally:
+            config.TEAM_URL = previous
 
 
 async def run_admitted_turn(websocket, team_id: str, message: str, started: asyncio.Event) -> None:
