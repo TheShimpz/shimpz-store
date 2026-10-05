@@ -12,6 +12,7 @@ from app.protocol.http.v1 import routine as routine_contract
 
 VECTORS = json.loads((Path(routine_contract.__file__).parent / "vectors.json").read_text())
 VIEWS = {
+    "output": routine_contract.canonical_output,
     "routine": routine_contract.canonical_routine_view,
     "run": routine_contract.canonical_run_view,
     "notice_batch": routine_contract.canonical_notice_batch,
@@ -33,7 +34,8 @@ def test_every_view_admits_exactly_its_vectors(kind):
 def test_notice_details_and_batches_are_closed():
     assert routine_contract.canonical_notice_detail("scope-changed", {"assistants": ["dns"]}) is not None
     step = {"id": "zones", "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
-    created = {"name": "DNS", "steps": [step], "schedule": {"kind": "daily", "time": "09:00"}}
+    output = {"mode": "show", "step": "zones"}
+    created = {"name": "DNS", "steps": [step], "output": output, "schedule": {"kind": "daily", "time": "09:00"}}
     assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC"}) is not None
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
@@ -44,6 +46,10 @@ def test_notice_details_and_batches_are_closed():
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
+    # A shown result's text is escaped by Team, and a disposition names a projected step (ADR-0092, 2026-10-05).
+    assert routine_contract.escaped("a\u202eb") == "a\\u202eb"
+    assert routine_contract.canonical_disposition({"mode": "show", "step": "other"}, [step]) is None
+    assert routine_contract.canonical_disposition([], [step]) is None
 
 
 def test_run_diagnostics_admit_exactly_the_golden_vectors():
