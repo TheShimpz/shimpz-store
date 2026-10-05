@@ -18,6 +18,9 @@ VIEWS = {
     "notice_batch": routine_contract.canonical_notice_batch,
     "claim": routine_contract.canonical_claim,
     "claim_request": routine_contract.canonical_claim_request,
+    "page": routine_contract.canonical_page,
+    "summary": routine_contract.canonical_summary,
+    "run_steps": routine_contract.canonical_run_steps,
 }
 
 
@@ -33,23 +36,29 @@ def test_every_view_admits_exactly_its_vectors(kind):
 
 def test_notice_details_and_batches_are_closed():
     assert routine_contract.canonical_notice_detail("scope-changed", {"assistants": ["dns"]}) is not None
-    step = {"id": "zones", "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
-    output = {"mode": "show", "step": "zones"}
-    created = {"name": "DNS", "steps": [step], "output": output, "schedule": {"kind": "daily", "time": "09:00"}}
+    plan = {
+        "revision": 1,
+        "plan_digest": "sha256:" + "d" * 64,
+        "steps": 1,
+        "actions": [["dns", "list-zones", 1]],
+        "more": 0,
+    }
+    output = {"mode": "show", "step": 1}
+    created = {"name": "DNS", "plan": plan, "output": output, "schedule": {"kind": "daily", "time": "09:00"}}
     assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC"}) is not None
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
         ("stopped", {"actions": [["dns", {"input": 1}]]}),
         ("stopped", {"actions": "dns"}),
         ("changed", {**created, "timezone": "UTC", "input": {"zone": "x"}}),
-        ("changed", {**created, "timezone": "UTC", "steps": [{**step, "stored_inputs": ["API key"]}]}),
+        ("changed", {**created, "timezone": "UTC", "plan": {**plan, "steps": 2}}),
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
-    # A shown result's text is escaped by Team, and a disposition names a projected step (ADR-0092, 2026-10-05).
+    # A shown result's text is escaped by Team, and a disposition names a step by its position (ADR-0092, 2026-10-05).
     assert routine_contract.escaped("a\u202eb") == "a\\u202eb"
-    assert routine_contract.canonical_disposition({"mode": "show", "step": "other"}, [step]) is None
-    assert routine_contract.canonical_disposition([], [step]) is None
+    assert routine_contract.canonical_disposition({"mode": "show", "step": 2}, 1) is None
+    assert routine_contract.canonical_disposition([], 1) is None
 
 
 def test_run_diagnostics_admit_exactly_the_golden_vectors():
@@ -66,14 +75,15 @@ def test_run_diagnostics_admit_exactly_the_golden_vectors():
 def test_the_plan_projection_is_closed_and_its_previews_bounded():
     assert routine_contract.literal_preview({"a": "x‮"}) == '{"a":"x\\u202e"}'
     assert len(routine_contract.literal_preview("y" * 300)) == routine_contract.MAX_PREVIEW_CHARS
-    step = {"id": "zones", "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
-    assert routine_contract.canonical_steps([step]) == [step]
-    for steps in (
-        ["x"],
-        [{**step, "inputs": ["x"]}],
-        [{**step, "inputs": [{"member": "", "source": "literal", "value": "1"}]}],
+    step = {"position": 1, "assistant": "dns", "action": "list-zones", "inputs": [], "stored_inputs": []}
+    assert routine_contract.canonical_step(step, 1) == step
+    for value, position in (
+        ("x", 1),
+        (step, 2),
+        ({**step, "inputs": ["x"]}, 1),
+        ({**step, "inputs": [{"member": "", "source": "literal", "value": "1"}]}, 1),
     ):
-        assert routine_contract.canonical_steps(steps) is None
+        assert routine_contract.canonical_step(value, position) is None
 
 
 def test_every_schedule_has_a_whole_rolling_cap_and_one_run_mode():
