@@ -93,3 +93,8 @@ def test_every_schedule_has_a_whole_rolling_cap_and_one_run_mode():
         expected = "continuous" if schedule["kind"] == "continuous" else "scheduled"
         assert routine_contract.run_mode(schedule) == expected
         assert expected in routine_contract.RUN_MODES
+
+
+def test_a_runs_active_time_grows_with_its_steps_up_to_its_ceiling():
+    assert routine_contract.active_seconds(8) == routine_contract.SHORT_ACTIVE_SECONDS
+    assert routine_contract.active_seconds(256) == routine_contract.MAX_ACTIVE_SECONDS
