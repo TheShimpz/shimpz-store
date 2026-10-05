@@ -3,11 +3,11 @@ import hashlib
 import json
 
 import pytest
-from fastapi import WebSocket
 
 from app.chat import ws as main
 from app.chat.events import validated_terminal_event as _validated_terminal_event
 from app.chat.ws import _ws_dispatch
+from tests.chat_relay_fixture import scripted_websocket as _websocket
 
 TEST_TEAM_ID = "test_team"
 
@@ -100,25 +100,6 @@ def _human_challenge(
         "locale": "en",
         "pack_digest": PACK_DIGEST,
     }
-
-
-def _websocket(text: str) -> tuple[WebSocket, list[dict]]:
-    incoming = iter(
-        (
-            {"type": "websocket.connect"},
-            {"type": "websocket.receive", "text": text},
-        )
-    )
-
-    async def receive() -> dict:
-        return next(incoming)
-
-    sent = []
-
-    async def send(message: dict) -> None:
-        sent.append(message)
-
-    return WebSocket({"type": "websocket", "path": "/"}, receive, send), sent
 
 
 def test_websocket_blocks_new_turn_until_pending_human_challenge_is_resolved():

@@ -22,6 +22,7 @@ from app.config import CHAT_WS_SUBPROTOCOL, WS_ALLOWED_ORIGINS
 from app.config import canonical_origin as _canonical_origin
 from app.main import app
 from app.payloads import ClientPayloadError, read_bounded_json
+from tests.chat_relay_fixture import scripted_websocket as _websocket
 
 TEST_TEAM_ID = "test_team"
 VERIFY_CAPABILITY = "d" * 64
@@ -275,25 +276,6 @@ def test_chat_turn_requires_an_explicit_bounded_assistant_scope():
         with pytest.raises(ClientPayloadError) as raised:
             main._chat_turn_payload(payload)
         assert raised.value.status == 400
-
-
-def _websocket(text: str) -> tuple[WebSocket, list[dict]]:
-    incoming = iter(
-        (
-            {"type": "websocket.connect"},
-            {"type": "websocket.receive", "text": text},
-        )
-    )
-
-    async def receive() -> dict:
-        return next(incoming)
-
-    sent = []
-
-    async def send(message: dict) -> None:
-        sent.append(message)
-
-    return WebSocket({"type": "websocket", "path": "/"}, receive, send), sent
 
 
 def test_websocket_frame_limit_is_enforced_before_json_parsing():

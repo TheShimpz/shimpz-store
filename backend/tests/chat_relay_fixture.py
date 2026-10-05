@@ -1,9 +1,11 @@
-"""Loopback Team chat stream team shared by relay suites."""
+"""Loopback Team chat stream and scripted browser WebSocket shared by the Store chat suites."""
 
 import asyncio
 import contextlib
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from starlette.websockets import WebSocket
 
 from app import config
 from app.chat import ws
@@ -52,3 +54,23 @@ async def run_admitted_turn(websocket, team_id: str, message: str, started: asyn
         ws=websocket, team_id=team_id, headers={}, text=message, started=started, dispatched=asyncio.Event()
     )
     await ws._ws_run_admitted_turn(turn, lease)
+
+
+def scripted_websocket(text: str) -> tuple[WebSocket, list[dict]]:
+    """Return a WebSocket that connects, receives one text frame, and records every message Store sends."""
+    incoming = iter(
+        (
+            {"type": "websocket.connect"},
+            {"type": "websocket.receive", "text": text},
+        )
+    )
+
+    async def receive() -> dict:
+        return next(incoming)
+
+    sent = []
+
+    async def send(message: dict) -> None:
+        sent.append(message)
+
+    return WebSocket({"type": "websocket", "path": "/"}, receive, send), sent

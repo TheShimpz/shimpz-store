@@ -6,13 +6,13 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-from fastapi import WebSocket
 
 from app import config
 from app.chat.relay import _relay_upstream_events
 from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
+from tests.chat_relay_fixture import scripted_websocket as _websocket
 
 TEST_TEAM_ID = "test_team"
 
@@ -31,25 +31,6 @@ def _done(
         "reply": reply,
         "clarification": clarification,
     }
-
-
-def _websocket(text: str) -> tuple[WebSocket, list[dict]]:
-    incoming = iter(
-        (
-            {"type": "websocket.connect"},
-            {"type": "websocket.receive", "text": text},
-        )
-    )
-
-    async def receive() -> dict:
-        return next(incoming)
-
-    sent = []
-
-    async def send(message: dict) -> None:
-        sent.append(message)
-
-    return WebSocket({"type": "websocket", "path": "/"}, receive, send), sent
 
 
 @contextlib.contextmanager
