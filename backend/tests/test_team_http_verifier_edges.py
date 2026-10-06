@@ -127,96 +127,44 @@ def test_verifier_rejects_supervisor_vector_disagreement(tmp_path):
         _execute(negative, patch=accepts_everything)
 
 
-def test_verifier_rejects_frame_vector_disagreement(tmp_path):
-    raised = _copy(tmp_path / "raised")
+@pytest.mark.parametrize(
+    ("target", "error", "returned", "message"),
+    [
+        ("websocket.decode_bounded_json_frame", ("FrameError", 400), lambda *_args: {}, "frame vector differs"),
+        (
+            "websocket.canonical_human_response",
+            ("FrameError", 400),
+            lambda frame: frame,
+            "human response vector differs",
+        ),
+        (
+            "progress.canonical_record",
+            ("ProgressContractError",),
+            lambda record: record,
+            "chat stream vector differs",
+        ),
+        ("progress.decode_line", ("ProgressContractError",), lambda _raw: {}, "chat stream line vector differs"),
+    ],
+)
+def test_verifier_rejects_codec_vector_disagreement(tmp_path, target, error, returned, message):
+    module, function = target.split(".")
 
     def reject_valid(modules):
-        error = modules["websocket"].FrameError
+        error_type = getattr(modules[module], error[0])
 
         def reject(*_args):
-            raise error(400, "rejected")
+            raise error_type(*error[1:], "rejected")
 
-        modules["websocket"].decode_bounded_json_frame = reject
+        setattr(modules[module], function, reject)
 
-    with pytest.raises(SystemExit, match="frame vector differs"):
-        _execute(raised, patch=reject_valid)
-
-    returned = _copy(tmp_path / "returned")
+    with pytest.raises(SystemExit, match=message):
+        _execute(_copy(tmp_path / "raised"), patch=reject_valid)
 
     def return_wrong(modules):
-        modules["websocket"].decode_bounded_json_frame = lambda *_args: {}
+        setattr(modules[module], function, returned)
 
-    with pytest.raises(SystemExit, match="frame vector differs"):
-        _execute(returned, patch=return_wrong)
-
-
-def test_verifier_rejects_human_response_vector_disagreement(tmp_path):
-    raised = _copy(tmp_path / "raised")
-
-    def reject_valid(modules):
-        error = modules["websocket"].FrameError
-
-        def reject(*_args):
-            raise error(400, "rejected")
-
-        modules["websocket"].canonical_human_response = reject
-
-    with pytest.raises(SystemExit, match="human response vector differs"):
-        _execute(raised, patch=reject_valid)
-
-    returned = _copy(tmp_path / "returned")
-
-    def accept_everything(modules):
-        modules["websocket"].canonical_human_response = lambda frame: frame
-
-    with pytest.raises(SystemExit, match="human response vector differs"):
-        _execute(returned, patch=accept_everything)
-
-
-def test_verifier_rejects_stream_record_vector_disagreement(tmp_path):
-    raised = _copy(tmp_path / "raised")
-
-    def reject_valid(modules):
-        error = modules["progress"].ProgressContractError
-
-        def reject(*_args):
-            raise error("rejected")
-
-        modules["progress"].canonical_record = reject
-
-    with pytest.raises(SystemExit, match="chat stream vector differs"):
-        _execute(raised, patch=reject_valid)
-
-    returned = _copy(tmp_path / "returned")
-
-    def accept_everything(modules):
-        modules["progress"].canonical_record = lambda record: record
-
-    with pytest.raises(SystemExit, match="chat stream vector differs"):
-        _execute(returned, patch=accept_everything)
-
-
-def test_verifier_rejects_stream_line_vector_disagreement(tmp_path):
-    raised = _copy(tmp_path / "raised")
-
-    def reject_valid(modules):
-        error = modules["progress"].ProgressContractError
-
-        def reject(*_args):
-            raise error("rejected")
-
-        modules["progress"].decode_line = reject
-
-    with pytest.raises(SystemExit, match="chat stream line vector differs"):
-        _execute(raised, patch=reject_valid)
-
-    returned = _copy(tmp_path / "returned")
-
-    def return_wrong(modules):
-        modules["progress"].decode_line = lambda _raw: {}
-
-    with pytest.raises(SystemExit, match="chat stream line vector differs"):
-        _execute(returned, patch=return_wrong)
+    with pytest.raises(SystemExit, match=message):
+        _execute(_copy(tmp_path / "returned"), patch=return_wrong)
 
 
 def test_verifier_rejects_identifier_vector_disagreement(tmp_path):
@@ -269,6 +217,14 @@ def test_verifier_rejects_action_label_vector_drift(tmp_path, function_name, mod
         _execute(root, patch=drift)
 
 
+def _refuse_vector_mutations(tmp_path: Path, *cases: tuple[str, Callable[[dict], None], str]) -> None:
+    for name, mutate, message in cases:
+        root = _copy(tmp_path / name)
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
 def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
     def missing(value):
         value["clarification"]["invalid"] = []
@@ -282,16 +238,13 @@ def test_verifier_rejects_missing_or_drifted_clarification_vectors(tmp_path):
     def drifted_rendering(value):
         value["clarification"]["rendered"][0] = "Something else"
 
-    for name, mutate, message in (
+    _refuse_vector_mutations(
+        tmp_path,
         ("rendering", drifted_rendering, "a clarification rendering vector differs"),
         ("missing", missing, "clarification vectors are missing"),
         ("accepted", accepted_invalid, "an invalid clarification vector was admitted"),
         ("rejected", rejected_valid, "a valid clarification vector was not admitted exactly"),
-    ):
-        root = _copy(tmp_path / name)
-        _vectors(root, mutate)
-        with pytest.raises(SystemExit, match=message):
-            _execute(root)
+    )
 
 
 @pytest.mark.parametrize("family", ["chat_locale", "help_url", "purpose"])
@@ -316,15 +269,12 @@ def test_verifier_rejects_missing_or_drifted_rendered_copy_vectors(tmp_path):
     def rejected_valid(value):
         value["rendered_copy"]["valid"] = value["rendered_copy"]["invalid"][:1]
 
-    for name, mutate, message in (
+    _refuse_vector_mutations(
+        tmp_path,
         ("missing", missing, "Team HTTP rendered copy vectors are missing"),
         ("accepted", accepted_invalid, "Team HTTP rendered copy negative vector differs"),
         ("rejected", rejected_valid, "Team HTTP rendered copy positive vector differs"),
-    ):
-        root = _copy(tmp_path / name)
-        _vectors(root, mutate)
-        with pytest.raises(SystemExit, match=message):
-            _execute(root)
+    )
 
 
 def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):
@@ -340,16 +290,13 @@ def test_verifier_rejects_missing_or_drifted_skill_vectors(tmp_path):
     def drifted_apply(value):
         value["knowledge_apply"][0]["result"]["skills"] = []
 
-    for name, mutate, message in (
+    _refuse_vector_mutations(
+        tmp_path,
         ("missing", missing, "skills vectors are missing"),
         ("accepted", accepted_invalid, "an invalid skills vector was admitted"),
         ("rejected", rejected_valid, "a valid skills vector was not admitted exactly"),
         ("apply", drifted_apply, "a knowledge application vector differs"),
-    ):
-        root = _copy(tmp_path / name)
-        _vectors(root, mutate)
-        with pytest.raises(SystemExit, match=message):
-            _execute(root)
+    )
 
 
 def test_verifier_rejects_missing_or_drifted_memory_vectors(tmp_path):
@@ -365,16 +312,13 @@ def test_verifier_rejects_missing_or_drifted_memory_vectors(tmp_path):
     def drifted_apply(value):
         value["memory_apply"][0]["result"] = []
 
-    for name, mutate, message in (
+    _refuse_vector_mutations(
+        tmp_path,
         ("missing", missing, "memory vectors are missing"),
         ("accepted", accepted_invalid, "an invalid memory_changes vector was admitted"),
         ("rejected", rejected_valid, "a valid memory vector was not admitted exactly"),
         ("apply", drifted_apply, "a memory application vector differs"),
-    ):
-        root = _copy(tmp_path / name)
-        _vectors(root, mutate)
-        with pytest.raises(SystemExit, match=message):
-            _execute(root)
+    )
 
 
 def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path):
@@ -387,15 +331,12 @@ def test_verifier_rejects_missing_or_drifted_chat_conversation_vectors(tmp_path)
     def rejected_valid(value):
         value["chat_conversation"]["valid"] = [{"generated": "nine-entries"}]
 
-    for name, mutate, message in (
+    _refuse_vector_mutations(
+        tmp_path,
         ("missing", missing, "conversation vectors are missing"),
         ("accepted", accepted_invalid, "conversation negative vector differs"),
         ("rejected", rejected_valid, "conversation positive vector differs"),
-    ):
-        root = _copy(tmp_path / name)
-        _vectors(root, mutate)
-        with pytest.raises(SystemExit, match=message):
-            _execute(root)
+    )
 
 
 def _set(path: tuple[str, ...], replacement):
