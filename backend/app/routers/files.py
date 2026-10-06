@@ -14,8 +14,8 @@ from python_multipart.exceptions import FormParserError
 from starlette.datastructures import FormData, UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 
-from app import authn, config
-from app.access import mutation_origin_allowed, private_json
+from app import config
+from app.access import mutation_origin_allowed, private_json, require_session, require_team_id
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError
 from app.projections import public_file_deletion, public_file_inventory, public_file_upload
@@ -77,12 +77,8 @@ def _too_large() -> JSONResponse:
 @router.get("/api/teams/{team_id}/files")
 async def team_files(request: Request, team_id: str) -> JSONResponse:
     """List opaque file metadata; file bytes and host paths remain controller-private."""
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        return private_json({"detail": "bad team id"}, 400)
+    token, _ = await require_session(request)
+    team_id = require_team_id(team_id)
     status, body = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -140,14 +136,10 @@ async def team_file_upload(request: Request, team_id: str) -> JSONResponse:
     The body is read only after the account and origin are admitted and an upload slot is free, and only up to the
     file limit plus multipart framing; it must hold exactly one file part named ``file`` and nothing else.
     """
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        raise ClientPayloadError(401, "not authenticated")
+    token, account_id = await require_session(request)
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        raise ClientPayloadError(400, "bad team id")
+    team_id = require_team_id(team_id)
     if not UPLOAD_ADMISSION.acquire(blocking=False):
         log.warning("store_capacity_rejected", path=request.url.path)
         response = private_json({"detail": "Store upload capacity reached"}, 429)
@@ -197,15 +189,11 @@ async def _forward_upload(request: Request, team_id: str, token: str, account_id
 
 @router.delete("/api/teams/{team_id}/files/{file_id}")
 async def team_file_delete(request: Request, team_id: str, file_id: str) -> JSONResponse:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        raise ClientPayloadError(401, "not authenticated")
+    token, account_id = await require_session(request)
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
-    team_id = team_contract.canonical_team_id(team_id)
+    team_id = require_team_id(team_id)
     opaque_id = team_contract.canonical_file_id(file_id)
-    if team_id is None:
-        raise ClientPayloadError(400, "bad team id")
     if opaque_id is None:
         raise ClientPayloadError(404, "file not found")
     status, body = await call_bounded(

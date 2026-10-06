@@ -8,8 +8,8 @@ import re
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app import authn, config
-from app.access import private_json, require_json_mutation
+from app import config
+from app.access import private_json, require_json_mutation, require_session, require_team_id
 from app.config import MAX_TEAM_CREATE_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
@@ -54,9 +54,7 @@ def _create_payload(payload: dict, account_id: str) -> tuple[str, dict[str, str]
 
 @router.get("/api/teams")
 async def teams_list(request: Request) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
+    token, _ = await require_session(request)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -70,9 +68,7 @@ async def teams_list(request: Request) -> JSONResponse:
 
 @router.post("/api/teams")
 async def teams_create(request: Request) -> JSONResponse:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
+    token, account_id = await require_session(request)
     require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_TEAM_CREATE_BODY_BYTES)
     team_id, create_payload = _create_payload(payload, account_id)
@@ -90,12 +86,8 @@ async def teams_create(request: Request) -> JSONResponse:
 
 @router.delete("/api/teams/{team_id}")
 async def teams_destroy(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        return private_json({"detail": "bad team id"}, 400)
+    token, _ = await require_session(request)
+    team_id = require_team_id(team_id)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,

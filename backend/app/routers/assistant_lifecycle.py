@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-from app import authn, config
-from app.access import mutation_origin_allowed, require_json_mutation
+from app import config
+from app.access import mutation_origin_allowed, require_json_mutation, require_session
 from app.config import MAX_ASSISTANT_INSTALL_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.payloads import ClientPayloadError, read_bounded_json
@@ -35,9 +35,7 @@ def _canonical_ids(team_id: str, assistant_id: object) -> tuple[str, str]:
 
 
 async def install_assistant_publication(request: Request, team_id: str) -> AssistantMutation:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        raise ClientPayloadError(401, "not authenticated")
+    token, account_id = await require_session(request)
     require_json_mutation(request)
     payload = await read_bounded_json(request, MAX_ASSISTANT_INSTALL_BODY_BYTES)
     if set(payload) != {"assistant_id", "source_digest"}:
@@ -68,9 +66,7 @@ async def uninstall_assistant(
     team_id: str,
     assistant_id: str,
 ) -> AssistantMutation:
-    token, account_id, _ = await authn.authed_account_bounded(request)
-    if not token:
-        raise ClientPayloadError(401, "not authenticated")
+    token, account_id = await require_session(request)
     if not mutation_origin_allowed(request.headers.get("origin")):
         raise ClientPayloadError(403, "forbidden origin")
     canonical_team, canonical_assistant = _canonical_ids(team_id, assistant_id)

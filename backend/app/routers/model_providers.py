@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import authn, config
-from app.access import private_json, require_json_mutation
+from app.access import private_json, require_json_mutation, require_session
 from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import provider as canonical_provider
@@ -22,9 +22,7 @@ MAX_CREDENTIAL_BODY_BYTES = 72 * 1024
 
 @router.get("/api/model-providers")
 async def model_providers_list(request: Request) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
+    token, _ = await require_session(request)
     status, data = await call_bounded(
         authn.EXECUTOR,
         config.ACCOUNT_URL,
@@ -44,9 +42,7 @@ async def model_providers_list(request: Request) -> JSONResponse:
 
 @router.post("/api/model-providers/{provider}")
 async def model_provider_upsert(request: Request, provider: str) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
+    token, _ = await require_session(request)
     require_json_mutation(request)
     provider_value = canonical_provider(provider)
     if provider_value is None:
@@ -78,9 +74,7 @@ async def model_provider_upsert(request: Request, provider: str) -> JSONResponse
 
 @router.delete("/api/model-providers/{provider}")
 async def model_provider_delete(request: Request, provider: str) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
+    token, _ = await require_session(request)
     provider_value = canonical_provider(provider)
     if provider_value is None:
         return private_json({"detail": "unsupported model provider"}, 400)

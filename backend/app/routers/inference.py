@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app import authn, config
-from app.access import private_json
+from app import config
+from app.access import private_json, require_session, require_team_id
 from app.config import MAX_INFERENCE_BODY_BYTES
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.inference import model as canonical_model
@@ -20,12 +20,8 @@ INFERENCE_EFFORTS = ("low", "medium", "high")
 
 @router.get("/api/teams/{team_id}/inference")
 async def team_inference(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        return private_json({"detail": "bad team id"}, 400)
+    token, _ = await require_session(request)
+    team_id = require_team_id(team_id)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
@@ -54,12 +50,8 @@ def _inference_selection(payload: object) -> tuple[dict[str, str] | None, str | 
 
 @router.put("/api/teams/{team_id}/inference")
 async def team_inference_configure(request: Request, team_id: str) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        return private_json({"detail": "bad team id"}, 400)
+    token, _ = await require_session(request)
+    team_id = require_team_id(team_id)
     selection, problem = _inference_selection(await read_bounded_json(request, MAX_INFERENCE_BODY_BYTES))
     if problem is not None:
         return private_json({"detail": problem}, 400)

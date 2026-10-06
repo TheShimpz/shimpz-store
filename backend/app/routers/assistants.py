@@ -9,8 +9,8 @@ import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app import authn, config
-from app.access import private_json
+from app import config
+from app.access import private_json, require_session, require_team_id
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.projections import assistant_inventory, running_assistant_inventory
 from app.protocol.http.v1 import payload as team_contract
@@ -47,12 +47,8 @@ async def _assistant_inventory(
     team_id: str,
     projection: _InventoryProjection,
 ) -> JSONResponse:
-    token, _, _ = await authn.authed_account_bounded(request)
-    if not token:
-        return private_json({"detail": "not authenticated"}, 401)
-    team_id = team_contract.canonical_team_id(team_id)
-    if team_id is None:
-        return private_json({"detail": "bad team id"}, 400)
+    token, _ = await require_session(request)
+    team_id = require_team_id(team_id)
     status, data = await call_bounded(
         CONTROL_EXECUTOR,
         config.TEAM_URL,
