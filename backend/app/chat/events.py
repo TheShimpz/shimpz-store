@@ -215,7 +215,7 @@ def _copy_reference(value: object) -> dict[str, object] | None:
 def _human_identity(value: object, label: str, maximum: int) -> dict[str, str] | None:
     if not isinstance(value, dict) or set(value) != {"id", label}:
         return None
-    identifier = team_contract.canonical_assistant_id(value["id"])
+    identifier = team_contract.canonical_action_id(value["id"])
     public_label = _public_text(value[label], maximum)
     if identifier is None or public_label is None:
         return None
@@ -274,7 +274,7 @@ def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dic
     # A password request may name the one Stored Input its Action declares (ADR-0059).
     stored_input = value.get("stored_input") if base["kind"] == "input:password" else None
     if stored_input is not None:
-        if team_contract.canonical_assistant_id(stored_input) is None:
+        if team_contract.canonical_identifier(stored_input) is None:
             return None
         expected |= {"stored_input"}
     input_base = _human_input_base(value, base)

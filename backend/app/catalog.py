@@ -85,11 +85,7 @@ def _integrations(value: object) -> list[dict[str, object]]:
         integration_id = item["id"]
         provider = item["provider"]
         scopes = _closed_strings(item["scopes"], 32, 128)
-        if (
-            not isinstance(integration_id, str)
-            or integration_id != provider
-            or team_contract.ASSISTANT_ID_RE.fullmatch(integration_id) is None
-        ):
+        if team_contract.canonical_identifier(integration_id) is None or integration_id != provider:
             raise CatalogError("catalog Integration identity is invalid")
         projected.append({"id": integration_id, "provider": provider, "scopes": scopes})
     return projected
@@ -104,9 +100,7 @@ def _stored_inputs(value: object) -> frozenset[str]:
         if (
             not isinstance(item, dict)
             or set(item) != {"id", "kind", "label", "description"}
-            or not isinstance(item["id"], str)
-            or len(item["id"]) > 64
-            or team_contract.ASSISTANT_ID_RE.fullmatch(item["id"]) is None
+            or team_contract.canonical_identifier(item["id"]) is None
             or item["kind"] != "password"
         ):
             raise CatalogError("catalog Stored Input is invalid")
@@ -126,8 +120,7 @@ def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, obj
         if (
             not isinstance(item, dict)
             or set(item) != _ACTION_FIELDS
-            or not isinstance(item["id"], str)
-            or team_contract.ASSISTANT_ID_RE.fullmatch(item["id"]) is None
+            or team_contract.canonical_identifier(item["id"]) is None
         ):
             raise CatalogError("catalog Action is invalid")
         human_requests = _closed_strings(item["human_requests"], 11, 25)
