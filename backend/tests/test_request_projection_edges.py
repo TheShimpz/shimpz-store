@@ -61,58 +61,26 @@ def test_public_file_projections_delegate_to_the_closed_team_contract():
     ) == {"id": file_id, "deleted": True, **usage}
 
 
+def _assistant(**changes: object) -> dict[str, object]:
+    return {
+        "assistant": "assistant",
+        "assistant_version": "1.0.0",
+        "provenance": "published",
+        "status": "running",
+        **changes,
+    }
+
+
 @pytest.mark.parametrize(
     "value",
     [
         None,
         {"assistants": [None]},
         {"assistants": [{"assistant": "Invalid", "status": "running"}]},
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "01.0.0",
-                    "provenance": "published",
-                    "status": "running",
-                }
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "local",
-                    "status": "running",
-                }
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": "running",
-                },
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": "stopped",
-                },
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": None,
-                }
-            ]
-        },
+        {"assistants": [_assistant(assistant_version="01.0.0")]},
+        {"assistants": [_assistant(provenance="local")]},
+        {"assistants": [_assistant(), _assistant(status="stopped")]},
+        {"assistants": [_assistant(status=None)]},
     ],
 )
 def test_assistant_inventory_rejects_ambiguous_controller_data(value):
@@ -125,63 +93,11 @@ def test_assistant_inventory_rejects_ambiguous_controller_data(value):
         None,
         {"assistants": [None]},
         {"assistants": [{"assistant": "Invalid", "status": "running"}]},
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0-beta",
-                    "provenance": "published",
-                    "status": "running",
-                }
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "local",
-                    "status": "running",
-                }
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": "running",
-                },
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": "running",
-                },
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": "assistant",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": None,
-                }
-            ]
-        },
-        {
-            "assistants": [
-                {
-                    "assistant": f"assistant-{index}",
-                    "assistant_version": "1.0.0",
-                    "provenance": "published",
-                    "status": "running",
-                }
-                for index in range(MAX_CHAT_ASSISTANTS + 1)
-            ]
-        },
+        {"assistants": [_assistant(assistant_version="1.0.0-beta")]},
+        {"assistants": [_assistant(provenance="local")]},
+        {"assistants": [_assistant(), _assistant()]},
+        {"assistants": [_assistant(status=None)]},
+        {"assistants": [_assistant(assistant=f"assistant-{index}") for index in range(MAX_CHAT_ASSISTANTS + 1)]},
     ],
 )
 def test_running_inventory_rejects_ambiguous_controller_data(value):
