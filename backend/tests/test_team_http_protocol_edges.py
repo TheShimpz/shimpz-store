@@ -347,10 +347,9 @@ def test_websocket_text_and_frame_helpers_cover_failures():
     assert websocket.public_text("safe", 10, field="title") == "safe"
     with pytest.raises(ValueError):
         websocket.public_text(" bad", 10, field="title")
-    with pytest.raises(ValueError):
-        websocket.unique_json_object([("x", 1), ("x", 2)])
-    with pytest.raises(ValueError):
-        websocket._reject_json_constant("NaN")
+    for text in ('{"a":1,"a":2}', '{"a":-Infinity}', '{"a":{"b":-1E400}}'):
+        with pytest.raises(websocket.FrameError):
+            websocket.decode_bounded_json_frame({"type": "websocket.receive", "text": text}, 64)
     failures = [
         ({"type": "bad"}, 10, 400),
         ({"type": "websocket.receive", "bytes": b"{}"}, 10, 415),
