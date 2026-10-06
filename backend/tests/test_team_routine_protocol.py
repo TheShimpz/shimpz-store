@@ -60,14 +60,14 @@ def test_notice_details_and_batches_are_closed():
         "model": None,
         "allowance": 0,
     }
-    assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC"}) is not None
+    assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC", "timezone_source": "browser"}) is not None
     assert routine_contract.canonical_notice_detail("deleted", {}) == {}
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
         ("stopped", {"actions": [["dns", {"input": 1}]]}),
         ("stopped", {"actions": "dns"}),
-        ("changed", {**created, "timezone": "UTC", "input": {"zone": "x"}}),
-        ("changed", {**created, "timezone": "UTC", "plan": {**plan, "steps": 2}}),
+        ("changed", {**created, "timezone": "UTC", "timezone_source": "browser", "input": {"zone": "x"}}),
+        ("changed", {**created, "timezone": "UTC", "timezone_source": "browser", "plan": {**plan, "steps": 2}}),
     ):
         assert routine_contract.canonical_notice_detail(outcome, detail) is None
     assert routine_contract.canonical_notice_batch({"notices": ["x"], "more": False}) is None
