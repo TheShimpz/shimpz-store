@@ -15,7 +15,21 @@ from types import ModuleType
 import pytest
 
 PROTOCOL = Path(__file__).resolve().parents[1] / "app" / "protocol" / "http" / "v1"
-DEPENDENCIES = ("identifiers", "payload", "phrase", "progress", "purpose", "routine", "supervisor", "turn", "websocket")
+DEPENDENCIES = (
+    "identifiers",
+    "payload",
+    "phrase",
+    "progress",
+    "purpose",
+    "routine",
+    "routine_context",
+    "routine_notice",
+    "routine_proposal",
+    "routine_run",
+    "supervisor",
+    "turn",
+    "websocket",
+)
 
 
 def _refresh_manifest(root: Path) -> None:
@@ -465,21 +479,24 @@ def _drop_locale(attribute: str):
 
 def test_verifier_rejects_labels_replies_and_choices_that_miss_a_language(tmp_path):
     def english_fallback(modules):
-        modules["routine"].answer_reply = lambda locale: modules["routine"].ANSWER_REPLIES["pt"]
+        modules["routine_proposal"].answer_reply = lambda locale: modules["routine_proposal"].ANSWER_REPLIES["pt"]
 
     def repeated_choice(modules):
-        choices = {locale: dict(labels) for locale, labels in modules["routine"].OUTPUT_CHOICES.items()}
+        choices = {locale: dict(labels) for locale, labels in modules["routine_proposal"].OUTPUT_CHOICES.items()}
         choices["en"]["none"] = choices["en"]["show"]
-        modules["routine"].OUTPUT_CHOICES = choices
+        modules["routine_proposal"].OUTPUT_CHOICES = choices
 
     cases = (
         (
             _drop_locale(("payload", "CLARIFICATION_LABELS")),
             "clarification labels do not cover every interface language",
         ),
-        (_drop_locale(("routine", "ANSWER_REPLIES")), "Routine answer replies do not cover every interface language"),
+        (
+            _drop_locale(("routine_proposal", "ANSWER_REPLIES")),
+            "Routine answer replies do not cover every interface language",
+        ),
         (english_fallback, "does not get the English answer reply"),
-        (_drop_locale(("routine", "OUTPUT_CHOICES")), "output choices do not name each output once"),
+        (_drop_locale(("routine_proposal", "OUTPUT_CHOICES")), "output choices do not name each output once"),
         (repeated_choice, "output choices do not name each output once"),
     )
     for index, (patch, message) in enumerate(cases):

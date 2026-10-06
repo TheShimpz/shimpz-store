@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
-from app.protocol.http.v1 import phrase, routine
+from app.protocol.http.v1 import phrase, routine_context, routine_proposal
+
+VECTORS = Path(__file__).resolve().parents[1] / "app" / "protocol" / "http" / "v1" / "vectors.json"
 
 CARD = {
     "member": "note",
@@ -41,4 +46,9 @@ def test_a_zone_that_does_not_load_or_is_not_canonical_is_not_read(text):
 
 
 def test_a_card_input_with_an_unsafe_member_is_refused():
-    assert routine._card_input({**CARD, "member": "bad\x00member"}, 1) is False
+    assert routine_proposal._card_input({**CARD, "member": "bad\x00member"}, 1) is False
+
+
+def test_the_brain_listing_reads_through_the_package_import():
+    listings = json.loads(VECTORS.read_text(encoding="utf-8"))["routine_listing"]
+    assert all(routine_context.canonical_routine_listings(value) is not None for value in listings["valid"])
