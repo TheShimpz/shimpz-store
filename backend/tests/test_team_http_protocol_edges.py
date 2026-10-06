@@ -230,6 +230,20 @@ def test_storage_response_rejects_oversized_file_list():
     assert payload.project_storage_response(value, kind="list", expected_team_id="team", include_team_id=False) is None
 
 
+def _action_event(**changes: object) -> dict:
+    """Return a fresh valid started Action progress event with `changes` applied."""
+    return {
+        "phase": "action",
+        "state": "started",
+        "seq": 1,
+        "assistant_id": "assistant",
+        "index": 1,
+        "action": "list-zones",
+        "total": 1,
+        **changes,
+    }
+
+
 @pytest.mark.parametrize(
     "value",
     [
@@ -238,33 +252,9 @@ def test_storage_response_rejects_oversized_file_list():
         {"phase": "model", "state": "started", "seq": 1, "extra": True},
         {"phase": "model", "state": "started", "seq": True},
         {"phase": "model", "state": "finished", "seq": 1, "elapsed_ms": -1},
-        {
-            "phase": "action",
-            "state": "started",
-            "seq": 1,
-            "assistant_id": "Bad",
-            "index": 1,
-            "action": "list-zones",
-            "total": 1,
-        },
-        {
-            "phase": "action",
-            "state": "started",
-            "seq": 1,
-            "assistant_id": "assistant",
-            "index": 2,
-            "action": "list-zones",
-            "total": 1,
-        },
-        {
-            "phase": "action",
-            "state": "started",
-            "seq": 1,
-            "assistant_id": "assistant",
-            "index": 1,
-            "action": "Bad",
-            "total": 1,
-        },
+        _action_event(assistant_id="Bad"),
+        _action_event(index=2),
+        _action_event(action="Bad"),
     ],
 )
 def test_progress_event_rejects_invalid_shapes(value):
@@ -273,16 +263,7 @@ def test_progress_event_rejects_invalid_shapes(value):
 
 
 def test_progress_event_projects_finished_action():
-    event = {
-        "seq": 1,
-        "phase": "action",
-        "state": "finished",
-        "elapsed_ms": 0,
-        "assistant_id": "assistant",
-        "index": 1,
-        "action": "list-zones",
-        "total": 1,
-    }
+    event = _action_event(state="finished", elapsed_ms=0)
     assert progress.canonical_event(event) == event
 
 
