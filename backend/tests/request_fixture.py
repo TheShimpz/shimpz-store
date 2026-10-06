@@ -1,4 +1,4 @@
-"""One-shot ASGI request and Account-session stand-ins shared by Store route and payload suites."""
+"""One-shot ASGI request, Account-session, and upstream stand-ins shared by Store route and payload suites."""
 
 import secrets
 
@@ -27,3 +27,13 @@ def session(authenticated: bool = True):
         return token, "account" if token else "", "user" if token else ""
 
     return current
+
+
+def upstream(*responses: tuple[int, dict]):
+    """Return an async upstream call stand-in that answers with each of `responses` in turn."""
+    remaining = iter(responses)
+
+    async def answer(*_args, **_kwargs):
+        return next(remaining)
+
+    return answer

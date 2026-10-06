@@ -15,6 +15,7 @@ from app.main import app
 from app.payloads import ClientPayloadError
 from app.routers import account, assistant_lifecycle, assistants, files, inference, static, teams
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS
+from tests.request_fixture import session
 
 ORIGIN = {"Origin": "https://shimpz.com"}
 
@@ -143,10 +144,7 @@ def test_team_creation_rejects_invalid_identity_or_provider(payload):
 
 
 def test_team_routes_cover_unauthenticated_and_forwarded_paths(monkeypatch):
-    async def unauthenticated(_request):
-        return "", "", ""
-
-    monkeypatch.setattr(authn, "authed_account_bounded", unauthenticated)
+    monkeypatch.setattr(authn, "authed_account_bounded", session(False))
     with TestClient(app) as client:
         assert client.get("/api/teams").status_code == 401
         assert client.post("/api/teams", json={}).status_code == 401
@@ -192,10 +190,7 @@ def test_team_routes_authenticate_before_judging_the_team_id(monkeypatch, method
     for module in (assistants, teams):
         monkeypatch.setattr(module, "call_bounded", must_not_call)
 
-    async def unauthenticated(_request):
-        return "", "", ""
-
-    monkeypatch.setattr(authn, "authed_account_bounded", unauthenticated)
+    monkeypatch.setattr(authn, "authed_account_bounded", session(False))
     with TestClient(app) as client:
         anonymous = client.request(method, path, headers=ORIGIN)
     monkeypatch.setattr(authn, "authed_account_bounded", _session())
@@ -210,10 +205,7 @@ def test_team_routes_authenticate_before_judging_the_team_id(monkeypatch, method
 
 
 def test_inference_routes_reject_unauthenticated_and_invalid_configuration(monkeypatch):
-    async def unauthenticated(_request):
-        return "", "", ""
-
-    monkeypatch.setattr(authn, "authed_account_bounded", unauthenticated)
+    monkeypatch.setattr(authn, "authed_account_bounded", session(False))
     with TestClient(app) as client:
         assert client.get("/api/teams/team/inference").status_code == 401
         assert client.put("/api/teams/team/inference", json={}).status_code == 401

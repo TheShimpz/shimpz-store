@@ -12,7 +12,7 @@ from app import authn
 from app.main import app
 from app.oauth_broker import SCOPES, OAuthBrokerError
 from app.routers import action_assurance, model_providers, oauth, teams
-from tests.request_fixture import one_shot_request, session
+from tests.request_fixture import one_shot_request, session, upstream
 
 
 def test_model_provider_routes_reject_unauthenticated_requests(monkeypatch):
@@ -26,12 +26,7 @@ def test_model_provider_routes_reject_unauthenticated_requests(monkeypatch):
 
 def test_model_provider_listing_forwards_failure_and_rejects_invalid_inventory(monkeypatch):
     monkeypatch.setattr(authn, "authed_account_bounded", session())
-    responses = iter(((503, {"detail": "unavailable"}), (200, {})))
-
-    async def upstream(*_args, **_kwargs):
-        return next(responses)
-
-    monkeypatch.setattr(model_providers, "call_bounded", upstream)
+    monkeypatch.setattr(model_providers, "call_bounded", upstream((503, {"detail": "unavailable"}), (200, {})))
     with TestClient(app) as client:
         unavailable = client.get("/api/model-providers")
         invalid = client.get("/api/model-providers")
@@ -159,12 +154,12 @@ def test_credential_and_team_creation_posts_refuse_foreign_origins_and_simple_bo
     monkeypatch.setattr(authn, "authed_account_bounded", session())
     dispatched = []
 
-    async def upstream(*args, **_kwargs):
+    async def dispatch(*args, **_kwargs):
         dispatched.append(args)
         return 200, {}
 
-    monkeypatch.setattr(model_providers, "call_bounded", upstream)
-    monkeypatch.setattr(teams, "call_bounded", upstream)
+    monkeypatch.setattr(model_providers, "call_bounded", dispatch)
+    monkeypatch.setattr(teams, "call_bounded", dispatch)
     targets = (
         ("/api/model-providers/openai", {"auth_type": "api_key", "secret": "sk-browser-contract-key"}),
         ("/api/teams", {"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"}),
