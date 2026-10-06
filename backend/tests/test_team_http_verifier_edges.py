@@ -15,7 +15,7 @@ from types import ModuleType
 import pytest
 
 PROTOCOL = Path(__file__).resolve().parents[1] / "app" / "protocol" / "http" / "v1"
-DEPENDENCIES = ("payload", "progress", "routine", "supervisor", "websocket")
+DEPENDENCIES = ("identifiers", "payload", "progress", "purpose", "routine", "supervisor", "turn", "websocket")
 
 
 def _refresh_manifest(root: Path) -> None:
