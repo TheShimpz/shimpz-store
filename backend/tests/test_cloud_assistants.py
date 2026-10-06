@@ -1,5 +1,4 @@
 import contextlib
-import json
 import tempfile
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
@@ -8,12 +7,12 @@ from typing import ClassVar
 from fastapi.testclient import TestClient
 
 from app import authn, config, main
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 VERIFY_CAPABILITY = "a" * 64
 
 
-class _AssistantControlHandler(BaseHTTPRequestHandler):
+class _AssistantControlHandler(PeerMixin, BaseHTTPRequestHandler):
     calls: list[tuple[str, str, dict, str]]
     assistant_status = 200
     assistants: ClassVar[list[dict[str, object]]] = [
@@ -24,18 +23,6 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
             "status": "running",
         },
     ]
-
-    def _json(self, status: int, payload: dict) -> None:
-        body = json.dumps(payload).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _body(self) -> dict:
-        length = int(self.headers.get("Content-Length", "0"))
-        return json.loads(self.rfile.read(length) or b"{}")
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}, self.headers.get("X-Shimpz-Account", "")))
@@ -79,9 +66,6 @@ class _AssistantControlHandler(BaseHTTPRequestHandler):
             )
             return
         self._json(404, {"detail": "not found"})
-
-    def log_message(self, *_args) -> None:
-        pass
 
 
 @contextlib.contextmanager

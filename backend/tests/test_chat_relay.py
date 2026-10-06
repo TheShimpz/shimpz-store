@@ -13,7 +13,7 @@ from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
 from tests.chat_relay_fixture import scripted_websocket as _websocket
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 TEST_TEAM_ID = "test_team"
 
@@ -36,16 +36,13 @@ def _done(
 
 @contextlib.contextmanager
 def _real_upstream(body: bytes):
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(PeerMixin, BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             self.send_response(200)
             self.send_header("Content-Type", "application/x-ndjson")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
-
-        def log_message(self, *_args) -> None:
-            pass
 
     with loopback_server(Handler) as port:
         connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
@@ -69,7 +66,7 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
     first_flushed = threading.Event()
     release_rest = threading.Event()
 
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(PeerMixin, BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             body_size = len(first) + len(rest)
             self.send_response(200)
@@ -82,9 +79,6 @@ def _real_delayed_upstream(first: bytes, rest: bytes):
             if release_rest.wait(timeout=5):
                 self.wfile.write(rest)
                 self.wfile.flush()
-
-        def log_message(self, *_args) -> None:
-            pass
 
     with loopback_server(Handler) as port:
         connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)

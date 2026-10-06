@@ -10,7 +10,7 @@ from app import authn, config, main
 from app.protocol.http.v1 import payload as team_contract
 from app.chat import ws as chat_ws
 from fastapi.testclient import TestClient
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 FILE_ID = "a" * 32
 VERIFY_CAPABILITY = "b" * 64
@@ -18,20 +18,8 @@ FILE_SHA256 = hashlib.sha256(b"hello").hexdigest()
 USAGE = {"used_bytes": 5, "limit_bytes": 100 * 1024 * 1024, "remaining_bytes": 100 * 1024 * 1024 - 5}
 
 
-class _ControlPlaneHandler(BaseHTTPRequestHandler):
+class _ControlPlaneHandler(PeerMixin, BaseHTTPRequestHandler):
     calls: ClassVar[list[tuple[str, str, dict]]] = []
-
-    def _json(self, status: int, payload: dict) -> None:
-        body = json.dumps(payload).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _body(self) -> dict:
-        length = int(self.headers.get("Content-Length", "0"))
-        return json.loads(self.rfile.read(length) or b"{}")
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
@@ -102,9 +90,6 @@ class _ControlPlaneHandler(BaseHTTPRequestHandler):
             self._json(200, {"team_id": "team_one", "id": FILE_ID, "deleted": True, **USAGE})
         else:
             self._json(404, {"detail": "not found"})
-
-    def log_message(self, *_args) -> None:
-        pass
 
 
 @contextlib.contextmanager

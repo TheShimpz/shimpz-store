@@ -1,6 +1,7 @@
 """One loopback HTTP peer that Store suites stand in for Team, Account, or Brain."""
 
 import contextlib
+import json
 import threading
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -22,3 +23,22 @@ def loopback_server(handler: type[BaseHTTPRequestHandler]) -> Iterator[int]:
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
+
+
+class PeerMixin:
+    """Quiet logging plus JSON response and request-body helpers for a loopback peer's request handler."""
+
+    def _json(self, status: int, payload: dict) -> None:
+        body = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _body(self) -> dict:
+        length = int(self.headers.get("Content-Length", "0"))
+        return json.loads(self.rfile.read(length) or b"{}")
+
+    def log_message(self, *_args) -> None:
+        pass

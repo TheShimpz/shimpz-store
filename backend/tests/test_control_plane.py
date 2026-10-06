@@ -13,7 +13,7 @@ from app import authn, config, main, upstream
 from app.config import ACCOUNT_COOKIE
 from app.main import app
 from app.protocol.http.v1 import payload as team_contract
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 VERIFY_CAPABILITY = "c" * 64
 ORIGIN = {"Origin": "https://shimpz.com"}
@@ -122,18 +122,10 @@ def test_invalid_upstream_path_is_a_closed_generic_failure(monkeypatch):
     }
 
 
-class _BrainControlHandler(BaseHTTPRequestHandler):
+class _BrainControlHandler(PeerMixin, BaseHTTPRequestHandler):
     calls: list[tuple[str, str, dict]]
     state: dict[str, int]
     finalize_token: str
-
-    def _json(self, status: int, payload: dict) -> None:
-        body = json.dumps(payload).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
 
     def do_GET(self) -> None:
         self.calls.append(("GET", self.path, {}))
@@ -143,8 +135,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_PUT(self) -> None:
-        length = int(self.headers.get("Content-Length", "0"))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        body = self._body()
         self.calls.append(("PUT", self.path, body))
         if self.path == "/v1/teams/team_openai/inference":
             self._json(200, {"team_id": "team_openai", **body})
@@ -152,8 +143,7 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
-        length = int(self.headers.get("Content-Length", "0"))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        body = self._body()
         self.calls.append(("POST", self.path, body))
         if self.path == "/v1/verify":
             if self.headers.get("Authorization") != f"Bearer {VERIFY_CAPABILITY}":
@@ -206,9 +196,6 @@ class _BrainControlHandler(BaseHTTPRequestHandler):
             self._json(201, {"created": True, **body})
         else:
             self._json(404, {"error": "not found"})
-
-    def log_message(self, *_args) -> None:
-        pass
 
 
 @contextlib.contextmanager

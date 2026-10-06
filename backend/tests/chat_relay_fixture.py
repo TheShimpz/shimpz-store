@@ -8,14 +8,14 @@ from starlette.websockets import WebSocket
 
 from app import config
 from app.chat import ws
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 
 @contextlib.contextmanager
 def real_stream_team(response_body: bytes, *, status: int = 200):
     requests: list[bytes] = []
 
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(PeerMixin, BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             requests.append(self.rfile.read(length))
@@ -24,9 +24,6 @@ def real_stream_team(response_body: bytes, *, status: int = 200):
             self.send_header("Content-Length", str(len(response_body)))
             self.end_headers()
             self.wfile.write(response_body)
-
-        def log_message(self, *_args) -> None:
-            pass
 
     with loopback_server(Handler) as port:
         previous = config.TEAM_URL

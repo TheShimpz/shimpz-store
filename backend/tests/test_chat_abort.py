@@ -15,7 +15,7 @@ from app.chat import ws as main
 from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
 from tests.chat_relay_fixture import scripted_websocket as _websocket
-from tests.loopback import loopback_server
+from tests.loopback import PeerMixin, loopback_server
 
 TEST_TEAM_ID = "test_team"
 
@@ -81,7 +81,7 @@ def _real_relay_abort_team(on_stop: Callable[[], None] | None = None):
     calls: list[str] = []
     unterminated = b'{"type":"text","text":"partial"}\n'
 
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(PeerMixin, BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             calls.append(self.path)
             length = int(self.headers.get("Content-Length", "0"))
@@ -99,9 +99,6 @@ def _real_relay_abort_team(on_stop: Callable[[], None] | None = None):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
-
-        def log_message(self, *_args) -> None:
-            pass
 
     with loopback_server(Handler) as port:
         previous = config.TEAM_URL
