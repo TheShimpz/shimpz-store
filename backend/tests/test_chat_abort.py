@@ -16,23 +16,7 @@ from tests.chat_relay_fixture import real_stream_team as _real_stream_team
 from tests.chat_relay_fixture import run_admitted_turn
 from tests.chat_relay_fixture import scripted_websocket as _websocket
 from tests.loopback import PeerMixin, loopback_server
-
-TEST_TEAM_ID = "test_team"
-
-
-def _done(
-    reply: str = "hello",
-    *,
-    team_id: str = TEST_TEAM_ID,
-    team_name: str = "Marketing",
-) -> dict:
-    return {
-        "type": "done",
-        "team_id": team_id,
-        "team_name": team_name,
-        "reply": reply,
-        "clarification": None,
-    }
+from tests.chat_relay_fixture import done_event as _done
 
 
 def test_stream_workers_cannot_starve_the_default_control_pool():

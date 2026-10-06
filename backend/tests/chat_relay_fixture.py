@@ -11,6 +11,26 @@ from app.chat import ws
 from tests.loopback import PeerMixin, loopback_server
 
 
+TEST_TEAM_ID = "test_team"
+
+
+def done_event(
+    reply: str = "hello",
+    *,
+    team_id: str = TEST_TEAM_ID,
+    team_name: str = "Marketing",
+    clarification: dict | None = None,
+) -> dict:
+    """Return one Team terminal ``done`` event for the Store relay suites."""
+    return {
+        "type": "done",
+        "team_id": team_id,
+        "team_name": team_name,
+        "reply": reply,
+        "clarification": clarification,
+    }
+
+
 @contextlib.contextmanager
 def real_stream_team(response_body: bytes, *, status: int = 200):
     requests: list[bytes] = []

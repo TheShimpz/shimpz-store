@@ -24,24 +24,10 @@ from app.main import app
 from app.payloads import ClientPayloadError, read_bounded_json
 from tests.chat_relay_fixture import scripted_websocket as _websocket
 from tests.request_fixture import one_shot_request
+from tests.chat_relay_fixture import TEST_TEAM_ID
+from tests.chat_relay_fixture import done_event as _done
 
-TEST_TEAM_ID = "test_team"
 VERIFY_CAPABILITY = "d" * 64
-
-
-def _done(
-    reply: str = "hello",
-    *,
-    team_id: str = TEST_TEAM_ID,
-    team_name: str = "Marketing",
-) -> dict:
-    return {
-        "type": "done",
-        "team_id": team_id,
-        "team_name": team_name,
-        "reply": reply,
-        "clarification": None,
-    }
 
 
 def _input_challenge(*, team_id: str = TEST_TEAM_ID, challenge_id: str = "a" * 32) -> dict:

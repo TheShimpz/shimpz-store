@@ -7,9 +7,8 @@ import pytest
 from app.chat import ws as main
 from app.chat.events import validated_terminal_event as _validated_terminal_event
 from app.chat.ws import _ws_dispatch
+from tests.chat_relay_fixture import TEST_TEAM_ID
 from tests.chat_relay_fixture import scripted_websocket as _websocket
-
-TEST_TEAM_ID = "test_team"
 
 
 def _done(reply: str = "hello") -> dict:
