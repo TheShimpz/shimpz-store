@@ -13,7 +13,7 @@ from app import authn
 from app.concurrency import ExecutorSaturatedError
 from app.main import app
 from app.payloads import ClientPayloadError
-from app.routers import account, assistant_lifecycle, static, teams
+from app.routers import account, assistant_lifecycle, assistants, files, inference, static, teams
 from app.upstream import CONTROL_PLANE_TIMEOUT_SECONDS
 
 ORIGIN = {"Origin": "https://shimpz.com"}
@@ -169,6 +169,44 @@ def test_team_routes_cover_unauthenticated_and_forwarded_paths(monkeypatch):
         ("GET", "/v1/teams"),
         ("DELETE", "/v1/teams/team"),
     ]
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/api/teams/Bad%20Team/files"),
+        ("POST", "/api/teams/Bad%20Team/files"),
+        ("DELETE", "/api/teams/Bad%20Team/files/not-a-file-id"),
+        ("GET", "/api/teams/Bad%20Team/inference"),
+        ("PUT", "/api/teams/Bad%20Team/inference"),
+        ("GET", "/api/teams/Bad%20Team/assistants"),
+        ("DELETE", "/api/teams/Bad%20Team"),
+    ],
+)
+def test_team_routes_authenticate_before_judging_the_team_id(monkeypatch, method, path):
+    async def must_not_call(*_args, **_kwargs):
+        raise AssertionError("an inadmissible request must not reach Team")
+
+    for module, name in ((files, "call_bounded"), (files, "call_raw_bounded"), (inference, "call_bounded")):
+        monkeypatch.setattr(module, name, must_not_call)
+    for module in (assistants, teams):
+        monkeypatch.setattr(module, "call_bounded", must_not_call)
+
+    async def unauthenticated(_request):
+        return "", "", ""
+
+    monkeypatch.setattr(authn, "authed_account_bounded", unauthenticated)
+    with TestClient(app) as client:
+        anonymous = client.request(method, path, headers=ORIGIN)
+    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    with TestClient(app) as client:
+        malformed = client.request(method, path, headers=ORIGIN)
+
+    # A malformed Team id is judged only for an authenticated session, and a deletion's Team id before its file id.
+    assert (anonymous.status_code, anonymous.json()) == (401, {"detail": "not authenticated"})
+    assert (malformed.status_code, malformed.json()) == (400, {"detail": "bad team id"})
+    for response in (anonymous, malformed):
+        assert response.headers["cache-control"] == "private, no-store"
 
 
 def test_inference_routes_reject_unauthenticated_and_invalid_configuration(monkeypatch):
