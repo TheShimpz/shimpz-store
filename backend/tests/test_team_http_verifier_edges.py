@@ -15,7 +15,7 @@ from types import ModuleType
 import pytest
 
 PROTOCOL = Path(__file__).resolve().parents[1] / "app" / "protocol" / "http" / "v1"
-DEPENDENCIES = ("identifiers", "payload", "progress", "purpose", "routine", "supervisor", "turn", "websocket")
+DEPENDENCIES = ("identifiers", "payload", "phrase", "progress", "purpose", "routine", "supervisor", "turn", "websocket")
 
 
 def _refresh_manifest(root: Path) -> None:
@@ -399,3 +399,90 @@ def test_verifier_rejects_missing_or_drifted_routine_vectors(tmp_path):
         _vectors(root, mutate)
         with pytest.raises(SystemExit, match=message):
             _execute(root)
+
+
+def test_verifier_rejects_missing_or_drifted_recorded_routine_vectors(tmp_path):
+    def proposal_name(value):
+        value["routine_proposal"]["valid"][0]["name"] = "x" * 81
+
+    cases = (
+        (_set(("routine_position", "invalid"), []), "routine position vectors are missing"),
+        (
+            _set(("routine_position", "valid"), [{"value": {"phase": "replay", "step": 2}, "steps": 1}]),
+            "a valid routine position vector was not admitted exactly",
+        ),
+        (
+            _set(("routine_position", "invalid"), [{"value": {"phase": "decision", "call": 1}, "steps": 0}]),
+            "an invalid routine position vector was admitted",
+        ),
+        (_set(("routine_proposal", "generated"), ["largest-unicode"]), "routine proposal vectors are missing"),
+        (proposal_name, "a generated routine proposal vector differs at its bound"),
+        (lambda v: v.pop("routine_refusal"), "routine_refusal vectors are missing"),
+        (
+            _set(("routine_decision_record", "valid"), [{"state": "decided"}]),
+            "a valid routine_decision_record vector was not admitted exactly",
+        ),
+        (
+            _set(("routine_proposal_answer", "invalid"), lambda v: [v["routine_proposal_answer"]["valid"][0]]),
+            "an invalid routine_proposal_answer vector was admitted",
+        ),
+        (_set(("clarification_labels", "composed"), []), "clarification label vectors are missing"),
+        (
+            lambda v: v["clarification_labels"]["composed"][0].update({"message": "drift"}),
+            "a composed clarification vector differs",
+        ),
+        (
+            lambda v: v["clarification_labels"]["authored_segments"][0].update({"segments": []}),
+            "an authored-segments vector differs",
+        ),
+        (_set(("routine_phrase", "team_asks"), []), "routine phrase vectors are missing"),
+        (
+            lambda v: v["routine_phrase"]["team_asks"][0].update(
+                {"asks": not v["routine_phrase"]["team_asks"][0]["asks"]}
+            ),
+            "a routine phrase team_asks vector differs",
+        ),
+        (
+            lambda v: v["routine_phrase"]["outputs"][0].update({"outputs": ["drift"]}),
+            "a routine phrase outputs vector differs",
+        ),
+    )
+    for index, (mutate, message) in enumerate(cases):
+        root = _copy(tmp_path / str(index))
+        _vectors(root, mutate)
+        with pytest.raises(SystemExit, match=message):
+            _execute(root)
+
+
+def _drop_locale(attribute: str):
+    def patch(modules):
+        value = dict(getattr(modules[attribute[0]], attribute[1]))
+        value.pop("zh")
+        setattr(modules[attribute[0]], attribute[1], value)
+
+    return patch
+
+
+def test_verifier_rejects_labels_replies_and_choices_that_miss_a_language(tmp_path):
+    def english_fallback(modules):
+        modules["routine"].answer_reply = lambda locale: modules["routine"].ANSWER_REPLIES["pt"]
+
+    def repeated_choice(modules):
+        choices = {locale: dict(labels) for locale, labels in modules["routine"].OUTPUT_CHOICES.items()}
+        choices["en"]["none"] = choices["en"]["show"]
+        modules["routine"].OUTPUT_CHOICES = choices
+
+    cases = (
+        (
+            _drop_locale(("payload", "CLARIFICATION_LABELS")),
+            "clarification labels do not cover every interface language",
+        ),
+        (_drop_locale(("routine", "ANSWER_REPLIES")), "Routine answer replies do not cover every interface language"),
+        (english_fallback, "does not get the English answer reply"),
+        (_drop_locale(("routine", "OUTPUT_CHOICES")), "output choices do not name each output once"),
+        (repeated_choice, "output choices do not name each output once"),
+    )
+    for index, (patch, message) in enumerate(cases):
+        root = _copy(tmp_path / str(index))
+        with pytest.raises(SystemExit, match=message):
+            _execute(root, patch=patch)

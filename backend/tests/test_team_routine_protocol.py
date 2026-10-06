@@ -60,7 +60,12 @@ def test_notice_details_and_batches_are_closed():
         "model": None,
         "allowance": 0,
     }
-    assert routine_contract.canonical_notice_detail("created", {**created, "timezone": "UTC", "timezone_source": "browser"}) is not None
+    assert (
+        routine_contract.canonical_notice_detail(
+            "created", {**created, "timezone": "UTC", "timezone_source": "browser"}
+        )
+        is not None
+    )
     assert routine_contract.canonical_notice_detail("deleted", {}) == {}
     for outcome, detail in (
         ("scope-changed", {"assistants": []}),
