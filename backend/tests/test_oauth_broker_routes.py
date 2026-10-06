@@ -48,6 +48,19 @@ class _Broker:
         self.calls.append(("revoke", values))
 
 
+# The start query omits the callback mode, so each test names the mode it exercises.
+START = {"state": "s" * 43, "code_challenge": "c" * 43, "scope": " ".join(SCOPES)}
+CALLBACK = {"state": "b" * 43, "code": "authorization-code-private-123456", "scope": " ".join(SCOPES)}
+
+
+def _start(client: TestClient, **changes: str):
+    return client.get("/api/oauth/cloudflare/start", params={**START, **changes}, follow_redirects=False)
+
+
+def _callback(client: TestClient, **changes: str):
+    return client.get("/api/oauth/cloudflare/callback", params={**CALLBACK, **changes}, follow_redirects=False)
+
+
 @contextmanager
 def _broker():
     broker = _Broker()
@@ -57,25 +70,8 @@ def _broker():
 
 def test_browser_start_and_callback_redirect_without_oauth_tokens() -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        start = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(SCOPES),
-                "callback": "loopback",
-            },
-            follow_redirects=False,
-        )
-        callback = client.get(
-            "/api/oauth/cloudflare/callback",
-            params={
-                "state": "b" * 43,
-                "code": "authorization-code-private-123456",
-                "scope": " ".join(SCOPES),
-            },
-            follow_redirects=False,
-        )
+        start = _start(client, callback="loopback")
+        callback = _callback(client)
 
     assert start.status_code == 303
     assert start.headers["location"].startswith("https://dash.cloudflare.com/oauth2/auth?")
@@ -91,15 +87,7 @@ def test_browser_start_and_callback_redirect_without_oauth_tokens() -> None:
 
 def test_browser_start_requires_an_explicit_callback_mode() -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        response = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(SCOPES),
-            },
-            follow_redirects=False,
-        )
+        response = _start(client)
 
     assert response.status_code == 400
     assert broker.calls == []
@@ -138,25 +126,8 @@ def test_browser_callback_requires_the_closed_cloudflare_scope_envelope() -> Non
 def test_browser_routes_forward_the_canonical_read_only_scope_subset() -> None:
     read_scopes = ("dns.read", "offline_access", "zone.read")
     with _broker() as broker, TestClient(main.app) as client:
-        start = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(read_scopes),
-                "callback": "loopback",
-            },
-            follow_redirects=False,
-        )
-        callback = client.get(
-            "/api/oauth/cloudflare/callback",
-            params={
-                "state": "b" * 43,
-                "code": "authorization-code-private-123456",
-                "scope": " ".join(read_scopes),
-            },
-            follow_redirects=False,
-        )
+        start = _start(client, scope=" ".join(read_scopes), callback="loopback")
+        callback = _callback(client, scope=" ".join(read_scopes))
 
     assert start.status_code == callback.status_code == 303
     assert broker.calls[0][1]["scopes"] == list(read_scopes)
@@ -165,16 +136,7 @@ def test_browser_routes_forward_the_canonical_read_only_scope_subset() -> None:
 
 def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        start = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(SCOPES),
-                "callback": "hosted",
-            },
-            follow_redirects=False,
-        )
+        start = _start(client, callback="hosted")
 
     assert start.status_code == 303
     assert broker.calls == [
@@ -200,25 +162,8 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
         ),
         TestClient(main.app) as client,
     ):
-        start = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(SCOPES),
-                "callback": "out-of-band",
-            },
-            follow_redirects=False,
-        )
-        callback = client.get(
-            "/api/oauth/cloudflare/callback",
-            params={
-                "state": "b" * 43,
-                "code": "authorization-code-private-123456",
-                "scope": " ".join(SCOPES),
-            },
-            follow_redirects=False,
-        )
+        start = _start(client, callback="out-of-band")
+        callback = _callback(client)
 
     assert start.status_code == 303
     assert callback.status_code == 200
@@ -235,16 +180,7 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
 
 def test_browser_start_rejects_an_arbitrary_callback_before_the_broker() -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        response = client.get(
-            "/api/oauth/cloudflare/start",
-            params={
-                "state": "s" * 43,
-                "code_challenge": "c" * 43,
-                "scope": " ".join(SCOPES),
-                "callback": "https://evil.example",
-            },
-            follow_redirects=False,
-        )
+        response = _start(client, callback="https://evil.example")
 
     assert response.status_code == 400
     assert broker.calls == []
