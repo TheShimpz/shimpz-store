@@ -247,30 +247,36 @@ async def _ws_run_admitted_turn(turn: _WsTurn, lease: _TurnLease) -> None:
 
 def _start_ws_turn(
     context: _WsContext,
-    msg: dict,
     lease: _TurnLease,
-) -> tuple[asyncio.Task, asyncio.Event, asyncio.Event, _RelayDelivery]:
-    started = asyncio.Event()
-    dispatched = asyncio.Event()
-    delivery = _RelayDelivery()
-    turn = asyncio.create_task(
-        _ws_run_admitted_turn(
-            _WsTurn(
-                ws=context.ws,
-                team_id=context.team_id,
-                headers=context.headers,
-                text=msg["message"],
-                started=started,
-                dispatched=dispatched,
-                files=tuple(msg["files"]),
-                assistant_ids=tuple(msg["assistant_ids"]),
-                delivery=delivery,
-                state=context.state,
-            ),
-            lease,
+    **request: object,
+) -> None:
+    """Start and track one admitted turn; release the lease if it cannot start.
+
+    ``request`` holds either an ordinary turn's ``text``, ``files`` and ``assistant_ids`` or a ``human_response``.
+    """
+    try:
+        started = asyncio.Event()
+        dispatched = asyncio.Event()
+        delivery = _RelayDelivery()
+        turn = asyncio.create_task(
+            _ws_run_admitted_turn(
+                _WsTurn(
+                    ws=context.ws,
+                    team_id=context.team_id,
+                    headers=context.headers,
+                    started=started,
+                    dispatched=dispatched,
+                    delivery=delivery,
+                    state=context.state,
+                    **request,
+                ),
+                lease,
+            )
         )
-    )
-    return turn, started, dispatched, delivery
+    except BaseException:
+        lease.release()
+        raise
+    _track_ws_turn(context.state, (turn, started, dispatched, delivery), lease)
 
 
 def _resume_human(
@@ -312,33 +318,6 @@ def _resume_human(
                 "detail": "authentication was not confirmed",
             }
     return {"type": "done", **data}
-
-
-def _start_ws_human(
-    context: _WsContext,
-    response: dict[str, object],
-    lease: _TurnLease,
-) -> tuple[asyncio.Task, asyncio.Event, asyncio.Event, _RelayDelivery]:
-    started = asyncio.Event()
-    dispatched = asyncio.Event()
-    delivery = _RelayDelivery()
-    turn = asyncio.create_task(
-        _ws_run_admitted_turn(
-            _WsTurn(
-                ws=context.ws,
-                team_id=context.team_id,
-                headers=context.headers,
-                text="",
-                started=started,
-                dispatched=dispatched,
-                delivery=delivery,
-                human_response=response,
-                state=context.state,
-            ),
-            lease,
-        )
-    )
-    return turn, started, dispatched, delivery
 
 
 async def _ws_stop_turn(ws: WebSocket, team_id: str, hdr: dict, state: dict) -> None:
@@ -436,13 +415,8 @@ async def _ws_human_response(
         await ws.send_json(_relay_capacity_event())
         return
     response = {key: value for key, value in canonical.items() if key != "type"}
-    try:
-        tracked = _start_ws_human(_WsContext(ws, team_id, hdr, state), response, lease)
-    except BaseException:
-        lease.release()
-        raise
+    _start_ws_turn(_WsContext(ws, team_id, hdr, state), lease, text="", human_response=response)
     state["pending_human"] = None
-    _track_ws_turn(state, tracked, lease)
 
 
 async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state: dict) -> None:
@@ -479,22 +453,17 @@ async def _ws_dispatch(ws: WebSocket, team_id: str, hdr: dict, msg: dict, state:
             return
         lease = _TURN_ADMISSION.reserve()
         if lease is None:
-            await ws.send_json(
-                {
-                    "type": "error",
-                    "status": 429,
-                    "detail": "chat relay capacity reached",
-                }
-            )
+            await ws.send_json(_relay_capacity_event())
             return
         # The background task keeps the socket responsive to Stop. The set is capped at one;
         # the controller independently enforces the same invariant across sockets.
-        try:
-            tracked = _start_ws_turn(_WsContext(ws, team_id, hdr, state), msg, lease)
-        except BaseException:
-            lease.release()
-            raise
-        _track_ws_turn(state, tracked, lease)
+        _start_ws_turn(
+            _WsContext(ws, team_id, hdr, state),
+            lease,
+            text=msg["message"],
+            files=tuple(msg["files"]),
+            assistant_ids=tuple(msg["assistant_ids"]),
+        )
     elif msg.get("type") == "human-response":
         await _ws_human_response(ws, team_id, hdr, msg, state)
     elif msg.get("type") == "stop" and set(msg) == {"type"}:

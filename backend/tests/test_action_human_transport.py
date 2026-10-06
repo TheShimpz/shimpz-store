@@ -165,12 +165,11 @@ def test_websocket_submits_exact_human_response_without_browser_type(monkeypatch
     async def scenario() -> None:
         captured = []
 
-        def start(context, response, lease):
-            captured.append((context, response))
-            task = asyncio.create_task(asyncio.sleep(0))
-            return task, asyncio.Event(), asyncio.Event(), main._RelayDelivery()
+        def start(context, lease, **request):
+            captured.append((context, request["human_response"]))
+            lease.release()
 
-        monkeypatch.setattr(main, "_start_ws_human", start)
+        monkeypatch.setattr(main, "_start_ws_turn", start)
         websocket, _ = _websocket("{}")
         await websocket.accept()
         state = {

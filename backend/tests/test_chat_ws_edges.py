@@ -126,23 +126,27 @@ def test_resume_human_projects_upstream_failures(monkeypatch, status, data, expe
     asyncio.run(scenario())
 
 
-def test_start_human_constructs_and_returns_a_tracked_turn(monkeypatch):
-    async def run(_turn, _lease):
-        return None
+def test_start_human_constructs_and_tracks_a_turn(monkeypatch):
+    seen = []
+
+    async def run(turn, _lease):
+        seen.append(turn)
 
     monkeypatch.setattr(ws, "_ws_run_admitted_turn", run)
 
     async def scenario():
         socket = _Socket()
         state = {}
-        task, started, dispatched, delivery = ws._start_ws_human(
-            ws._WsContext(socket, "team", {}, state),
-            {"challenge_id": "a" * 32, "decision": "deny"},
-            _Lease(),
-        )
-        await task
-        assert not started.is_set() and not dispatched.is_set()
-        assert isinstance(delivery, ws._RelayDelivery)
+        lease = _Lease()
+        response = {"challenge_id": "a" * 32, "decision": "deny"}
+        ws._start_ws_turn(ws._WsContext(socket, "team", {}, state), lease, text="", human_response=response)
+        active = state["active"]
+        await active.task
+        await asyncio.sleep(0)
+        assert seen[0].human_response is response and seen[0].text == ""
+        assert not active.started.is_set() and not active.dispatched.is_set()
+        assert isinstance(active.delivery, ws._RelayDelivery)
+        assert lease.released == 1 and state["active"] is None
 
     asyncio.run(scenario())
 
@@ -238,7 +242,7 @@ def test_human_response_and_chat_dispatch_release_lease_when_start_fails(monkeyp
         socket = _Socket()
         human_lease = _Lease()
         monkeypatch.setattr(ws._TURN_ADMISSION, "reserve", lambda: human_lease)
-        monkeypatch.setattr(ws, "_start_ws_human", fail)
+        monkeypatch.setattr(ws, "_ws_run_admitted_turn", fail)
         pending = {"challenge_id": "a" * 32, "request": {"kind": "approval"}}
         message = {"type": "human-response", "challenge_id": "a" * 32, "decision": "deny"}
         with pytest.raises(RuntimeError):
@@ -247,7 +251,6 @@ def test_human_response_and_chat_dispatch_release_lease_when_start_fails(monkeyp
 
         chat_lease = _Lease()
         monkeypatch.setattr(ws._TURN_ADMISSION, "reserve", lambda: chat_lease)
-        monkeypatch.setattr(ws, "_start_ws_turn", fail)
         chat = {"type": "chat", "message": "hello", "files": [], "assistant_ids": []}
         with pytest.raises(RuntimeError):
             await ws._ws_dispatch(socket, "team", {}, chat, {"active": None, "pending_human": None})
