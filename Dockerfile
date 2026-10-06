@@ -37,7 +37,7 @@ RUN groupadd --gid 10008 shimpz-store \
  && useradd --uid 10008 --gid 10008 --no-create-home --shell /usr/sbin/nologin shimpz-store
 WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
-COPY backend/app/__init__.py backend/app/authn.py backend/app/strict_json.py backend/app/concurrency.py backend/app/config.py backend/app/logconf.py backend/app/main.py backend/app/model_catalog.json \
+COPY backend/app/__init__.py backend/app/authn.py backend/app/concurrency.py backend/app/config.py backend/app/logconf.py backend/app/main.py backend/app/model_catalog.json \
      backend/app/middleware.py backend/app/payloads.py backend/app/upstream.py ./app/
 COPY backend/app/access.py ./app/
 COPY backend/app/catalog.py ./app/

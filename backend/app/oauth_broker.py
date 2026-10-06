@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Protocol
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
-from app import strict_json
+from app.protocol.http.v1 import strict_json
 
 NEURON_ORIGIN = "https://neuron.shimpz.com"
 NEURON_HOST = "neuron.shimpz.com"

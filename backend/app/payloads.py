@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from app import strict_json
+from app.protocol.http.v1 import strict_json
 
 
 class ClientPayloadError(Exception):
