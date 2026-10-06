@@ -77,11 +77,10 @@ async def team_chat_assistants(request: Request, team_id: str) -> JSONResponse:
     return await _assistant_inventory(request, team_id, _RUNNING)
 
 
-@router.post("/api/teams/{team_id}/assistants")
-async def cloud_assistant_install(request: Request, team_id: str) -> JSONResponse:
-    result = await assistant_lifecycle.install_assistant_publication(request, team_id)
+def _mutation_response(event: str, result: assistant_lifecycle.AssistantMutation) -> JSONResponse:
+    """Log one Assistant lifecycle mutation once and answer with Team's refusal or the accepted Assistant."""
     log.info(
-        "assistant_install",
+        event,
         account=result.account_id,
         team_id=result.team_id,
         assistant=result.assistant_id,
@@ -90,22 +89,15 @@ async def cloud_assistant_install(request: Request, team_id: str) -> JSONRespons
     if not 200 <= result.status < 300:
         return private_json(result.data, result.status)
     return private_json({"assistant": result.assistant_id, "accepted": True})
+
+
+@router.post("/api/teams/{team_id}/assistants")
+async def cloud_assistant_install(request: Request, team_id: str) -> JSONResponse:
+    result = await assistant_lifecycle.install_assistant_publication(request, team_id)
+    return _mutation_response("assistant_install", result)
 
 
 @router.delete("/api/teams/{team_id}/assistants/{assistant}")
 async def cloud_assistant_uninstall(request: Request, team_id: str, assistant: str) -> JSONResponse:
-    result = await assistant_lifecycle.uninstall_assistant(
-        request,
-        team_id,
-        assistant,
-    )
-    log.info(
-        "assistant_uninstall",
-        account=result.account_id,
-        team_id=result.team_id,
-        assistant=result.assistant_id,
-        status=result.status,
-    )
-    if not 200 <= result.status < 300:
-        return private_json(result.data, result.status)
-    return private_json({"assistant": result.assistant_id, "accepted": True})
+    result = await assistant_lifecycle.uninstall_assistant(request, team_id, assistant)
+    return _mutation_response("assistant_uninstall", result)
