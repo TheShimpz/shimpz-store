@@ -101,6 +101,18 @@ def _human_challenge(
     }
 
 
+def _pending_state(kind: str) -> dict:
+    """Return a fresh connection state awaiting the answer to one `kind` human challenge."""
+    return {"active": None, "pending_human": {"challenge_id": "c" * 32, "request": _human_request(kind)}}
+
+
+def _turn(websocket, state: dict) -> main._WsTurn:
+    """Return a hosted test-Team turn that remembers its human challenge in `state`."""
+    return main._WsTurn(
+        websocket, TEST_TEAM_ID, {"X-Shimpz-Account": "session"}, "hello", asyncio.Event(), asyncio.Event(), state=state
+    )
+
+
 def test_websocket_blocks_new_turn_until_pending_human_challenge_is_resolved():
     async def scenario() -> None:
         websocket, sent = _websocket("{}")
@@ -110,13 +122,7 @@ def test_websocket_blocks_new_turn_until_pending_human_challenge_is_resolved():
             TEST_TEAM_ID,
             {},
             {"type": "chat", "message": "next", "files": [], "assistant_ids": []},
-            {
-                "active": None,
-                "pending_human": {
-                    "challenge_id": "c" * 32,
-                    "request": _human_request("approval"),
-                },
-            },
+            _pending_state("approval"),
         )
         assert json.loads(sent[-1]["text"]) == {
             "type": "error",
@@ -131,13 +137,7 @@ def test_websocket_auth_response_accepts_only_one_use_account_handle():
     async def scenario() -> None:
         websocket, sent = _websocket("{}")
         await websocket.accept()
-        state = {
-            "active": None,
-            "pending_human": {
-                "challenge_id": "c" * 32,
-                "request": _human_request("auth:password"),
-            },
-        }
+        state = _pending_state("auth:password")
         await _ws_dispatch(
             websocket,
             TEST_TEAM_ID,
@@ -171,13 +171,7 @@ def test_websocket_submits_exact_human_response_without_browser_type(monkeypatch
         monkeypatch.setattr(main, "_start_ws_turn", start)
         websocket, _ = _websocket("{}")
         await websocket.accept()
-        state = {
-            "active": None,
-            "pending_human": {
-                "challenge_id": "c" * 32,
-                "request": _human_request("auth:totp"),
-            },
-        }
+        state = _pending_state("auth:totp")
         await _ws_dispatch(
             websocket,
             TEST_TEAM_ID,
@@ -206,15 +200,7 @@ def test_final_websocket_gate_remembers_only_public_human_challenge():
         websocket, sent = _websocket("{}")
         await websocket.accept()
         state = {"pending_human": None}
-        turn = main._WsTurn(
-            websocket,
-            TEST_TEAM_ID,
-            {"X-Shimpz-Account": "session"},
-            "hello",
-            asyncio.Event(),
-            asyncio.Event(),
-            state=state,
-        )
+        turn = _turn(websocket, state)
         await main._send_relay_event(turn, _human_challenge(), main._RelayDelivery())
         assert json.loads(sent[-1]["text"]) == _validated_terminal_event(
             _human_challenge(),
@@ -328,15 +314,7 @@ def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purp
         websocket, sent = _websocket("{}")
         await websocket.accept()
         state = {"pending_human": None}
-        turn = main._WsTurn(
-            websocket,
-            TEST_TEAM_ID,
-            {"X-Shimpz-Account": "session"},
-            "hello",
-            asyncio.Event(),
-            asyncio.Event(),
-            state=state,
-        )
+        turn = _turn(websocket, state)
         challenge = {**_human_challenge(request=_stored_input_request()), "purpose": purpose, "help_url": KEY_PAGE}
         await main._send_relay_event(turn, challenge, main._RelayDelivery())
         relayed = json.loads(sent[-1]["text"])
@@ -481,15 +459,7 @@ def test_hosted_relay_forwards_the_rendered_copy_locale_and_pack_beside_the_cano
         websocket, sent = _websocket("{}")
         await websocket.accept()
         state = {"pending_human": None}
-        turn = main._WsTurn(
-            websocket,
-            TEST_TEAM_ID,
-            {"X-Shimpz-Account": "session"},
-            "hello",
-            asyncio.Event(),
-            asyncio.Event(),
-            state=state,
-        )
+        turn = _turn(websocket, state)
         challenge = _portuguese_choice()
         await main._send_relay_event(turn, challenge, main._RelayDelivery())
         relayed = json.loads(sent[-1]["text"])

@@ -86,6 +86,23 @@ def _websocket_disconnect_code(
     return raised.value.code
 
 
+def _verified(monkeypatch) -> None:
+    """Admit every chat WebSocket as one verified Account session."""
+
+    async def verified(_ws: WebSocket) -> tuple[str, str]:
+        return "account-token", "account-one"
+
+    monkeypatch.setattr(main, "_ws_verify", verified)
+
+
+def _connect(client: TestClient, team: str = "test_team"):
+    """Open the chat WebSocket of `team` from an allowed origin with the current subprotocol."""
+    allowed = next(iter(WS_ALLOWED_ORIGINS))
+    return client.websocket_connect(
+        f"/api/teams/{team}/chat/ws", headers={"origin": allowed}, subprotocols=[CHAT_WS_SUBPROTOCOL]
+    )
+
+
 def _origin_variants(origin: str) -> tuple[str, str, str]:
     parsed = urlparse(origin)
     explicit_port = f":{parsed.port}" if parsed.port is not None else ""
@@ -150,35 +167,17 @@ def test_websocket_requires_and_negotiates_the_v2_chat_subprotocol(monkeypatch):
         assert _websocket_disconnect_code(client, allowed, ()) == 4406
         assert _websocket_disconnect_code(client, allowed, ("shimpz.chat.v1",)) == 4406
 
-    async def verified(_ws: WebSocket) -> tuple[str, str]:
-        return "account-token", "account-one"
-
-    monkeypatch.setattr(main, "_ws_verify", verified)
-    with (
-        TestClient(app) as client,
-        client.websocket_connect(
-            "/api/teams/test_team/chat/ws",
-            headers={"origin": allowed},
-            subprotocols=[CHAT_WS_SUBPROTOCOL],
-        ) as websocket,
-    ):
+    _verified(monkeypatch)
+    with TestClient(app) as client, _connect(client) as websocket:
         assert websocket.accepted_subprotocol == CHAT_WS_SUBPROTOCOL
 
 
 def test_websocket_rejects_malformed_team_id_before_admission(monkeypatch):
-    async def verified(_ws: WebSocket) -> tuple[str, str]:
-        return "account-token", "account-one"
-
-    monkeypatch.setattr(main, "_ws_verify", verified)
-    allowed = next(iter(WS_ALLOWED_ORIGINS))
+    _verified(monkeypatch)
     with (
         TestClient(app) as client,
         pytest.raises(WebSocketDisconnect) as raised,
-        client.websocket_connect(
-            "/api/teams/bad%20id/chat/ws",
-            headers={"origin": allowed},
-            subprotocols=[CHAT_WS_SUBPROTOCOL],
-        ),
+        _connect(client, "bad%20id"),
     ):
         pass
     assert raised.value.code == 4400
@@ -265,19 +264,8 @@ def test_websocket_frame_limit_is_enforced_before_json_parsing():
 
 
 def test_websocket_rejects_binary_frames_even_when_they_contain_valid_json(monkeypatch):
-    async def verified(_ws: WebSocket) -> tuple[str, str]:
-        return "account-token", "account-one"
-
-    monkeypatch.setattr(main, "_ws_verify", verified)
-    allowed = next(iter(WS_ALLOWED_ORIGINS))
-    with (
-        TestClient(app) as client,
-        client.websocket_connect(
-            "/api/teams/test_team/chat/ws",
-            headers={"origin": allowed},
-            subprotocols=[CHAT_WS_SUBPROTOCOL],
-        ) as websocket,
-    ):
+    _verified(monkeypatch)
+    with TestClient(app) as client, _connect(client) as websocket:
         websocket.send_bytes(b'{"type":"stop"}')
         assert websocket.receive_json() == {
             "type": "error",

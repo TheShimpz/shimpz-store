@@ -6,11 +6,22 @@ from fastapi.testclient import TestClient
 from app import config
 from app.main import app
 from app.routers import action_assurance
+from tests.request_fixture import upstream
 
 TEAM_ID = "team_1"
 CHALLENGE_ID = "a" * 32
 HANDLE = "b" * 43
 ORIGIN = next(iter(config.ASSISTANT_MUTATION_ALLOWED_ORIGINS))
+
+
+def _password_assurance(client, monkeypatch, status: int, body: dict):
+    """Answer the Account hop with `status` and `body`, then submit one password Action assurance."""
+    monkeypatch.setattr(action_assurance, "call_bounded", upstream((status, body)))
+    return client.post(
+        "/api/security/action-assurance/password",
+        headers={"origin": ORIGIN},
+        json={"team_id": TEAM_ID, "challenge_id": CHALLENGE_ID, "password": "factor-never-reflected"},
+    )
 
 
 @pytest.fixture
@@ -151,19 +162,7 @@ def test_action_assurance_accepts_bounded_account_owned_handle_expiry(
     monkeypatch,
     expires_in: int,
 ):
-    async def account_call(*_args, **_kwargs):
-        return 200, {"version": 1, "handle": HANDLE, "expires_in": expires_in}
-
-    monkeypatch.setattr(action_assurance, "call_bounded", account_call)
-    response = client.post(
-        "/api/security/action-assurance/password",
-        headers={"origin": ORIGIN},
-        json={
-            "team_id": TEAM_ID,
-            "challenge_id": CHALLENGE_ID,
-            "password": "factor-never-reflected",
-        },
-    )
+    response = _password_assurance(client, monkeypatch, 200, {"version": 1, "handle": HANDLE, "expires_in": expires_in})
 
     assert response.status_code == 200
     assert response.json() == {"version": 1, "handle": HANDLE, "expires_in": expires_in}
@@ -231,20 +230,7 @@ def test_action_assurance_redacts_failures_and_rejects_expanded_successes(
     assurance_case: tuple[int, dict, int, str],
 ):
     status, body, expected_status, expected_detail = assurance_case
-
-    async def account_call(*_args, **_kwargs):
-        return status, body
-
-    monkeypatch.setattr(action_assurance, "call_bounded", account_call)
-    response = client.post(
-        "/api/security/action-assurance/password",
-        headers={"origin": ORIGIN},
-        json={
-            "team_id": TEAM_ID,
-            "challenge_id": CHALLENGE_ID,
-            "password": "factor-never-reflected",
-        },
-    )
+    response = _password_assurance(client, monkeypatch, status, body)
 
     assert response.status_code == expected_status
     assert response.json() == {"detail": expected_detail}
