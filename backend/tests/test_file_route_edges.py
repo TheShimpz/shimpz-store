@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import secrets
 import threading
 
 import pytest
@@ -13,22 +12,14 @@ from starlette.requests import Request
 from app import authn
 from app.main import app
 from app.routers import files
+from tests.request_fixture import session
 
 FILE_ID = "a" * 32
 ORIGIN = {"Origin": "https://shimpz.com"}
 
 
-def _session(authenticated: bool = True):
-    token = secrets.token_hex(16) if authenticated else ""
-
-    async def current(_request):
-        return token, "account" if token else "", "user" if token else ""
-
-    return current
-
-
 def test_file_routes_reject_unauthenticated_requests(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session(False))
+    monkeypatch.setattr(authn, "authed_account_bounded", session(False))
     with TestClient(app) as client:
         listing = client.get("/api/teams/team/files")
         upload = client.post(
@@ -41,7 +32,7 @@ def test_file_routes_reject_unauthenticated_requests(monkeypatch):
 
 
 def test_file_listing_rejects_bad_team_upstream_failure_and_invalid_projection(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     responses = iter(((503, {"detail": "unavailable"}), (200, {})))
 
     async def upstream(*_args, **_kwargs):
@@ -58,7 +49,7 @@ def test_file_listing_rejects_bad_team_upstream_failure_and_invalid_projection(m
 
 
 def test_file_upload_rejects_bad_team_size_and_metadata(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     with TestClient(app) as client:
         bad_team = client.post(
             "/api/teams/Invalid/files",
@@ -90,7 +81,7 @@ def test_file_upload_rejects_bad_team_size_and_metadata(monkeypatch):
 
 
 def test_file_upload_forwards_upstream_failure_and_rejects_invalid_projection(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     responses = iter(((503, {"detail": "unavailable"}), (200, {})))
 
     async def upstream(*_args, **_kwargs):
@@ -113,7 +104,7 @@ def test_file_upload_forwards_upstream_failure_and_rejects_invalid_projection(mo
 
 
 def test_file_deletion_rejects_origin_team_and_file_identity(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     with TestClient(app) as client:
         forbidden = client.delete(f"/api/teams/team/files/{FILE_ID}")
         bad_team = client.delete(f"/api/teams/Invalid/files/{FILE_ID}", headers=ORIGIN)
@@ -124,7 +115,7 @@ def test_file_deletion_rejects_origin_team_and_file_identity(monkeypatch):
 
 
 def test_file_deletion_forwards_upstream_failure_and_rejects_invalid_projection(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     responses = iter(((503, {"detail": "unavailable"}), (200, {})))
 
     async def upstream(*_args, **_kwargs):
@@ -150,16 +141,16 @@ def test_an_upload_is_refused_before_its_body_is_read(monkeypatch):
     monkeypatch.setattr(Request, "stream", recording)
     body = {"file": ("file.txt", b"data" * 1024, "text/plain")}
     with TestClient(app) as client:
-        monkeypatch.setattr(authn, "authed_account_bounded", _session(False))
+        monkeypatch.setattr(authn, "authed_account_bounded", session(False))
         anonymous = client.post("/api/teams/team/files", files=body, headers=ORIGIN)
-        monkeypatch.setattr(authn, "authed_account_bounded", _session())
+        monkeypatch.setattr(authn, "authed_account_bounded", session())
         foreign = client.post("/api/teams/team/files", files=body)
     assert (anonymous.status_code, foreign.status_code) == (401, 403)
     assert read == []
 
 
 def test_an_upload_admits_exactly_one_file_part_and_no_fields(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     forwarded = []
 
     async def upstream(*args, **_kwargs):
@@ -205,7 +196,7 @@ def test_the_upload_stream_stops_at_its_byte_bound_without_draining_the_body():
 
 
 def test_malformed_or_unterminated_multipart_is_refused_without_dispatch(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     forwarded = []
 
     async def upstream(*args, **_kwargs):
@@ -238,7 +229,7 @@ def test_malformed_or_unterminated_multipart_is_refused_without_dispatch(monkeyp
 
 def test_an_upload_holds_one_admission_slot_from_parsing_through_the_team_hop(monkeypatch):
     """A saturated upload budget refuses before reading the body; a slot is held until Team answers."""
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     admission = threading.BoundedSemaphore(1)
     monkeypatch.setattr(files, "UPLOAD_ADMISSION", admission)
     read = []

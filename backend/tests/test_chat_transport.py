@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import pytest
-from fastapi import Request, WebSocket
+from fastapi import WebSocket
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -23,6 +23,7 @@ from app.config import canonical_origin as _canonical_origin
 from app.main import app
 from app.payloads import ClientPayloadError, read_bounded_json
 from tests.chat_relay_fixture import scripted_websocket as _websocket
+from tests.request_fixture import one_shot_request
 
 TEST_TEAM_ID = "test_team"
 VERIFY_CAPABILITY = "d" * 64
@@ -218,27 +219,14 @@ def test_canonical_origin(value: str | None, expected: str | None):
     assert _canonical_origin(value) == expected
 
 
-def _request(body: bytes, headers: list[tuple[bytes, bytes]] | None = None) -> Request:
-    delivered = False
-
-    async def receive() -> dict:
-        nonlocal delivered
-        if delivered:
-            return {"type": "http.disconnect"}
-        delivered = True
-        return {"type": "http.request", "body": body, "more_body": False}
-
-    return Request({"type": "http", "headers": headers or []}, receive)
-
-
 def test_bounded_json_rejects_declared_and_streamed_oversize_bodies():
     async def scenario() -> None:
         with pytest.raises(ClientPayloadError) as declared:
-            await read_bounded_json(_request(b"{}", [(b"content-length", b"9")]), 8)
+            await read_bounded_json(one_shot_request(b"{}", [(b"content-length", b"9")]), 8)
         assert declared.value.status == 413
 
         with pytest.raises(ClientPayloadError) as streamed:
-            await read_bounded_json(_request(b'{"x":123}'), 8)
+            await read_bounded_json(one_shot_request(b'{"x":123}'), 8)
         assert streamed.value.status == 413
 
     asyncio.run(scenario())

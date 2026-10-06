@@ -5,24 +5,11 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from fastapi import Request
 
 from app import projections
 from app.config import MAX_CHAT_ASSISTANTS
 from app.payloads import ClientPayloadError, read_bounded_json
-
-
-def _request(body: bytes, headers: list[tuple[bytes, bytes]] | None = None) -> Request:
-    delivered = False
-
-    async def receive() -> dict[str, object]:
-        nonlocal delivered
-        if delivered:
-            return {"type": "http.disconnect"}
-        delivered = True
-        return {"type": "http.request", "body": body, "more_body": False}
-
-    return Request({"type": "http", "headers": headers or []}, receive)
+from tests.request_fixture import one_shot_request
 
 
 @pytest.mark.parametrize(
@@ -39,7 +26,7 @@ def _request(body: bytes, headers: list[tuple[bytes, bytes]] | None = None) -> R
 def test_bounded_json_rejects_invalid_declared_and_structural_payloads(body, headers, detail):
     async def scenario() -> None:
         with pytest.raises(ClientPayloadError) as exc:
-            await read_bounded_json(_request(body, headers), 100)
+            await read_bounded_json(one_shot_request(body, headers), 100)
         assert exc.value.status == 400
         assert exc.value.detail == detail
 
@@ -47,7 +34,7 @@ def test_bounded_json_rejects_invalid_declared_and_structural_payloads(body, hea
 
 
 def test_bounded_json_defaults_an_empty_body_to_an_object():
-    assert asyncio.run(read_bounded_json(_request(b""), 100)) == {}
+    assert asyncio.run(read_bounded_json(one_shot_request(b""), 100)) == {}
 
 
 def test_public_file_projections_delegate_to_the_closed_team_contract():
@@ -202,4 +189,4 @@ def test_running_inventory_rejects_ambiguous_controller_data(value):
 
 
 def test_bounded_json_admits_a_finite_decimal():
-    assert asyncio.run(read_bounded_json(_request(b'{"value":1.5e3}'), 100)) == {"value": 1500.0}
+    assert asyncio.run(read_bounded_json(one_shot_request(b'{"value":1.5e3}'), 100)) == {"value": 1500.0}

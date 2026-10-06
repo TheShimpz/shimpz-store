@@ -4,42 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-import secrets
 
 import pytest
-from fastapi import Request
 from fastapi.testclient import TestClient
 
 from app import authn
 from app.main import app
 from app.oauth_broker import SCOPES, OAuthBrokerError
 from app.routers import action_assurance, model_providers, oauth, teams
-
-
-def _session(authenticated: bool = True):
-    token = secrets.token_hex(16) if authenticated else ""
-
-    async def current(_request):
-        return token, "account" if token else "", "user" if token else ""
-
-    return current
-
-
-def _request(body: bytes, headers: list[tuple[bytes, bytes]]) -> Request:
-    delivered = False
-
-    async def receive():
-        nonlocal delivered
-        if delivered:
-            return {"type": "http.disconnect"}
-        delivered = True
-        return {"type": "http.request", "body": body, "more_body": False}
-
-    return Request({"type": "http", "headers": headers}, receive)
+from tests.request_fixture import one_shot_request, session
 
 
 def test_model_provider_routes_reject_unauthenticated_requests(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session(False))
+    monkeypatch.setattr(authn, "authed_account_bounded", session(False))
     with TestClient(app) as client:
         listing = client.get("/api/model-providers")
         upsert = client.post("/api/model-providers/openai", json={})
@@ -48,7 +25,7 @@ def test_model_provider_routes_reject_unauthenticated_requests(monkeypatch):
 
 
 def test_model_provider_listing_forwards_failure_and_rejects_invalid_inventory(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     responses = iter(((503, {"detail": "unavailable"}), (200, {})))
 
     async def upstream(*_args, **_kwargs):
@@ -63,7 +40,7 @@ def test_model_provider_listing_forwards_failure_and_rejects_invalid_inventory(m
 
 
 def test_model_provider_mutations_reject_shape_and_unknown_provider(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     with TestClient(app) as client:
         wrong_shape = client.post(
             "/api/model-providers/openai", json={"auth_type": "api_key"}, headers={"Origin": "https://shimpz.com"}
@@ -110,7 +87,7 @@ def test_action_assurance_error_categories_and_invalid_descriptors():
 
 
 def test_action_assurance_rejects_non_object_account_response(monkeypatch):
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
 
     async def invalid(*_args, **_kwargs):
         return 200, []
@@ -126,7 +103,7 @@ def test_action_assurance_rejects_non_object_account_response(monkeypatch):
 
 
 def test_oauth_body_requires_an_explicit_length():
-    request = _request(b"{}", [(b"content-type", b"application/json")])
+    request = one_shot_request(b"{}", [(b"content-type", b"application/json")])
     with pytest.raises(Exception) as exc:
         asyncio.run(oauth._body(request, frozenset()))
     assert getattr(exc.value, "status", None) == 411
@@ -169,7 +146,7 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch):
         )
     assert callback.status_code == 502
 
-    request = _request(
+    request = one_shot_request(
         b"{}",
         [(b"content-type", b"application/json"), (b"content-length", b"2")],
     )
@@ -179,7 +156,7 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch):
 
 def test_credential_and_team_creation_posts_refuse_foreign_origins_and_simple_bodies(monkeypatch):
     """A cookie-authenticated POST a cross-site simple request (no preflight) can reach is refused before dispatch."""
-    monkeypatch.setattr(authn, "authed_account_bounded", _session())
+    monkeypatch.setattr(authn, "authed_account_bounded", session())
     dispatched = []
 
     async def upstream(*args, **_kwargs):

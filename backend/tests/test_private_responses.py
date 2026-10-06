@@ -2,27 +2,18 @@
 
 from __future__ import annotations
 
-import secrets
 
 from fastapi.testclient import TestClient
 
 from app import authn
 from app.main import app
 from app.routers import inference, model_providers, teams
+from tests.request_fixture import session
 
 ORIGIN = {"Origin": "https://shimpz.com"}
 CREDENTIAL = {"auth_type": "api_key", "secret": "sk-browser-contract-key"}
 TEAM = {"team_name": "Astra", "provider": "openai", "model": "gpt-6-luna"}
 SELECTION = {"provider": "openai", "model": "gpt-6-luna", "effort": "low"}
-
-
-def _session(authenticated: bool):
-    token = secrets.token_hex(16) if authenticated else ""
-
-    async def current(_request):
-        return token, "account" if token else "", "user" if token else ""
-
-    return current
 
 
 def _requests(client):
@@ -47,11 +38,11 @@ def test_authenticated_team_credential_and_inference_responses_are_never_stored(
         monkeypatch.setattr(module, "call_bounded", upstream)
     monkeypatch.setattr(model_providers, "call", lambda *_args, **_kwargs: (503, {"detail": "unavailable"}))
     with TestClient(app) as client:
-        monkeypatch.setattr(authn, "authed_account_bounded", _session(True))
+        monkeypatch.setattr(authn, "authed_account_bounded", session(True))
         succeeded = _requests(client)
         status = 503
         failed = (*_requests(client), client.delete("/api/model-providers/openai"))
-        monkeypatch.setattr(authn, "authed_account_bounded", _session(False))
+        monkeypatch.setattr(authn, "authed_account_bounded", session(False))
         anonymous = _requests(client)
     for response in (*succeeded, *failed, *anonymous):
         assert response.headers.get("cache-control") == "private, no-store", response.request.url
