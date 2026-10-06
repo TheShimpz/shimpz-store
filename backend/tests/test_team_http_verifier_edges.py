@@ -457,6 +457,12 @@ def test_verifier_rejects_missing_or_drifted_recorded_routine_vectors(tmp_path):
             "a routine phrase team_asks vector differs",
         ),
         (
+            lambda v: v["routine_phrase"]["requests_routine"][0].update(
+                {"requests": not v["routine_phrase"]["requests_routine"][0]["requests"]}
+            ),
+            "a routine phrase requests_routine vector differs",
+        ),
+        (
             lambda v: v["routine_phrase"]["outputs"][0].update({"outputs": ["drift"]}),
             "a routine phrase outputs vector differs",
         ),
