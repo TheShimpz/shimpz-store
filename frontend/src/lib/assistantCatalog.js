@@ -6,6 +6,8 @@ export const MAX_CATALOG_ASSISTANTS = 1000;
 const MAX_ASSISTANT_ACTIONS = 128;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
+// The Assistant summary is a short description of at most 80 characters, in every interface language.
+const ASSISTANT_SUMMARY_CHARS = 80;
 const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const HUMAN_REQUEST_KINDS = new Set([
   "approval",
@@ -53,8 +55,9 @@ function hasExactKeys(value, expected) {
  * @returns {value is string}
  */
 function boundedText(value, maximum, allowEmpty = false) {
+  // Every bound counts Unicode code points, as the producer protocols do, never UTF-16 code units.
   return typeof value === "string" &&
-    value.length <= maximum &&
+    [...value].length <= maximum &&
     (allowEmpty || value.length > 0) &&
     value.trim() === value &&
     !/[\u0000-\u001f\u007f]/u.test(value);
@@ -109,7 +112,7 @@ function parseAssistant(value) {
     !boundedText(record.assistant_id, 80) ||
     !ASSISTANT_ID_RE.test(record.assistant_id) ||
     !boundedText(record.name, 160) ||
-    !boundedText(record.summary, 500) ||
+    !boundedText(record.summary, ASSISTANT_SUMMARY_CHARS) ||
     !boundedText(record.assistant_version, 80) ||
     typeof record.github !== "string" ||
     !GITHUB_RE.test(record.github) ||

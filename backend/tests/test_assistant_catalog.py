@@ -314,7 +314,7 @@ ADMIN_CATALOG_BYTE_LIMIT = 4 * 1024 * 1024
 def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(monkeypatch) -> None:
     """The response keeps multibyte text as UTF-8; escaping it would push a valid full catalog past Admin's cap."""
     name = "Á" * 80
-    summary = "É" * 160
+    summary = "É" * 80
 
     def entry(index: int) -> dict[str, object]:
         # Long public texts make a full catalog near the consumer cap, as real publications can be.
@@ -336,3 +336,17 @@ def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(mo
     assert response.status_code == 200
     assert len(response.content) <= ADMIN_CATALOG_BYTE_LIMIT
     assert name in response.text
+
+
+def test_the_summary_is_a_short_description_of_at_most_eighty_characters(monkeypatch) -> None:
+    for summary in ("s" * 80, "s" * 79 + "\U0001f44b"):
+        catalog_value = _catalog(_assistant(summary=summary))
+        monkeypatch.setattr(public, "call", lambda *_args, value=catalog_value, **_kwargs: (200, value))
+        with TestClient(app) as client:
+            response = client.get("/api/assistants?locale=en")
+        assert response.status_code == 200
+        assert response.json()["assistants"][0]["summary"] == summary
+    over = _catalog(_assistant(summary="s" * 81))
+    monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, over))
+    with TestClient(app) as client:
+        assert client.get("/api/assistants?locale=en").status_code != 200

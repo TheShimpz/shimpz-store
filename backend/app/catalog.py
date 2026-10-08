@@ -162,7 +162,7 @@ def _assistant(value: object) -> dict[str, object]:
     return {
         "assistant_id": assistant_id,
         "name": _text(value["name"], 80),
-        "summary": _text(value["summary"], 160),
+        "summary": _text(value["summary"], 80),
         "assistant_version": version,
         "creators": _creators(value["creators"]),
         "github": github,

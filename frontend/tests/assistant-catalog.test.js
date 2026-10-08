@@ -123,6 +123,17 @@ test("admits exactly the producer's 1,000-entry catalog and refuses one more", (
   assert.throws(() => parseAssistantCatalog(entries(1001)), /too large/);
 });
 
+test("bounds the summary to 80 code points, a character outside the Basic Multilingual Plane counting once", () => {
+  for (const summary of ["s".repeat(80), `${"s".repeat(79)}\u{1F44B}`]) {
+    const value = catalog();
+    value.assistants[0].summary = summary;
+    assert.equal(parseLocalized(value, "en")[0].summary, summary);
+  }
+  const over = catalog();
+  over.assistants[0].summary = "s".repeat(81);
+  assert.throws(() => parseLocalized(over, "en"));
+});
+
 test("accepts only the catalog of exactly the requested interface language", () => {
   const value = catalog();
   value.locale = "pt";
