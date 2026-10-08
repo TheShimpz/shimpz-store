@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from app.protocol.http.v1 import payload as team_contract
+from app.protocol.http.v1 import turn as turn_contract
 from app.protocol.http.v1 import websocket as chat_ws_common
 
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
@@ -84,7 +85,7 @@ PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
 MAX_CHAT_MESSAGE_CHARS = team_contract.MAX_CHAT_MESSAGE_CHARS
 MAX_CHAT_FILES = team_contract.MAX_CHAT_FILES
 MAX_CHAT_ASSISTANTS = team_contract.MAX_CHAT_ASSISTANTS
-MAX_CHAT_REPLY_CHARS = 60_000
+MAX_CHAT_REPLY_CHARS = turn_contract.MAX_REPLY_CHARS
 MAX_CHAT_ERROR_DETAIL_CHARS = 800
 TERMINAL_CONTRACT_ERROR = "team stream violated the terminal event contract"
 CHAT_WS_SUBPROTOCOL = "shimpz.chat.v7"
