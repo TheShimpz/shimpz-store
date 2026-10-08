@@ -126,7 +126,8 @@ def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, obj
         human_requests = _closed_strings(item["human_requests"], 11, 25)
         if any(kind not in _HUMAN_REQUEST_KINDS for kind in human_requests):
             raise CatalogError("catalog Action human requests are invalid")
-        if not set(_closed_strings(item["stored_inputs"], 1, 64)) <= stored_inputs:
+        # An Action may use any of its Assistant's declared Stored Inputs, at most eight (ADR-0059).
+        if not set(_closed_strings(item["stored_inputs"], 8, 64)) <= stored_inputs:
             raise CatalogError("catalog Action Stored Inputs are invalid")
         projected.append(
             {

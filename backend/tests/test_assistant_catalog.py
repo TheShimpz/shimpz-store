@@ -350,3 +350,15 @@ def test_the_summary_is_a_short_description_of_at_most_eighty_characters(monkeyp
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, over))
     with TestClient(app) as client:
         assert client.get("/api/assistants?locale=en").status_code != 200
+
+
+def test_an_action_may_use_several_declared_stored_inputs() -> None:
+    keys = [{"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key."} for index in range(8)]
+    names = [key["id"] for key in keys]
+    assistant = _assistant(stored_inputs=keys)
+    assistant["actions"][0]["stored_inputs"] = names
+    projected = catalog.project_catalog(_catalog(assistant), "en")
+    assert projected["assistants"][0]["actions"][0]["id"] == "hello"
+    assistant["actions"][0]["stored_inputs"] = [*names, "key-8"]
+    with pytest.raises(catalog.CatalogError):
+        catalog.project_catalog(_catalog(assistant), "en")
