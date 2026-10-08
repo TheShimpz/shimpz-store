@@ -426,15 +426,15 @@ def test_verifier_rejects_missing_or_drifted_recorded_routine_vectors(tmp_path):
             "a valid routine position vector was not admitted exactly",
         ),
         (
-            _set(("routine_position", "invalid"), [{"value": {"phase": "decision", "call": 1}, "steps": 0}]),
+            _set(("routine_position", "invalid"), [{"value": {"phase": "replay", "step": 1}, "steps": 1}]),
             "an invalid routine position vector was admitted",
         ),
         (_set(("routine_proposal", "generated"), ["largest-unicode"]), "routine proposal vectors are missing"),
         (proposal_name, "a generated routine proposal vector differs at its bound"),
         (lambda v: v.pop("routine_refusal"), "routine_refusal vectors are missing"),
         (
-            _set(("routine_decision_record", "valid"), [{"state": "decided"}]),
-            "a valid routine_decision_record vector was not admitted exactly",
+            _set(("routine_listing", "valid"), [[{"output": {"mode": "decide"}}]]),
+            "a valid routine_listing vector was not admitted exactly",
         ),
         (
             _set(("routine_proposal_answer", "invalid"), lambda v: [v["routine_proposal_answer"]["valid"][0]]),
