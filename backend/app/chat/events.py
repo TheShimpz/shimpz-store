@@ -269,9 +269,9 @@ def _human_input_base(value: dict, base: dict[str, object]) -> dict[str, object]
 
 def _human_text_request(value: dict, base: dict[str, object], limit: int) -> dict | None:
     expected = _HUMAN_BASE_FIELDS | {"label", "required", "placeholder", "min_length", "max_length"}
-    # A password request may name one of the Stored Inputs its Action declares (ADR-0059).
+    # A password request always names one of the Stored Inputs its Action declares (ADR-0059, ADR-0106).
     stored_input = value.get("stored_input") if base["kind"] == "input:password" else None
-    if stored_input is not None:
+    if base["kind"] == "input:password":
         if team_contract.canonical_identifier(stored_input) is None:
             return None
         expected |= {"stored_input"}

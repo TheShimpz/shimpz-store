@@ -335,6 +335,9 @@ def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purp
         {**_human_challenge(request=_stored_input_request()), "help_url": KEY_PAGE + "\n"},
         _human_challenge(request=_stored_input_request(stored_input="Not An Id")),
         _human_challenge(
+            request={key: value for key, value in _stored_input_request().items() if key != "stored_input"}
+        ),
+        _human_challenge(
             request=_human_request(
                 "input:text",
                 label="Zone",
@@ -370,10 +373,10 @@ def test_terminal_event_contract_refuses_invalid_presentation_or_misplaced_store
             for kind, maximum in (
                 ("input:text", 4096),
                 ("input:textarea", 16_000),
-                ("input:password", 1024),
                 ("input:phone", 64),
             )
         ],
+        _stored_input_request(),
         *[
             _human_request(
                 kind,
