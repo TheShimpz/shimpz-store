@@ -1,6 +1,6 @@
 # Store egress
 
-This Store-owned boundary is the hosted OAuth broker's only route to private Neuron. The Store process and
+This Store-owned boundary is the platform OAuth broker's only route to private Neuron. The Store process and
 `shimpz-store-egress` share one internal network; only the proxy joins an outbound network.
 
 The proxy accepts exactly `CONNECT neuron.shimpz.com:443`, resolves only public addresses and connects one of them,

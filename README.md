@@ -1,14 +1,14 @@
 # Shimpz Store
 
-Shimpz Store owns the institutional website, public Assistant discovery, and the catalog surface embedded by Local
-Admin. Its public SvelteKit frontend exposes the homepage, Assistant catalog and disclosures, institutional footer
-pages, and the branded not-found experience. It exposes no public Account, login, Team, chat, model-provider setup,
-or Hosted Assistant-installation page.
+Shimpz Store owns the institutional website, public Assistant discovery, the catalog surface embedded by Local
+Admin, and the platform Cloudflare OAuth broker. Its public SvelteKit frontend exposes the homepage, Assistant catalog
+and disclosures, institutional footer pages, and the branded not-found experience. It exposes no Account, login,
+Team, chat, model-provider, or Assistant-installation API or page.
 
-The FastAPI backend projects the public Developers catalog and retains authenticated Hosted orchestration APIs for
-Account, Team, files, inference, Assistant lifecycle, OAuth, and `shimpz.chat.v7`. No current public Store browser
-surface consumes those retained application APIs. Store is an unprivileged gateway, not publication, Account, Team,
-or installation authority; it has no Docker socket, provider admin key, or Team bearer.
+The FastAPI backend projects the public Developers catalog and its icons, serves the prerendered site, and brokers
+Cloudflare OAuth for Local Spaces. It starts with only Developers and its OAuth secrets. Store is an unprivileged
+gateway, not publication, Account, Team, or installation authority; it has no Docker socket, provider admin key, or
+Team bearer.
 
 ## Security boundary
 
@@ -16,12 +16,8 @@ or installation authority; it has no Docker socket, provider admin key, or Team 
   mutable artifact identity.
 - Local Admin's embedded catalog sends only an exact Assistant ID and source digest. Team independently authorizes,
   resolves, verifies, binds, and runs that publication.
-- Retained Hosted APIs verify secure, HTTP-only, same-site Account sessions before protected work. Team IDs bind the
-  complete Account ID and normalized Team name with a collision-resistant digest.
-- OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state,
-  logs, or controller chat frames.
-- The retained Chat v5 backend accepts only bounded messages, opaque file IDs, and selected installed Assistant IDs,
-  and emits only exact admitted frames.
+- OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state, or logs.
+  The broker returns to the Local Admin only by a closed callback mode: `loopback`, `local-domain`, or `out-of-band`.
 - Static files resolve beneath the built application root; unknown API paths do not fall through to the
   SPA, and private JSON responses are non-cacheable.
 

@@ -135,7 +135,7 @@ test("accepts only exact bounded installed-Assistant state from the loopback par
   );
 });
 
-test("accepts bounded installed-Assistant state from the named hosted Admin", () => {
+test("accepts bounded installed-Assistant state from the named local-domain Admin", () => {
   const parentWindow = {};
   const parentOrigin = "https://local.shimpz.com";
   const ready = {

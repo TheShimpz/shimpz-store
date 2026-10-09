@@ -1,5 +1,5 @@
 #!/usr/local/bin/python3
-"""CONNECT-only outbound enforcement from hosted Store to private Neuron.
+"""CONNECT-only outbound enforcement from the platform Store to private Neuron.
 
 The image's neutral CONNECT transport (`connect`, ADR-0104) resolves, records, connects, admits the TLS ClientHello,
 and splices; this profile owns only its exact request, audit, and resource envelope.
