@@ -91,12 +91,15 @@ function boundedText(value, maximum, allowEmpty = false) {
 }
 
 /**
- * One localized display text: bounded, trimmed, and free of C0, DEL, and C1 controls.
+ * One localized display text as Team admits it: bounded, trimmed, printable (no control, format, surrogate,
+ * private-use, or unassigned character, and no separator but the ASCII space), and NFC.
  * @param {unknown} value
  * @param {number} maximum
  */
 function displayText(value, maximum) {
-  return boundedText(value, maximum) && !/[\u0080-\u009f]/u.test(/** @type {string} */ (value));
+  return boundedText(value, maximum) &&
+    !/[\p{C}\p{Zl}\p{Zp}]|(?! )\p{Zs}/u.test(/** @type {string} */ (value)) &&
+    value === /** @type {string} */ (value).normalize("NFC");
 }
 
 /** @param {unknown} value */

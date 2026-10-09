@@ -5,6 +5,7 @@ publication's own language pack; Creator links are unverified, presentation-only
 """
 
 import re
+import unicodedata
 
 from app.protocol.http.v1 import payload as team_contract
 
@@ -78,9 +79,9 @@ def _text(value: object, maximum: int) -> str:
 
 
 def _display(value: object, maximum: int) -> str:
-    """One localized display text: bounded, trimmed, and free of C0, DEL, and C1 controls."""
+    """One localized display text as Team admits it: bounded, trimmed, printable, and NFC."""
     text = _text(value, maximum)
-    if text.strip() != text or any(0x7F <= ord(char) <= 0x9F for char in text):
+    if text.strip() != text or not text.isprintable() or not unicodedata.is_normalized("NFC", text):
         raise CatalogError("catalog display text is invalid")
     return text
 
