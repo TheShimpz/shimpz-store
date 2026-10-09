@@ -10,3 +10,8 @@ from Store, so this process receives no Access credential, OAuth request, respon
 The implementation is packaged only by the root `ghcr.io/theshimpz/shimpz-egress` assembly under its closed
 `store` profile. It is not part of the Store web image and does not share policy, identity, audit, networks, or
 lifecycle with another egress profile.
+
+After the `200`, the tunnel relays nothing until Store's TLS ClientHello names exactly `neuron.shimpz.com`
+(`client_hello.py`, one RFC 6066 host name, no ECH). A different, missing, or non-TLS first flight closes both sides
+and is recorded as a `denied` event with code `403` and a stable reason; that code classifies the refusal and is not
+sent, because the `200` already was.

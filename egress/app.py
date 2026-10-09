@@ -1,5 +1,9 @@
 #!/usr/local/bin/python3
-"""CONNECT-only outbound enforcement from hosted Store to private Neuron."""
+"""CONNECT-only outbound enforcement from hosted Store to private Neuron.
+
+A tunnel relays nothing until Store's TLS ClientHello names exactly the allowed host (`client_hello`), so another
+server name cannot front through the same edge address.
+"""
 
 import contextlib
 import ipaddress
@@ -10,6 +14,7 @@ import threading
 import time
 
 import audit
+import client_hello
 
 LISTEN_PORT = 8889
 ALLOWED_HOST = "neuron.shimpz.com"
@@ -175,7 +180,35 @@ class Handler(socketserver.BaseRequestHandler):
             cls._reply(client, 503)
             return
         cls._reply(client, 200)
+        cls._relay(client, upstream)
+
+    @classmethod
+    def _relay(cls, client: socket.socket, upstream: socket.socket) -> None:
+        """Splice only after the client's first ClientHello names exactly the allowed host; otherwise relay no byte.
+
+        The `ok` record covers the admitted CONNECT; a refused ClientHello adds one `denied` record whose code
+        classifies it, after the 200 was sent.
+        """
+        try:
+            prefix = client_hello.admit(client, ALLOWED_HOST, time.monotonic() + CONNECT_TIMEOUT)
+            upstream.settimeout(CONNECT_TIMEOUT)
+            upstream.sendall(prefix)
+        except client_hello.RefusalError as refusal:
+            cls._close(client, upstream)
+            with contextlib.suppress(audit.AuditError):
+                audit.record(result="denied", code=403, reason=refusal.reason, subject="neuron.shimpz.com:443")
+            return
+        except OSError:
+            cls._close(client, upstream)
+            return
         cls._tunnel(client, upstream)
+
+    @staticmethod
+    def _close(*streams: socket.socket) -> None:
+        for stream in streams:
+            with contextlib.suppress(OSError):
+                stream.shutdown(socket.SHUT_RDWR)
+            stream.close()
 
     @staticmethod
     def _tunnel(first: socket.socket, second: socket.socket) -> None:
@@ -194,10 +227,7 @@ class Handler(socketserver.BaseRequestHandler):
         except OSError:
             return
         finally:
-            for stream in (first, second):
-                with contextlib.suppress(OSError):
-                    stream.shutdown(socket.SHUT_RDWR)
-                stream.close()
+            Handler._close(first, second)
 
 
 def _connect_upstream(resolved: PublicAddresses, deadline: float) -> socket.socket | None:

@@ -1,10 +1,12 @@
 """Security contracts for the dedicated Store-to-Neuron CONNECT boundary."""
 
+import contextlib
 import importlib.util
 import json
 import runpy
 import socket
 import socketserver
+import ssl
 import stat
 import sys
 import tempfile
@@ -27,9 +29,19 @@ def _module(name: str, path: Path):
 
 
 audit = _module("audit", ROOT / "audit.py")
-with mock.patch.dict("sys.modules", {"audit": audit}):
+client_hello = _module("client_hello", ROOT / "client_hello.py")
+with mock.patch.dict("sys.modules", {"audit": audit, "client_hello": client_hello}):
     app = _module("store_egress_app", ROOT / "app.py")
 healthcheck = _module("store_egress_healthcheck", ROOT / "healthcheck.py")
+
+
+def _client_hello(server_name: str) -> bytes:
+    """The first flight a real Python TLS client sends for `server_name`."""
+    incoming, outgoing = ssl.MemoryBIO(), ssl.MemoryBIO()
+    client = ssl.create_default_context().wrap_bio(incoming, outgoing, server_hostname=server_name)
+    with contextlib.suppress(ssl.SSLWantReadError):
+        client.do_handshake()
+    return outgoing.read()
 
 
 def _later() -> float:
@@ -236,6 +248,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(app.socket, "getaddrinfo", side_effect=lookup),
             mock.patch.object(app.socket, "socket", return_value=upstream),
             mock.patch.object(app.Handler, "_tunnel"),
+            mock.patch.object(client_hello, "admit", return_value=b""),
             mock.patch.object(audit, "record") as record,
         ):
             handler.handle()
@@ -269,7 +282,7 @@ class StoreEgressTests(unittest.TestCase):
 
                 self.assertTrue(client.sendall.call_args.args[0].startswith(expected))
                 if spent < app.CONNECT_TIMEOUT:
-                    upstream.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT - spent)
+                    self.assertEqual(upstream.settimeout.call_args_list[0], mock.call(app.CONNECT_TIMEOUT - spent))
                 else:
                     self.assertEqual(upstream.method_calls, [])
 
@@ -469,6 +482,7 @@ class StoreEgressTests(unittest.TestCase):
             mock.patch.object(audit, "record") as record,
             mock.patch.object(app.Handler, "_reply") as reply,
             mock.patch.object(app.Handler, "_tunnel") as tunnel,
+            mock.patch.object(client_hello, "admit", return_value=b"hello"),
         ):
             app.Handler._connect(client, ((socket.AF_INET, ("104.16.1.2", 443)),), _later())
         record.assert_called_once_with(
@@ -478,7 +492,94 @@ class StoreEgressTests(unittest.TestCase):
             subject="neuron.shimpz.com:443",
         )
         reply.assert_called_once_with(client, 200)
+        upstream.sendall.assert_called_once_with(b"hello")
         tunnel.assert_called_once_with(client, upstream)
+
+    def _tunnel(self, flight: bytes) -> tuple[bytes, bytes, list[dict]]:
+        """Run a real handler, client, and upstream; return what the client and the upstream saw, and the audit."""
+        listener = socket.create_server(("127.0.0.1", 0))
+        self.addCleanup(listener.close)
+        listener.settimeout(5)
+        client, proxy = socket.socketpair()
+        self.addCleanup(client.close)
+        with tempfile.TemporaryDirectory() as directory:
+            audit_path = Path(directory, "audit", "audit.jsonl")
+            audit_path.parent.mkdir(mode=0o700)
+            with (
+                mock.patch.object(audit, "AUDIT_PATH", audit_path),
+                mock.patch.object(app, "resolve_public", return_value=((socket.AF_INET, listener.getsockname()),)),
+            ):
+                worker = threading.Thread(target=app.Handler, args=(proxy, ("10.0.0.2", 1), None))
+                worker.start()
+                client.sendall(app.EXACT_REQUEST)
+                client.settimeout(5)
+                response = client.recv(256)
+                upstream, _peer = listener.accept()
+                self.addCleanup(upstream.close)
+                upstream.settimeout(5)
+                client.sendall(flight)
+                received = b""
+                while len(received) < len(flight) and (chunk := upstream.recv(65536)):
+                    received += chunk
+                if received:
+                    client.sendall(b"application data")
+                    received += upstream.recv(64)
+                client.shutdown(socket.SHUT_WR)
+                worker.join(10)
+            documents = [json.loads(line) for line in audit_path.read_text(encoding="utf-8").splitlines()]
+        self.assertFalse(worker.is_alive())
+        self.assertTrue(response.startswith(b"HTTP/1.1 200"))
+        return client.recv(64), received, documents
+
+    def test_a_client_hello_naming_neuron_is_relayed_unchanged(self) -> None:
+        flight = _client_hello("neuron.shimpz.com")
+        to_client, upstream_saw, documents = self._tunnel(flight)
+
+        self.assertEqual(upstream_saw, flight + b"application data")
+        self.assertEqual(to_client, b"")
+        self.assertEqual([(document["result"], document["reason"]) for document in documents], [("ok", "allowed")])
+
+    def test_a_fronted_or_non_tls_server_name_is_refused_and_audited_without_relaying(self) -> None:
+        for flight, reason in (
+            (_client_hello("api.cloudflare.com"), "sni-mismatch"),
+            (b"PRI * HTTP/2.0", "tls-required"),
+        ):
+            with self.subTest(reason=reason):
+                to_client, upstream_saw, documents = self._tunnel(flight)
+
+                self.assertEqual((upstream_saw, to_client), (b"", b""))
+                refusal = documents[-1]
+                self.assertEqual(
+                    (refusal["result"], refusal["code"], refusal["reason"], refusal["subject"]),
+                    ("denied", 403, reason, "neuron.shimpz.com:443"),
+                )
+                self.assertNotIn("api.cloudflare.com", json.dumps(documents))
+
+    def test_an_unrecordable_refusal_or_failed_first_flight_still_closes_unspliced(self) -> None:
+        client, upstream = mock.Mock(), mock.Mock()
+        with (
+            mock.patch.object(client_hello, "admit", side_effect=client_hello.RefusalError("ech-refused")),
+            mock.patch.object(audit, "record", side_effect=audit.AuditError("closed")) as record,
+            mock.patch.object(app.Handler, "_tunnel") as tunnel,
+        ):
+            app.Handler._relay(client, upstream)
+        record.assert_called_once()
+        upstream.sendall.assert_not_called()
+        for stream in (client, upstream):
+            stream.close.assert_called_once_with()
+        tunnel.assert_not_called()
+
+        client, upstream = mock.Mock(), mock.Mock()
+        upstream.sendall.side_effect = BrokenPipeError("gone")
+        with (
+            mock.patch.object(client_hello, "admit", return_value=b"hello"),
+            mock.patch.object(app.Handler, "_tunnel") as tunnel,
+        ):
+            app.Handler._relay(client, upstream)
+        upstream.settimeout.assert_called_once_with(app.CONNECT_TIMEOUT)
+        for stream in (client, upstream):
+            stream.close.assert_called_once_with()
+        tunnel.assert_not_called()
 
     def test_tunnel_forwards_both_directions_and_always_closes(self) -> None:
         first = mock.Mock()
