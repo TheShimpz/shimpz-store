@@ -1,305 +1,43 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
   import type { Locale } from "$lib/locales";
   import { tr } from "$lib/i18n";
-  import { fetchAssistantCatalog, parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import {
-    ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
-    acceptAssistantStoreContext,
-    acceptAssistantStoreState,
-    assistantStoreActionForState,
-    classifyAssistantInstallAck,
-    classifyAssistantUninstallAck,
-    createAssistantStoreFrameMessage,
-    createAssistantInstallRequest,
-    createAssistantUninstallRequest,
-    shouldReconcileAssistantStoreAction,
-  } from "$lib/assistantInstallBridge.js";
+  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
   import { closedAssistantStoreHref } from "$lib/assistantStoreUrl.js";
   import { AssistantCard, PageIntro } from "@shimpz/frontend";
 
-  type ActionKind = "install" | "uninstall";
-  type ActionState = "idle" | "pending" | "sent" | "error";
-  type ContextState = "connecting" | "ready" | "error";
-  type InventoryState = "loading" | "ready" | "error";
   type CatalogAssistant = ReturnType<typeof parseAssistantCatalog>[number];
-  type PendingAction = {
-    action: ActionKind;
-    parentOrigin: string;
-    timeout: ReturnType<typeof setTimeout>;
-  };
 
   let {
     lang,
-    embedded = false,
     assistants = [],
-    catalogState: providedCatalogState = "ready",
+    catalogState = "ready",
     onRetry = () => {},
   }: {
     lang: Locale;
-    embedded?: boolean;
     assistants?: readonly CatalogAssistant[];
     catalogState?: "loading" | "ready" | "error";
     onRetry?: () => void;
   } = $props();
-  let actionStates = $state<Record<string, ActionState>>({});
-  let actionKinds = $state<Record<string, ActionKind>>({});
-  let contextState = $state<ContextState>("connecting");
-  let inventoryState = $state<InventoryState>("loading");
-  let installedAssistantIds = $state<string[]>([]);
-  let parentOrigin = $state("");
-  let storeElement = $state<HTMLElement>();
-  const pendingActions = new Map<string, PendingAction>();
-  let contextTimeout: ReturnType<typeof setTimeout> | undefined;
-  let frameRequest = 0;
-  let embeddedAssistants = $state<readonly CatalogAssistant[]>([]);
-  let embeddedCatalogState = $state<"loading" | "ready" | "error">("loading");
-  const assistantCatalog = $derived(embedded ? embeddedAssistants : assistants);
-  const catalogState = $derived(embedded ? embeddedCatalogState : providedCatalogState);
-
-  function actionState(assistant: string): ActionState {
-    return actionStates[assistant] ?? "idle";
-  }
-
-  function setActionState(assistant: string, action: ActionKind, state: ActionState) {
-    actionKinds = { ...actionKinds, [assistant]: action };
-    actionStates = { ...actionStates, [assistant]: state };
-  }
-
-  function finishActionRequest(assistant: string, state: "sent" | "error") {
-    const pending = pendingActions.get(assistant);
-    if (pending) clearTimeout(pending.timeout);
-    pendingActions.delete(assistant);
-    if (pending) setActionState(assistant, pending.action, state);
-  }
-
-  function localAssistantInstalled(assistant: string): boolean {
-    return assistantStoreActionForState(inventoryState, installedAssistantIds, assistant) === "uninstall";
-  }
-
-  function renderedAssistantInstalled(assistant: string): boolean {
-    return embedded && localAssistantInstalled(assistant);
-  }
-
-  function inventoryBlocksAction(assistant: string): boolean {
-    return assistantStoreActionForState(inventoryState, installedAssistantIds, assistant) === "blocked";
-  }
-
-  function requestAssistantAction(assistant: CatalogAssistant) {
-    const assistantId = assistant.id;
-    if (pendingActions.has(assistantId)) return;
-    const resolvedAction = assistantStoreActionForState(inventoryState, installedAssistantIds, assistantId);
-    if (resolvedAction === "blocked") return;
-    const action: ActionKind = resolvedAction;
-    try {
-      if (window.parent === window) throw new Error("not embedded");
-      if (!parentOrigin) throw new Error("local Admin context unavailable");
-      const request = action === "uninstall"
-        ? createAssistantUninstallRequest(assistantId)
-        : createAssistantInstallRequest(assistantId, assistant.sourceDigest);
-      setActionState(assistantId, action, "pending");
-      window.parent.postMessage(request, parentOrigin);
-      const timeout = setTimeout(
-        () => finishActionRequest(assistantId, "error"),
-        ASSISTANT_INSTALL_ACK_TIMEOUT_MS,
-      );
-      pendingActions.set(assistantId, { action, parentOrigin, timeout });
-    } catch {
-      setActionState(assistantId, action, "error");
-    }
-  }
-
-  function reconcileAuthoritativeState(installed: string[]) {
-    const nextStates = { ...actionStates };
-    const nextKinds = { ...actionKinds };
-    for (const [assistant, action] of Object.entries(actionKinds)) {
-      if (!shouldReconcileAssistantStoreAction(action, actionState(assistant), "ready", installed, assistant)) {
-        continue;
-      }
-      const pending = pendingActions.get(assistant);
-      if (pending) clearTimeout(pending.timeout);
-      pendingActions.delete(assistant);
-      delete nextStates[assistant];
-      delete nextKinds[assistant];
-    }
-    actionStates = nextStates;
-    actionKinds = nextKinds;
-  }
-
-  function actionLabel(assistant: string): string {
-    if (actionState(assistant) === "pending") return tr("assistants_request_waiting", lang);
-    if (contextState !== "ready") return tr("assistants_admin_connecting", lang);
-    if (inventoryState === "loading") return tr("assistants_inventory_loading", lang);
-    if (inventoryState === "error") return tr("assistants_inventory_unavailable", lang);
-    return tr(localAssistantInstalled(assistant) ? "assistants_uninstall_local" : "assistants_install_local", lang);
-  }
-
-  function actionStatus(assistant: string): string {
-    const uninstall = actionKinds[assistant] === "uninstall";
-    const failed = actionState(assistant) === "error";
-    if (uninstall) {
-      return tr(failed ? "assistants_uninstall_request_failed" : "assistants_uninstall_request_sent", lang);
-    }
-    return tr(failed ? "assistants_request_failed" : "assistants_request_sent", lang);
-  }
-
-  let embeddedCatalogRequest = 0;
-
-  // The embedded catalog follows the frame's language; a newer language's request supersedes an older one.
-  async function loadAssistantCatalog() {
-    const request = ++embeddedCatalogRequest;
-    const locale = lang;
-    embeddedCatalogState = "loading";
-    try {
-      const next = await fetchAssistantCatalog(fetch, locale);
-      if (request !== embeddedCatalogRequest) return;
-      embeddedAssistants = next;
-      embeddedCatalogState = "ready";
-    } catch {
-      if (request !== embeddedCatalogRequest) return;
-      embeddedAssistants = [];
-      embeddedCatalogState = "error";
-    }
-  }
-
-  $effect(() => {
-    void lang;
-    if (embedded) untrack(() => { void loadAssistantCatalog(); });
-  });
-
-  function measureFrameHeight(): number {
-    const contentBottom = storeElement
-      ? storeElement.getBoundingClientRect().bottom + window.scrollY + 32
-      : 0;
-    return contentBottom;
-  }
-
-  function emitFrameMeasurement() {
-    if (!embedded || window.parent === window) return;
-    window.parent.postMessage(createAssistantStoreFrameMessage(measureFrameHeight()), "*");
-  }
-
-  function scheduleFrameMeasurement() {
-    if (frameRequest) cancelAnimationFrame(frameRequest);
-    frameRequest = requestAnimationFrame(() => {
-      frameRequest = 0;
-      emitFrameMeasurement();
-    });
-  }
-
-  function requestAdminContext() {
-    if (!embedded || window.parent === window) return;
-    if (!parentOrigin) contextState = "connecting";
-    emitFrameMeasurement();
-    if (parentOrigin) return;
-    if (contextTimeout) clearTimeout(contextTimeout);
-    contextTimeout = setTimeout(() => {
-      if (!parentOrigin) contextState = "error";
-    }, ASSISTANT_INSTALL_ACK_TIMEOUT_MS);
-  }
-
-  function receiveStoreMessage(event: MessageEvent) {
-    const contextOrigin = acceptAssistantStoreContext(event, window.parent);
-    if (contextOrigin) {
-      parentOrigin = contextOrigin;
-      contextState = "ready";
-      if (contextTimeout) clearTimeout(contextTimeout);
-      contextTimeout = undefined;
-      return;
-    }
-
-    const storeState = parentOrigin
-      ? acceptAssistantStoreState(event, window.parent, parentOrigin)
-      : null;
-    if (storeState) {
-      inventoryState = storeState.status;
-      installedAssistantIds = storeState.installed;
-      if (storeState.status === "ready") reconcileAuthoritativeState(storeState.installed);
-      return;
-    }
-
-    const assistant =
-      event.data && typeof event.data === "object" && typeof event.data.assistant === "string"
-        ? event.data.assistant
-        : "";
-    const pending = pendingActions.get(assistant);
-    if (!pending) return;
-    const classifyAck = pending.action === "uninstall"
-      ? classifyAssistantUninstallAck
-      : classifyAssistantInstallAck;
-    const result = classifyAck(event, {
-      parentWindow: window.parent,
-      parentOrigin: pending.parentOrigin,
-      assistant,
-    });
-    if (result === "accepted") finishActionRequest(assistant, "sent");
-    else if (result === "invalid") finishActionRequest(assistant, "error");
-  }
-
-  onMount(() => {
-    if (!embedded) return;
-    document.body.classList.add("assistant-store-embedded");
-    window.addEventListener("message", receiveStoreMessage);
-    let mounted = true;
-    let resizeObserver: ResizeObserver | undefined;
-
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(scheduleFrameMeasurement);
-      if (storeElement) resizeObserver.observe(storeElement);
-    }
-    requestAdminContext();
-    scheduleFrameMeasurement();
-    void document.fonts?.ready.then(() => {
-      if (mounted) scheduleFrameMeasurement();
-    });
-    return () => {
-      mounted = false;
-      document.body.classList.remove("assistant-store-embedded");
-      window.removeEventListener("message", receiveStoreMessage);
-      resizeObserver?.disconnect();
-      if (frameRequest) cancelAnimationFrame(frameRequest);
-      if (contextTimeout) clearTimeout(contextTimeout);
-      for (const pending of pendingActions.values()) clearTimeout(pending.timeout);
-      pendingActions.clear();
-    };
-  });
 </script>
 
-<section
-  bind:this={storeElement}
-  class:embedded
-  class:wrap={!embedded}
-  class="assistants-page"
-  aria-label={embedded ? tr("assistants_title", lang) : undefined}
-  aria-labelledby={embedded ? undefined : "assistants-title"}>
-  {#if !embedded}
-    <PageIntro
-      titleId="assistants-title"
-      kicker={tr("assistants_preview", lang)}
-      title={tr("assistants_title", lang)}
-      lead={tr("assistants_lead", lang)} />
-  {/if}
-
-  {#if embedded && contextState === "error"}
-    <div class="context-error" role="alert">
-      <span>{tr("assistants_admin_connection_failed", lang)}</span>
-      <button type="button" onclick={requestAdminContext}>
-        {tr("assistants_admin_connection_retry", lang)}
-      </button>
-    </div>
-  {/if}
+<section class="wrap assistants-page" aria-labelledby="assistants-title">
+  <PageIntro
+    titleId="assistants-title"
+    kicker={tr("assistants_preview", lang)}
+    title={tr("assistants_title", lang)}
+    lead={tr("assistants_lead", lang)} />
 
   {#if catalogState === "error"}
     <div class="context-error" role="alert">
       <span>{tr("assistants_catalog_unavailable", lang)}</span>
-      <button type="button" onclick={embedded ? loadAssistantCatalog : onRetry}>
+      <button type="button" onclick={onRetry}>
         {tr("assistants_catalog_retry", lang)}
       </button>
     </div>
   {/if}
 
   <div class="assistant-grid" aria-busy={catalogState === "loading"}>
-    {#each assistantCatalog as assistant (assistant.id)}
+    {#each assistants as assistant (assistant.id)}
       <AssistantCard
         id={`assistant-${assistant.id}`}
         class="assistant-card"
@@ -308,18 +46,7 @@
         summary={assistant.summary}
         iconSrc={`/api/assistant-icons/${assistant.sourceDigest.slice(7)}/${assistant.iconDigest.slice(7)}.png`}
         badge={tr("assistants_free", lang)}
-        href={embedded ? undefined : closedAssistantStoreHref(lang, assistant.id)}
-        installed={renderedAssistantInstalled(assistant.id)}
-        actionLabel={embedded ? actionLabel(assistant.id) : undefined}
-        actionDisabled={contextState !== "ready" || inventoryBlocksAction(assistant.id) || actionState(assistant.id) === "pending"}
-        actionTone={localAssistantInstalled(assistant.id) ? "danger" : "install"}
-        actionIcon={localAssistantInstalled(assistant.id) ? "uninstall" : "add"}
-        actionPersistent={actionState(assistant.id) !== "idle"}
-        actionStatus={actionState(assistant.id) === "sent" || actionState(assistant.id) === "error"
-          ? actionStatus(assistant.id)
-          : undefined}
-        actionError={actionState(assistant.id) === "error"}
-        onaction={() => requestAssistantAction(assistant)}
+        href={closedAssistantStoreHref(lang, assistant.id)}
       />
     {/each}
   </div>
@@ -328,8 +55,6 @@
 
 <style>
   .assistants-page { padding-top: 2.5rem; }
-  .assistants-page.embedded { width: 100%; padding-top: 2px; }
-  .assistants-page.embedded .assistant-grid { margin-top: 0; }
 
   .assistant-grid {
     display: grid;

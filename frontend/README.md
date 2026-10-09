@@ -1,7 +1,7 @@
 # Shimpz Store frontend
 
-This SvelteKit application renders the public Store and the Assistant Store embedded by the local
-Admin. The production build is static and is served by the Store backend.
+This SvelteKit application renders the public Store. The production build is static and is served by the Store
+backend.
 
 Use Node.js 24 and the lockfile-pinned pnpm release from this directory:
 

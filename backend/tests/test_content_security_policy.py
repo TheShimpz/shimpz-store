@@ -22,7 +22,7 @@ def _build(root: Path) -> Path:
         "index.html": f"<!doctype html><script>{REDIRECT}</script>",
         "en.html": f'<head><script src="/_app/x.js"></script></head><body><script>{BOOTSTRAP}</script></body>',
         "pt.html": f"<body><script>{BOOTSTRAP}</script></body>",
-        "en/assistants/embed.html": f'<script type="application/json">{{"a":1}}</script><script>{BOOTSTRAP}</script>',
+        "en/assistants.html": f'<script type="application/json">{{"a":1}}</script><script>{BOOTSTRAP}</script>',
         "en/404.html": "<p>missing</p>",
     }
     for relative, content in pages.items():
@@ -53,7 +53,7 @@ def test_no_response_admits_unsafe_inline_scripts(monkeypatch, tmp_path):
             client.get("/api/health"),
             client.get("/"),
             client.get("/en"),
-            client.get("/en/assistants/embed"),
+            client.get("/en/assistants"),
             client.get("/en/missing", headers={"accept": "text/html"}),
             client.get("/_app/missing.js"),
         ]
@@ -67,16 +67,14 @@ def test_no_response_admits_unsafe_inline_scripts(monkeypatch, tmp_path):
 
 
 def test_without_a_build_only_this_origin_may_run_scripts(tmp_path):
-    page, embed = middleware.security_headers(tmp_path / "absent")
+    policy = dict(middleware.security_headers(tmp_path / "absent"))[b"content-security-policy"].decode()
 
-    for headers in (page, embed):
-        policy = dict(headers)[b"content-security-policy"].decode()
-        assert _script_sources(policy) == ["'self'"]
+    assert _script_sources(policy) == ["'self'"]
 
 
 def test_pages_load_images_and_open_connections_only_from_this_origin(tmp_path):
-    for headers in middleware.security_headers(tmp_path / "absent"):
-        policy = dict(headers)[b"content-security-policy"].decode()
-        directives = dict(directive.split(" ", 1) for directive in policy.split("; ") if " " in directive)
-        assert directives["img-src"] == "'self'"
-        assert directives["connect-src"] == "'self'"
+    policy = dict(middleware.security_headers(tmp_path / "absent"))[b"content-security-policy"].decode()
+    directives = dict(directive.split(" ", 1) for directive in policy.split("; ") if " " in directive)
+
+    assert directives["img-src"] == "'self'"
+    assert directives["connect-src"] == "'self'"

@@ -50,8 +50,6 @@ const D: Dict = {
   assistants_architectures: { en: "Architectures", pt: "Arquiteturas" },
   assistants_permissions: { en: "Security & access", pt: "Segurança e acesso" },
   assistants_action: { en: "Action", pt: "Action" },
-  assistants_install_local: { en: "Install in local Admin", pt: "Instalar no Admin local" },
-  assistants_uninstall_local: { en: "Uninstall", pt: "Desinstalar" },
   assistants_back_store: { en: "All Assistants", pt: "Todos os Assistants" },
   assistants_detail_actions: { en: "Declared Actions", pt: "Actions declarados" },
   assistants_actions_search: { en: "Search Actions", pt: "Buscar Actions" },
@@ -80,31 +78,6 @@ const D: Dict = {
   assistants_information: { en: "Information", pt: "Informações" },
   assistants_repository: { en: "Source", pt: "Código-fonte" },
   assistants_none: { en: "None declared", pt: "Nenhum declarado" },
-  assistants_request_waiting: { en: "Contacting local Admin…", pt: "Contatando o Admin local…" },
-  assistants_request_sent: {
-    en: "Continue in the local Admin to confirm.",
-    pt: "Continue no Admin local para confirmar.",
-  },
-  assistants_request_failed: {
-    en: "The local Admin did not accept this request. Refresh and try again.",
-    pt: "O Admin local não aceitou este pedido. Atualize e tente novamente.",
-  },
-  assistants_uninstall_request_sent: {
-    en: "Continue in the local Admin to confirm uninstall.",
-    pt: "Continue no Admin local para confirmar a desinstalação.",
-  },
-  assistants_uninstall_request_failed: {
-    en: "The local Admin did not accept the uninstall request. Refresh and try again.",
-    pt: "O Admin local não aceitou o pedido de desinstalação. Atualize e tente novamente.",
-  },
-  assistants_inventory_loading: {
-    en: "Checking this Team…",
-    pt: "Verificando este Time…",
-  },
-  assistants_inventory_unavailable: {
-    en: "Local inventory unavailable",
-    pt: "Inventário local indisponível",
-  },
   assistants_catalog_unavailable: {
     en: "Assistant catalog unavailable",
     pt: "Catálogo de Assistants indisponível",
@@ -112,18 +85,6 @@ const D: Dict = {
   assistants_catalog_retry: {
     en: "Retry loading",
     pt: "Tentar carregar novamente",
-  },
-  assistants_admin_connecting: {
-    en: "Connecting to local Admin…",
-    pt: "Conectando ao Admin local…",
-  },
-  assistants_admin_connection_failed: {
-    en: "The local Admin connection is not ready yet.",
-    pt: "A conexão com o Admin local ainda não está pronta.",
-  },
-  assistants_admin_connection_retry: {
-    en: "Retry connection",
-    pt: "Tentar conexão novamente",
   },
 };
 

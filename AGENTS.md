@@ -2,9 +2,8 @@
 
 ## Authority
 
-- This repository owns the platform's public institutional site, public Assistant discovery, the Store surface
-  embedded by Local Admin, and the platform OAuth broker. It exposes no Account, login, Team, chat, or orchestration
-  API or page.
+- This repository owns the platform's public institutional site, public Assistant discovery, and the platform OAuth
+  broker. It exposes no Account, login, Team, chat, or orchestration API or page, and no page may be framed.
 - Store projects Developers data. It does not own publication, catalog admission, Team lifecycle, Account identity,
   or installation authority.
 - `egress/` owns only the dedicated platform Store-to-Neuron CONNECT enforcement and audit boundary. Store remains

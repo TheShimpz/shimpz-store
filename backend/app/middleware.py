@@ -34,7 +34,6 @@ _CSP_STYLE_AND_REST = (
     b"frame-src 'none'; "
     b"worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
 )
-_EMBED_ANCESTORS = b"frame-ancestors http://127.0.0.1:* http://localhost:* http://[::1]:* https://local.shimpz.com; "
 _COMMON_SECURITY_HEADERS = (
     (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
     (b"x-content-type-options", b"nosniff"),
@@ -48,7 +47,6 @@ _MANAGED_SECURITY_HEADERS = {
     *(name for name, _value in _COMMON_SECURITY_HEADERS),
     b"content-security-policy",
     b"x-frame-options",
-    b"x-robots-tag",
 }
 
 
@@ -94,30 +92,22 @@ def build_script_sources(build: Path) -> tuple[bytes, ...]:
 
 
 @functools.cache
-def security_headers(build: Path) -> tuple[tuple[tuple[bytes, bytes], ...], tuple[tuple[bytes, bytes], ...]]:
-    """The page and Admin-embed header sets: one script policy bound to the build's exact inline scripts."""
+def security_headers(build: Path) -> tuple[tuple[bytes, bytes], ...]:
+    """The page header set: one script policy bound to the build's exact inline scripts."""
     script_policy = b"script-src " + b" ".join((b"'self'", *build_script_sources(build))) + b"; "
-    suffix = b"form-action 'self'; " + script_policy + _CSP_STYLE_AND_REST
-    page = (
+    return (
         _COMMON_SECURITY_HEADERS[0],
-        (b"content-security-policy", _CSP_PREFIX + b"frame-ancestors 'none'; " + suffix),
+        (
+            b"content-security-policy",
+            _CSP_PREFIX + b"frame-ancestors 'none'; form-action 'self'; " + script_policy + _CSP_STYLE_AND_REST,
+        ),
         _COMMON_SECURITY_HEADERS[1],
         (b"x-frame-options", b"DENY"),
         _COMMON_SECURITY_HEADERS[2],
         _COMMON_SECURITY_HEADERS[3],
     )
-    embed = (
-        _COMMON_SECURITY_HEADERS[0],
-        (b"content-security-policy", _CSP_PREFIX + _EMBED_ANCESTORS + suffix),
-        _COMMON_SECURITY_HEADERS[1],
-        _COMMON_SECURITY_HEADERS[2],
-        _COMMON_SECURITY_HEADERS[3],
-        (b"x-robots-tag", b"noindex, nofollow"),
-    )
-    return page, embed
 
 
-_EMBED_PATH = re.compile(r"^/(?:en|pt|es|zh|fr|de|ja|ar)/assistants/embed/?$")
 _NO_REFERRER_PATHS = frozenset(
     {
         "/api/oauth/cloudflare/start",
@@ -128,8 +118,7 @@ _RESPONSE_CSP_PATHS = frozenset({"/api/oauth/cloudflare/callback"})
 
 
 def _security_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
-    page, embed = security_headers(BUILD)
-    headers = embed if _EMBED_PATH.fullmatch(path) else page
+    headers = security_headers(BUILD)
     if path not in _NO_REFERRER_PATHS:
         return headers
     return tuple((name, b"no-referrer") if name == b"referrer-policy" else (name, value) for name, value in headers)

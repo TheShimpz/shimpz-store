@@ -1,9 +1,9 @@
 # Shimpz Store
 
-Shimpz Store owns the institutional website, public Assistant discovery, the catalog surface embedded by Local
-Admin, and the platform Cloudflare OAuth broker. Its public SvelteKit frontend exposes the homepage, Assistant catalog
-and disclosures, institutional footer pages, and the branded not-found experience. It exposes no Account, login,
-Team, chat, model-provider, or Assistant-installation API or page.
+Shimpz Store owns the institutional website, public Assistant discovery, and the platform Cloudflare OAuth broker.
+Its public SvelteKit frontend exposes the homepage, Assistant catalog and disclosures, institutional footer pages,
+and the branded not-found experience. It exposes no Account, login, Team, chat, model-provider, or
+Assistant-installation API or page.
 
 The FastAPI backend projects the public Developers catalog and its icons, serves the prerendered site, and brokers
 Cloudflare OAuth for Local Spaces. It starts with only Developers and its OAuth secrets. Store is an unprivileged
@@ -14,8 +14,8 @@ Team bearer.
 
 - Public catalog and icon responses are projected from Developers; Store never admits a publication or substitutes a
   mutable artifact identity.
-- Local Admin's embedded catalog sends only an exact Assistant ID and source digest. Team independently authorizes,
-  resolves, verifies, binds, and runs that publication.
+- Every page refuses framing. Local Admin lists the catalog natively and sends Team only an exact Assistant ID and
+  source digest; Team independently authorizes, resolves, verifies, binds, and runs that publication.
 - OAuth uses PKCE and an audited broker; provider credentials never enter URLs, browser-readable state, or logs.
   The broker returns to the Local Admin only by a closed callback mode: `loopback`, `local-domain`, or `out-of-band`.
 - Static files resolve beneath the built application root; unknown API paths do not fall through to the

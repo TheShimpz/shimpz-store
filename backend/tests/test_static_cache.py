@@ -14,14 +14,14 @@ def _write(root: Path, relative: str, content: str) -> None:
 
 def test_html_navigation_always_revalidates(monkeypatch, tmp_path):
     _write(tmp_path, "index.html", "home")
-    _write(tmp_path, "en/assistants/embed.html", "embedded-store")
+    _write(tmp_path, "en/assistants.html", "store")
     _write(tmp_path, "_app/immutable/chunks/never-cache.html", "html")
     monkeypatch.setattr(static, "BUILD", tmp_path)
 
     with TestClient(store.app) as client:
         for url in (
             "/",
-            "/en/assistants/embed?admin-frame=new-release",
+            "/en/assistants?assistant=hello-pulse",
             "/_app/immutable/chunks/never-cache.html",
         ):
             response = client.get(url)

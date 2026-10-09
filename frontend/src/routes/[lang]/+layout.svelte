@@ -11,7 +11,6 @@
   const lang = $derived(data.lang as Locale);
   const pathname = $derived($page.url.pathname);
   const path = $derived(pathname + (browser ? $page.url.search : ""));
-  const embedded = $derived(pathname.replace(/\/$/, "") === `/${lang}/assistants/embed`);
   const home = $derived(pathname.replace(/\/$/, "") === `/${lang}`);
 
   $effect(() => {
@@ -20,15 +19,14 @@
   });
 </script>
 
-{#if !embedded}<SiteHeader {lang} {path} />{/if}
+<SiteHeader {lang} {path} />
 
-<main id="main-content" tabindex="-1" class:embedded>
+<main id="main-content" tabindex="-1">
   {@render children()}
 </main>
 
-{#if !embedded}<SiteFooter {lang} statement={home ? tr("home_privacy_line", lang) : undefined} />{/if}
+<SiteFooter {lang} statement={home ? tr("home_privacy_line", lang) : undefined} />
 
 <style>
   main { min-height: calc(100vh - 12rem); }
-  main.embedded { min-height: 100vh; padding-bottom: 2rem; }
 </style>
