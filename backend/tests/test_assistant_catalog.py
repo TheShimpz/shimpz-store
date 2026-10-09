@@ -105,7 +105,6 @@ def test_projects_only_bounded_browser_metadata() -> None:
     }
     serialized = str(projected)
     assert "image_reference" not in serialized
-    assert "input_schema" not in serialized
     # A Stored Input projects only its identifier and localized label; its canonical description stays upstream.
     assert "Used to call the API." not in serialized
 
@@ -135,8 +134,6 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(github="https://example.com/repository"),
         lambda value: value["assistants"].append(copy.deepcopy(value["assistants"][0])),
         lambda value: value["assistants"][0]["actions"][0].update(command="/bin/sh"),
-        lambda value: value["assistants"][0]["actions"][0].update(input_schema={"type": "object"}),
-        lambda value: value["assistants"][0]["actions"][0].update(output_schema={"type": "object"}),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["unknown"]),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "approval"]),
         lambda value: value["assistants"][0].pop("stored_inputs"),

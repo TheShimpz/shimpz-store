@@ -197,8 +197,8 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
     assert "location" not in callback.headers
 
 
-@pytest.mark.parametrize("callback", ["https://evil.example", "hosted"])
-def test_browser_start_rejects_an_arbitrary_or_retired_callback_before_the_broker(callback: str) -> None:
+@pytest.mark.parametrize("callback", ["https://evil.example", "remote"])
+def test_browser_start_rejects_an_arbitrary_or_unknown_callback_before_the_broker(callback: str) -> None:
     with _broker() as broker, TestClient(main.app) as client:
         response = _start(client, callback=callback)
 
