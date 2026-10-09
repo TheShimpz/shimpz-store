@@ -144,9 +144,9 @@ def test_browser_routes_forward_the_canonical_read_only_scope_subset() -> None:
     assert broker.calls[1][1]["scopes"] == list(read_scopes)
 
 
-def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:
+def test_browser_start_forwards_only_the_named_local_domain_admin_callback() -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        start = _start(client, callback="hosted")
+        start = _start(client, callback="local-domain")
 
     assert start.status_code == 303
     assert broker.calls == [
@@ -155,7 +155,7 @@ def test_browser_start_forwards_only_the_named_hosted_admin_callback() -> None:
             {
                 "local_state": "s" * 43,
                 "local_code_challenge": "c" * 43,
-                "callback_mode": "hosted",
+                "callback_mode": "local-domain",
                 "scopes": list(SCOPES),
             },
         )
@@ -197,9 +197,10 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
     assert "location" not in callback.headers
 
 
-def test_browser_start_rejects_an_arbitrary_callback_before_the_broker() -> None:
+@pytest.mark.parametrize("callback", ["https://evil.example", "hosted"])
+def test_browser_start_rejects_an_arbitrary_or_retired_callback_before_the_broker(callback: str) -> None:
     with _broker() as broker, TestClient(main.app) as client:
-        response = _start(client, callback="https://evil.example")
+        response = _start(client, callback=callback)
 
     assert response.status_code == 400
     assert broker.calls == []

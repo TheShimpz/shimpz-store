@@ -1,4 +1,4 @@
-"""Short-lived hosted Cloudflare OAuth broker for self-hosted local Spaces."""
+"""Short-lived platform Cloudflare OAuth broker for self-hosted Local Spaces."""
 
 import base64
 import hashlib
@@ -26,13 +26,13 @@ NEURON_HOST = "neuron.shimpz.com"
 NEURON_EGRESS_HOST = "shimpz-store-egress"
 NEURON_EGRESS_PORT = 8889
 LOCAL_CALLBACK = "http://127.0.0.1:7777/api/oauth/cloudflare/callback"
-HOSTED_ADMIN_CALLBACK = "https://local.shimpz.com/api/oauth/cloudflare/callback"
+LOCAL_DOMAIN_CALLBACK = "https://local.shimpz.com/api/oauth/cloudflare/callback"
 CALLBACKS = {
     "loopback": LOCAL_CALLBACK,
-    "hosted": HOSTED_ADMIN_CALLBACK,
+    "local-domain": LOCAL_DOMAIN_CALLBACK,
     "out-of-band": None,
 }
-HOSTED_CALLBACK = "https://shimpz.com/api/oauth/cloudflare/callback"
+PLATFORM_CALLBACK = "https://shimpz.com/api/oauth/cloudflare/callback"
 ALLOWED_SCOPES = frozenset({"dns.read", "dns.write", "offline_access", "zone.read"})
 SCOPES = tuple(sorted(ALLOWED_SCOPES))
 AUTHORIZATION_TTL_SECONDS = 300
@@ -63,7 +63,7 @@ _LEASE = re.compile(
 
 
 class OAuthBrokerError(RuntimeError):
-    """A hosted OAuth operation failed without reflecting private values."""
+    """A platform OAuth operation failed without reflecting private values."""
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -82,7 +82,7 @@ class OAuthRedirect:
 
 @dataclass(frozen=True, slots=True, repr=False)
 class OAuthOutOfBand:
-    """A versioned completion code displayed only by the hosted callback."""
+    """A versioned completion code displayed only by the platform callback."""
 
     completion_code: str
 
@@ -390,7 +390,7 @@ class NeuronOAuthClient:
             or len(query) != 7
             or len(fields) != 7
             or fields.get("response_type") != "code"
-            or fields.get("redirect_uri") != HOSTED_CALLBACK
+            or fields.get("redirect_uri") != PLATFORM_CALLBACK
             or fields.get("state") != state
             or fields.get("code_challenge") != code_challenge
             or fields.get("code_challenge_method") != "S256"
@@ -511,7 +511,7 @@ class BrokerLeaseSigner:
 
 
 class OAuthBroker:
-    """Bind one hosted provider exchange to one local PKCE verifier and one-use claim."""
+    """Bind one platform provider exchange to one local PKCE verifier and one-use claim."""
 
     def __init__(
         self,

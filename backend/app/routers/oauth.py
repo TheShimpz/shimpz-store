@@ -133,7 +133,7 @@ async def cloudflare_start(request: Request) -> Response:
         return _failure("start")
     fields = dict(pairs)
     callback_mode = fields["callback"]
-    if callback_mode not in {"loopback", "hosted", "out-of-band"}:
+    if callback_mode not in {"loopback", "local-domain", "out-of-band"}:
         return _failure("start")
     try:
         location = await _run_bounded(

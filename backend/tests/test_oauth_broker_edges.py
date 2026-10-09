@@ -1,4 +1,4 @@
-"""Failure and capacity coverage for the hosted OAuth broker core."""
+"""Failure and capacity coverage for the platform OAuth broker core."""
 
 import json
 from urllib.parse import urlencode
@@ -42,7 +42,7 @@ def _authorization_url(state="a" * 43, challenge="b" * 43, **changes):
     fields = {
         "response_type": "code",
         "client_id": "cloudflare-client-id",
-        "redirect_uri": broker.HOSTED_CALLBACK,
+        "redirect_uri": broker.PLATFORM_CALLBACK,
         "scope": " ".join(broker.SCOPES),
         "state": state,
         "code_challenge": challenge,
@@ -317,7 +317,7 @@ def test_broker_expires_grants_and_enforces_start_capacity(monkeypatch):
     tokens = broker.OAuthTokens("a" * 16, "b" * 16, 3600)
     for index, state in enumerate(("s" * 43, "t" * 43)):
         instance._authorizations[str(index) * 43] = broker._PendingAuthorization(
-            state, "c" * 43, "hosted", "v" * 43, broker.SCOPES, 99
+            state, "c" * 43, "local-domain", "v" * 43, broker.SCOPES, 99
         )
         instance._grants[str(index) * 64] = broker._PendingGrant(state, "c" * 43, tokens, 3700, broker.SCOPES, 99)
         instance._active_local_states.add(state)
@@ -338,7 +338,7 @@ def test_broker_retries_binding_and_cleans_failed_authorization(monkeypatch):
     instance._authorizations["a" * 43] = broker._PendingAuthorization(
         "x" * 43,
         "c" * 43,
-        "hosted",
+        "local-domain",
         "v" * 43,
         broker.SCOPES,
         200,

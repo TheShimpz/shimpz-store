@@ -12,8 +12,8 @@ import pytest
 from app.oauth_broker import (
     ACCESS_CLIENT_ID_PATH,
     ACCESS_CLIENT_SECRET_PATH,
-    HOSTED_ADMIN_CALLBACK,
-    HOSTED_CALLBACK,
+    LOCAL_DOMAIN_CALLBACK,
+    PLATFORM_CALLBACK,
     LEASE_KEY_PATH,
     LOCAL_CALLBACK,
     SCOPES,
@@ -193,7 +193,7 @@ def test_neuron_client_sends_access_service_identity_and_validates_fixed_authori
         {
             "response_type": "code",
             "client_id": "cloudflare-client-id-123456",
-            "redirect_uri": HOSTED_CALLBACK,
+            "redirect_uri": PLATFORM_CALLBACK,
             "scope": " ".join(SCOPES),
             "state": state,
             "code_challenge": challenge,
@@ -361,13 +361,13 @@ def test_broker_refuses_callback_scope_drift_before_token_exchange() -> None:
     assert not broker._active_local_states
 
 
-def test_broker_returns_only_the_named_hosted_admin_callback() -> None:
+def test_broker_returns_only_the_named_local_domain_admin_callback() -> None:
     neuron = _Neuron()
     broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
     broker.start(
         local_state="s" * 43,
         local_code_challenge="c" * 43,
-        callback_mode="hosted",
+        callback_mode="local-domain",
         scopes=list(SCOPES),
     )
     state = neuron.calls[0][1][0]
@@ -375,7 +375,7 @@ def test_broker_returns_only_the_named_hosted_admin_callback() -> None:
     completion = broker.callback(state=state, code="authorization-code-private-123456", scopes=list(SCOPES))
 
     assert isinstance(completion, OAuthRedirect)
-    assert completion.location.startswith(HOSTED_ADMIN_CALLBACK + "?")
+    assert completion.location.startswith(LOCAL_DOMAIN_CALLBACK + "?")
     with pytest.raises(OAuthBrokerError):
         broker.start(
             local_state="s" * 43,
