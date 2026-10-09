@@ -54,4 +54,6 @@ USER 10008:10008
 EXPOSE 3200
 HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20 \
   CMD ["python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 3200), 2).close()"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200"]
+# The access log would record the OAuth callback query (`state`, `code`), so it stays off; request outcomes are logged
+# by the application without query values.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200", "--no-access-log", "--no-server-header"]
