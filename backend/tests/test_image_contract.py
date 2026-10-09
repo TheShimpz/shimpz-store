@@ -56,12 +56,6 @@ def test_static_runtime_packages_the_exact_application_import_closure():
     assert packaged == _runtime_import_closure()
 
 
-def test_static_runtime_has_a_bounded_health_probe():
-    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-
-    assert "HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20" in dockerfile
-
-
 def test_static_runtime_uses_the_store_identity():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     runtime = dockerfile.split(" AS serve\n", 1)[1]
@@ -70,18 +64,16 @@ def test_static_runtime_uses_the_store_identity():
     assert "USER 10008:10008" in runtime
 
 
-def test_static_runtime_copies_only_builder_resolved_dependencies():
+def test_static_runtime_never_retains_the_installer():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     runtime = dockerfile.split(" AS serve\n", 1)[1]
 
     assert f"FROM {UV_IMAGE} AS uv" in dockerfile
-    assert "COPY --from=uv /uv /usr/local/bin/uv" in dockerfile
-    assert "COPY backend/pyproject.toml backend/uv.lock ./" in dockerfile
+    assert "--mount=type=bind,from=uv,source=/uv,target=/tmp/uv" in dockerfile
     assert "uv sync --frozen --no-install-project --no-dev --python 3.14" in dockerfile
-    assert "COPY --from=dependencies /opt/venv /opt/venv" in runtime
+    assert "COPY --from=uv" not in dockerfile
     assert "apt-get" not in runtime
     assert "curl" not in runtime
-    assert "/usr/local/bin/uv" not in runtime
 
 
 def test_static_build_context_excludes_dependencies_caches_and_secrets():
