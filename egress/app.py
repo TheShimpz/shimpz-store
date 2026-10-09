@@ -1,313 +1,51 @@
 #!/usr/local/bin/python3
 """CONNECT-only outbound enforcement from hosted Store to private Neuron.
 
-A tunnel relays nothing until Store's TLS ClientHello names exactly the allowed host (`client_hello`), so another
-server name cannot front through the same edge address.
+The image's neutral CONNECT transport (`connect`, ADR-0104) resolves, records, connects, admits the TLS ClientHello,
+and splices; this profile owns only its exact request, audit, and resource envelope.
 """
 
-import contextlib
 import ipaddress
-import select
-import socket
-import socketserver
-import threading
-import time
 
 import audit
-import client_hello
+import connect
 
 LISTEN_PORT = 8889
 ALLOWED_HOST = "neuron.shimpz.com"
 ALLOWED_PORT = 443
-CONNECT_TIMEOUT = 10
-IDLE_TIMEOUT = 30
-BUFFER_SIZE = 64 * 1024
-MAX_REQUEST_BYTES = 1024
 MAX_CONCURRENCY = 8
 MAX_SOURCE_CONCURRENCY = 8
 LISTEN_BACKLOG = 8
-# DNS resolution counts against the CONNECT deadline. Each lookup runs on its own daemon thread, and a lookup that
-# outlives its deadline keeps that thread until getaddrinfo returns. This fixed cap, independent of handler
-# concurrency, bounds those threads: handlers + resolvers + the main thread stay well inside the smallest
-# pids_limit either canonical Compose graph gives this proxy. A burst beyond the cap waits for a permit, but
-# only within the same CONNECT deadline.
-MAX_RESOLUTIONS = 8
-_RESOLVER_SLOTS = threading.BoundedSemaphore(MAX_RESOLUTIONS)
 EXACT_REQUEST = b"CONNECT neuron.shimpz.com:443 HTTP/1.1\r\nHost: neuron.shimpz.com:443\r\n\r\n"
-_STATUS = {
-    200: "Connection established",
-    400: "Bad Request",
-    403: "Forbidden",
-    502: "Bad Gateway",
-    503: "Service Unavailable",
-}
-_AUDIT_SUBJECTS = {
-    "allowed": "neuron.shimpz.com:443",
-    "upstream-unavailable": "neuron.shimpz.com:443",
-    "request-rejected": "rejected-target",
-    "destination-rejected": "rejected-target",
-}
-PublicAddresses = tuple[tuple[int, tuple], ...]
 
 
-def _resolve(host: str, port: int, deadline: float) -> list:
-    """Resolve on one bounded daemon thread, waiting no longer than the remaining CONNECT deadline.
+class Handler(connect.ConnectHandler):
+    connect_timeout = 10
+    idle_timeout = 30
+    request_limit = 1024
 
-    Waiting for a permit spends the same deadline. The permit is released exactly once: by the lookup
-    thread when getaddrinfo returns, or here when the thread never started. Raises OSError when no permit
-    frees up in time, the thread cannot start, the lookup fails, or the deadline passes first.
-    """
-    slots = _RESOLVER_SLOTS
-    if not slots.acquire(timeout=max(0.0, deadline - time.monotonic())):
-        raise OSError("resolver capacity stayed exhausted until the CONNECT deadline")
-    answers: list[list] = []
-    done = threading.Event()
-
-    def lookup() -> None:
-        try:
-            with contextlib.suppress(OSError, ValueError):
-                answers.append(socket.getaddrinfo(host, port, type=socket.SOCK_STREAM))
-        finally:
-            slots.release()
-            done.set()
-
-    try:
-        threading.Thread(target=lookup, name="resolver", daemon=True).start()
-    except RuntimeError:
-        slots.release()
-        raise OSError("resolver thread unavailable") from None
-    if not done.wait(max(0.0, deadline - time.monotonic())) or not answers:
-        raise OSError("resolution failed or exceeded the CONNECT deadline")
-    return answers[0]
-
-
-def resolve_public(host: str, port: int, deadline: float) -> PublicAddresses | None:
-    """Return every validated public address in resolver order, rejecting mixed answers."""
-    try:
-        addresses = _resolve(host, port, deadline)
-    except OSError:
-        return None
-    public: list[tuple[int, tuple]] = []
-    for family, _kind, _protocol, _canonical, address in addresses:
-        try:
-            parsed = ipaddress.ip_address(address[0])
-        except ValueError:
-            return None
-        if not parsed.is_global:
-            return None
-        public.append((family, address))
-    return tuple(public) if public else None
-
-
-def _read_request(stream: socket.socket) -> bytes | None:
-    # The whole header read shares one deadline: a per-recv timeout alone lets a byte trickle hold a worker.
-    deadline = time.monotonic() + CONNECT_TIMEOUT
-    payload = bytearray()
-    while b"\r\n\r\n" not in payload:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return None
-        try:
-            stream.settimeout(remaining)
-            chunk = stream.recv(256)
-        except OSError:
-            return None
-        if not chunk:
-            return None
-        payload.extend(chunk)
-        if len(payload) > MAX_REQUEST_BYTES:
-            return None
-    return bytes(payload)
-
-
-def _admit(request: bytes | None, deadline: float) -> tuple[int, str, PublicAddresses | None]:
-    if request is None:
-        return 0, "incomplete", None
-    if request != EXACT_REQUEST:
-        return 400, "request-rejected", None
-    resolved = resolve_public(ALLOWED_HOST, ALLOWED_PORT, deadline)
-    if resolved is None:
-        return 403, "destination-rejected", None
-    return 200, "allowed", resolved
-
-
-class Handler(socketserver.BaseRequestHandler):
-    def handle(self) -> None:
-        client = self.request
-        client.settimeout(CONNECT_TIMEOUT)
-        request = _read_request(client)
-        deadline = time.monotonic() + CONNECT_TIMEOUT
-        code, reason, resolved = _admit(request, deadline)
-        if resolved is None:
-            if code:
-                self._deny(client, code, reason)
-            return
-        self._connect(client, resolved, deadline)
-
-    @staticmethod
-    def _reply(client: socket.socket, code: int) -> None:
-        with contextlib.suppress(OSError):
-            client.sendall(f"HTTP/1.1 {code} {_STATUS[code]}\r\n\r\n".encode("ascii"))
+    def admit(self, request: bytes) -> connect.Target | connect.Decision:
+        """Network-gated: admit only the one exact Neuron request."""
+        if request != EXACT_REQUEST:
+            return connect.refuse(400, "request-rejected", "rejected-target")
+        return connect.Target(ALLOWED_HOST, ALLOWED_PORT)
 
     @classmethod
-    def _deny(cls, client: socket.socket, code: int, reason: str) -> None:
-        try:
-            audit.record(
-                result="error" if code >= 500 else "denied",
-                code=code,
-                reason=reason,
-                subject=_AUDIT_SUBJECTS[reason],
-            )
-        except audit.AuditError:
-            code = 503
-        cls._reply(client, code)
-
-    @classmethod
-    def _connect(cls, client: socket.socket, resolved: PublicAddresses, deadline: float) -> None:
-        upstream = _connect_upstream(resolved, deadline)
-        if upstream is None:
-            cls._deny(client, 502, "upstream-unavailable")
-            return
-        try:
-            audit.record(
-                result="ok",
-                code=200,
-                reason="allowed",
-                subject="neuron.shimpz.com:443",
-            )
-        except audit.AuditError:
-            upstream.close()
-            cls._reply(client, 503)
-            return
-        cls._reply(client, 200)
-        cls._relay(client, upstream)
-
-    @classmethod
-    def _relay(cls, client: socket.socket, upstream: socket.socket) -> None:
-        """Splice only after the client's first ClientHello names exactly the allowed host; otherwise relay no byte.
-
-        The `ok` record covers the admitted CONNECT; a refused ClientHello adds one `denied` record whose code
-        classifies it, after the 200 was sent.
-        """
-        try:
-            prefix = client_hello.admit(client, ALLOWED_HOST, time.monotonic() + CONNECT_TIMEOUT)
-            upstream.settimeout(CONNECT_TIMEOUT)
-            upstream.sendall(prefix)
-        except client_hello.RefusalError as refusal:
-            cls._close(client, upstream)
-            with contextlib.suppress(audit.AuditError):
-                audit.record(result="denied", code=403, reason=refusal.reason, subject="neuron.shimpz.com:443")
-            return
-        except OSError:
-            cls._close(client, upstream)
-            return
-        cls._tunnel(client, upstream)
-
-    @staticmethod
-    def _close(*streams: socket.socket) -> None:
-        for stream in streams:
-            with contextlib.suppress(OSError):
-                stream.shutdown(socket.SHUT_RDWR)
-            stream.close()
-
-    @staticmethod
-    def _tunnel(first: socket.socket, second: socket.socket) -> None:
-        for stream in (first, second):
-            stream.settimeout(IDLE_TIMEOUT)
-        try:
-            while True:
-                readable, _, errored = select.select([first, second], [], [first, second], IDLE_TIMEOUT)
-                if errored or not readable:
-                    return
-                for source in readable:
-                    payload = source.recv(BUFFER_SIZE)
-                    if not payload:
-                        return
-                    (second if source is first else first).sendall(payload)
-        except OSError:
-            return
-        finally:
-            Handler._close(first, second)
+    def record(cls, decision: connect.Decision) -> None:
+        audit.record(decision)
 
 
-def _connect_upstream(resolved: PublicAddresses, deadline: float) -> socket.socket | None:
-    """Connect to the first reachable validated address in resolver order under the deadline resolution shared."""
-    for family, address in resolved:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            break
-        upstream: socket.socket | None = None
-        try:
-            upstream = socket.socket(family, socket.SOCK_STREAM)
-            upstream.settimeout(remaining)
-            upstream.connect(address)
-        except OSError:
-            if upstream is not None:
-                upstream.close()
-            continue
-        return upstream
-    return None
-
-
-class Server(socketserver.ThreadingTCPServer):
-    allow_reuse_address = True
-    daemon_threads = True
+class Server(connect.BoundedServer):
+    max_concurrency = MAX_CONCURRENCY
+    max_source_concurrency = MAX_SOURCE_CONCURRENCY
     request_queue_size = LISTEN_BACKLOG
-
-    def __init__(self, *args, **kwargs) -> None:
-        self._slots = threading.BoundedSemaphore(MAX_CONCURRENCY)
-        self._source_guard = threading.Lock()
-        self._source_counts: dict[str, int] = {}
-        super().__init__(*args, **kwargs)
-
-    def process_request(self, request, client_address) -> None:
-        source = client_address[0]
-        saturated = False
-        with self._source_guard:
-            source_count = self._source_counts.get(source, 0)
-            if source_count >= MAX_SOURCE_CONCURRENCY or not self._slots.acquire(blocking=False):
-                saturated = True
-            else:
-                self._source_counts[source] = source_count + 1
-        if saturated:
-            request.settimeout(CONNECT_TIMEOUT)
-            with contextlib.suppress(audit.AuditError):
-                audit.record(
-                    result="denied",
-                    code=503,
-                    reason="capacity",
-                    subject="not-evaluated",
-                )
-            Handler._reply(request, 503)
-            request.close()
-            return
-        try:
-            super().process_request(request, client_address)
-        except BaseException:
-            self._release(source)
-            raise
-
-    def process_request_thread(self, request, client_address) -> None:
-        try:
-            super().process_request_thread(request, client_address)
-        finally:
-            self._release(client_address[0])
-
-    def _release(self, source: str) -> None:
-        with self._source_guard:
-            remaining = self._source_counts[source] - 1
-            if remaining:
-                self._source_counts[source] = remaining
-            else:
-                del self._source_counts[source]
-        self._slots.release()
 
 
 def main() -> int:
     try:
-        audit.ensure_custody()
+        audit.AUDIT.ensure_custody()
         server = Server((str(ipaddress.IPv4Address(0)), LISTEN_PORT), Handler)
-    except audit.AuditError, OSError:
+    except OSError:
         return 1
     try:
         server.serve_forever()
