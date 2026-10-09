@@ -293,6 +293,7 @@ def test_terminal_event_contract_projects_the_brain_purpose_beside_the_request()
 
 
 KEY_PAGE = "https://dash.cloudflare.com/profile/api-tokens"
+KEY_HELP = "Crie um token de API no painel da Cloudflare e copie-o."
 
 
 def _stored_input_request(stored_input: str = "cloudflare-token") -> dict:
@@ -307,7 +308,7 @@ def _stored_input_request(stored_input: str = "cloudflare-token") -> dict:
     )
 
 
-def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purpose():
+def test_hosted_relay_forwards_a_stored_input_request_with_its_help_and_purpose():
     purpose = "To publish the DNS change you asked for, I need Cloudflare."
 
     async def scenario() -> None:
@@ -315,11 +316,16 @@ def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purp
         await websocket.accept()
         state = {"pending_human": None}
         turn = _turn(websocket, state)
-        challenge = {**_human_challenge(request=_stored_input_request()), "purpose": purpose, "help_url": KEY_PAGE}
+        challenge = {
+            **_human_challenge(request=_stored_input_request()),
+            "purpose": purpose,
+            "help": KEY_HELP,
+            "help_url": KEY_PAGE,
+        }
         await main._send_relay_event(turn, challenge, main._RelayDelivery())
         relayed = json.loads(sent[-1]["text"])
         assert relayed["request"] == _stored_input_request()
-        assert (relayed["purpose"], relayed["help_url"]) == (purpose, KEY_PAGE)
+        assert (relayed["purpose"], relayed["help"], relayed["help_url"]) == (purpose, KEY_HELP, KEY_PAGE)
         assert state["pending_human"] == {"challenge_id": "c" * 32, "request": _stored_input_request()}
 
     asyncio.run(scenario())
@@ -331,8 +337,19 @@ def test_hosted_relay_forwards_a_stored_input_request_with_its_key_page_and_purp
         {**_human_challenge(), "purpose": "Search \u2014 then publish"},
         {**_human_challenge(), "purpose": None},
         {**_human_challenge(), "help_url": KEY_PAGE},
-        {**_human_challenge(request=_stored_input_request()), "help_url": "http://dash.cloudflare.com/x"},
-        {**_human_challenge(request=_stored_input_request()), "help_url": KEY_PAGE + "\n"},
+        {**_human_challenge(), "help": KEY_HELP},
+        {**_human_challenge(), "help": KEY_HELP, "help_url": KEY_PAGE},
+        _human_challenge(request=_stored_input_request()),
+        {**_human_challenge(request=_stored_input_request()), "help_url": KEY_PAGE},
+        {**_human_challenge(request=_stored_input_request()), "help": KEY_HELP},
+        {
+            **_human_challenge(request=_stored_input_request()),
+            "help": KEY_HELP,
+            "help_url": "http://dash.cloudflare.com/x",
+        },
+        {**_human_challenge(request=_stored_input_request()), "help": KEY_HELP, "help_url": KEY_PAGE + "\n"},
+        {**_human_challenge(request=_stored_input_request()), "help": " Untrimmed.", "help_url": KEY_PAGE},
+        {**_human_challenge(request=_stored_input_request()), "help": "x" * 501, "help_url": KEY_PAGE},
         _human_challenge(request=_stored_input_request(stored_input="Not An Id")),
         _human_challenge(
             request={key: value for key, value in _stored_input_request().items() if key != "stored_input"}
@@ -404,6 +421,9 @@ def test_terminal_event_contract_refuses_invalid_presentation_or_misplaced_store
 )
 def test_terminal_event_contract_projects_every_reviewed_human_request(descriptor: dict):
     event = _human_challenge(request=descriptor)
+    if "stored_input" in descriptor:
+        # Team always sends a Stored Input request's help text and help link beside it (ADR-0090).
+        event = {**event, "help": KEY_HELP, "help_url": KEY_PAGE}
 
     projected = _validated_terminal_event(event, TEST_TEAM_ID)
 
@@ -540,7 +560,12 @@ def test_an_authorization_challenge_relays_the_file_it_discloses():
         {**_human_challenge(), "file": {**DISCLOSED_FILE, "media_type": "PDF"}},
         {**_human_challenge(), "file": {**DISCLOSED_FILE, "content": "withheld"}},
         {**_human_challenge(), "file": None},
-        {**_human_challenge(request=_stored_input_request()), "file": DISCLOSED_FILE},
+        {
+            **_human_challenge(request=_stored_input_request()),
+            "help": KEY_HELP,
+            "help_url": KEY_PAGE,
+            "file": DISCLOSED_FILE,
+        },
         {
             **_human_challenge(
                 request=_human_request(

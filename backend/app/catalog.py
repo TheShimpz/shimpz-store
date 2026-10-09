@@ -135,22 +135,28 @@ def _integrations(value: object) -> list[dict[str, object]]:
 
 
 def _stored_inputs(value: object) -> list[dict[str, str]]:
-    """Validate the declared Stored Inputs and project only each identifier and localized label."""
+    """Validate the declared Stored Inputs and project each identifier, localized label and help text, and help link."""
     if not isinstance(value, list) or len(value) > 8:
         raise CatalogError("catalog Stored Inputs are invalid")
     projected = []
     for item in value:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "kind", "label", "description"}
+            or set(item) != {"id", "kind", "label", "description", "help_url"}
             or team_contract.canonical_identifier(item["id"]) is None
             or item["kind"] != "password"
+            or team_contract.canonical_help_url(item["help_url"]) is None
         ):
             raise CatalogError("catalog Stored Input is invalid")
-        # The label is localized display copy; the description stays canonical English and is not projected.
-        label = _display(item["label"], LINE_BOUND)
-        _text(item["description"], 500)
-        projected.append({"id": item["id"], "label": label})
+        # The label and the help text are localized display copy; the help link is the declared official page.
+        projected.append(
+            {
+                "id": item["id"],
+                "label": _display(item["label"], LINE_BOUND),
+                "description": _display(item["description"], DESCRIPTION_BOUND),
+                "help_url": item["help_url"],
+            }
+        )
     if len({item["id"] for item in projected}) != len(projected):
         raise CatalogError("catalog Stored Inputs are duplicated")
     return projected

@@ -28,7 +28,12 @@ function catalog() {
         platforms: ["linux/amd64", "linux/arm64"],
         allowed_hosts: ["api.example.com"],
         integrations: [{ id: "example", provider: "example", scopes: ["read"] }],
-        stored_inputs: [{ id: "api-token", label: "API token" }],
+        stored_inputs: [{
+          id: "api-token",
+          label: "API token",
+          description: "Create an API token in the example dashboard and copy it.",
+          help_url: "https://dashboard.example.com/api-keys",
+        }],
         actions: [{
           id: "lookup",
           integrations: ["example"],
@@ -143,7 +148,15 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].stored_inputs[0].label = "l".repeat(121); },
     (value) => { value.assistants[0].stored_inputs[0].label = ""; },
     (value) => { value.assistants[0].stored_inputs[0].id = "api.token"; },
-    (value) => { value.assistants[0].stored_inputs[0].description = "Used to call the API."; },
+    (value) => { value.assistants[0].stored_inputs[0].extra = "Used to call the API."; },
+    (value) => { delete value.assistants[0].stored_inputs[0].description; },
+    (value) => { delete value.assistants[0].stored_inputs[0].help_url; },
+    (value) => { value.assistants[0].stored_inputs[0].description = "d".repeat(501); },
+    (value) => { value.assistants[0].stored_inputs[0].description = "Line one.\nLine two."; },
+    (value) => { value.assistants[0].stored_inputs[0].help_url = "http://dashboard.example.com/api-keys"; },
+    (value) => { value.assistants[0].stored_inputs[0].help_url = "https://dashboard.example.com/api-keys#new"; },
+    (value) => { value.assistants[0].stored_inputs[0].help_url = `https://example.com/${"a".repeat(2040)}`; },
+    (value) => { value.assistants[0].stored_inputs[0].help_url = 42; },
     (value) => { value.assistants[0].stored_inputs.push({ id: "api-token", label: "Second" }); },
     (value) => {
       value.assistants[0].stored_inputs = Array.from({ length: 9 }, (_, index) => ({ id: `key-${index}`, label: "Key" }));
@@ -169,7 +182,12 @@ test("admits every Creator link kind on its host and the localized display copy 
   };
   entry.description = `${"d".repeat(499)}\u{1F44B}`;
   entry.actions[0] = { ...entry.actions[0], effect: "mutating", description: "\u00e1".repeat(120) };
-  entry.stored_inputs = Array.from({ length: 8 }, (_, index) => ({ id: `key-${index}`, label: "\u00e7".repeat(120) }));
+  entry.stored_inputs = Array.from({ length: 8 }, (_, index) => ({
+    id: `key-${index}`,
+    label: "\u00e7".repeat(120),
+    description: `${"h".repeat(499)}\u00e9`,
+    help_url: `https://example.com/${"a".repeat(2028)}`,
+  }));
   assert.equal(parseAssistantCatalog(value).length, 1);
 
   entry.links = {

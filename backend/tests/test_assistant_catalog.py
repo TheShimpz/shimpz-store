@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 DIGEST = "sha256:" + ("a" * 64)
 ICON_DIGEST = "sha256:" + ("b" * 64)
+HELP_URL = "https://dashboard.example.com/api-keys"
 
 
 def _assistant(**changes) -> dict[str, object]:
@@ -33,7 +34,13 @@ def _assistant(**changes) -> dict[str, object]:
         "allowed_hosts": ["api.example.com"],
         "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
         "stored_inputs": [
-            {"id": "api-token", "kind": "password", "label": "API token", "description": "Used to call the API."}
+            {
+                "id": "api-token",
+                "kind": "password",
+                "label": "API token",
+                "description": "Create an API token in the example dashboard and copy it.",
+                "help_url": HELP_URL,
+            }
         ],
         "actions": [
             {
@@ -76,7 +83,14 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
                 "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
-                "stored_inputs": [{"id": "api-token", "label": "API token"}],
+                "stored_inputs": [
+                    {
+                        "id": "api-token",
+                        "label": "API token",
+                        "description": "Create an API token in the example dashboard and copy it.",
+                        "help_url": HELP_URL,
+                    }
+                ],
                 "actions": [
                     {
                         "id": "hello",
@@ -131,10 +145,15 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0]["stored_inputs"][0].update(kind="text"),
         lambda value: value["assistants"][0]["stored_inputs"][0].update(label="bad\nlabel"),
         lambda value: value["assistants"][0]["stored_inputs"][0].update(extra=True),
+        lambda value: value["assistants"][0]["stored_inputs"][0].pop("help_url"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(help_url="http://example.com/keys"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(help_url="https://example.com/keys#new"),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(description="Line one.\nLine two."),
         lambda value: value["assistants"][0]["stored_inputs"].append(dict(value["assistants"][0]["stored_inputs"][0])),
         lambda value: value["assistants"][0].update(
             stored_inputs=[
-                {"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key."} for index in range(9)
+                {"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key.", "help_url": HELP_URL}
+                for index in range(9)
             ]
         ),
         lambda value: value["assistants"][0]["actions"][0].update(stored_inputs=["undeclared"]),
@@ -219,14 +238,24 @@ def test_admits_every_link_kind_on_its_host_in_canonical_order() -> None:
 def test_admits_localized_display_copy_up_to_its_catalog_bounds() -> None:
     assistant = _assistant(
         description="D" * 499 + "\u00e9",
-        stored_inputs=[{"id": "api-token", "kind": "password", "label": "\u00e7" * 120, "description": "d" * 500}],
+        stored_inputs=[
+            {
+                "id": "api-token",
+                "kind": "password",
+                "label": "\u00e7" * 120,
+                "description": "d" * 500,
+                "help_url": HELP_URL,
+            }
+        ],
     )
     assistant["actions"][0].update(effect="mutating", description="\u00e1" * 120)
     projected = catalog.project_catalog(_catalog(assistant, locale="pt"), "pt")["assistants"][0]
     assert projected["description"] == "D" * 499 + "\u00e9"
     assert projected["actions"][0]["effect"] == "mutating"
     assert projected["actions"][0]["description"] == "\u00e1" * 120
-    assert projected["stored_inputs"] == [{"id": "api-token", "label": "\u00e7" * 120}]
+    assert projected["stored_inputs"] == [
+        {"id": "api-token", "label": "\u00e7" * 120, "description": "d" * 500, "help_url": HELP_URL}
+    ]
 
 
 @pytest.mark.parametrize("locale", ["ar", "de", "en", "es", "fr", "ja", "pt", "zh"])
@@ -440,7 +469,10 @@ def test_the_summary_is_a_short_description_of_at_most_eighty_characters(monkeyp
 
 
 def test_an_action_may_use_several_declared_stored_inputs() -> None:
-    keys = [{"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key."} for index in range(8)]
+    keys = [
+        {"id": f"key-{index}", "kind": "password", "label": "Key", "description": "Key.", "help_url": HELP_URL}
+        for index in range(8)
+    ]
     names = [key["id"] for key in keys]
     assistant = _assistant(stored_inputs=keys)
     assistant["actions"][0]["stored_inputs"] = names

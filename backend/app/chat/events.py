@@ -378,19 +378,22 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
     rendered = team_contract.canonical_rendered(value.get("rendered"), request)
     locale = team_contract.canonical_locale(value.get("locale"))
     pack_digest = team_contract.canonical_pack_digest(value.get("pack_digest"))
-    # The Brain's optional task-bound purpose and a Stored Input request's reviewed key page (ADR-0090).
+    # The Brain's optional task-bound purpose, and a Stored Input request's required help text and help link (ADR-0090).
     purpose = team_contract.canonical_purpose(value.get("purpose")) if "purpose" in value else None
-    help_url = team_contract.canonical_help_url(value.get("help_url")) if "help_url" in value else None
+    stored = request is not None and request["kind"] == "input:password" and "stored_input" in request
+    help_text = team_contract.canonical_stored_input_help(value.get("help"))
+    help_url = team_contract.canonical_help_url(value.get("help_url"))
     # The one file an authorization of a file-taking Action discloses, and only its approval delivers (ADR-0093).
     file = team_contract.canonical_file_disclosure(value.get("file")) if "file" in value else None
     if (
-        set(value) - {"purpose", "help_url", "file"} != expected | _HUMAN_LOCALIZATION_FIELDS
+        set(value) - {"purpose", "help", "help_url", "file"} != expected | _HUMAN_LOCALIZATION_FIELDS
         or ("file" in value and (file is None or request is None or request["kind"] not in _AUTHORIZATION_KINDS))
         or rendered is None
         or locale is None
         or pack_digest is None
         or ("purpose" in value and purpose is None)
-        or ("help_url" in value and (help_url is None or request is None or "stored_input" not in request))
+        or (stored and (help_text is None or help_url is None))
+        or (not stored and ("help" in value or "help_url" in value))
         or value.get("type") != "human-required"
         or value.get("status") != "human-required"
         or identity is None
@@ -413,7 +416,7 @@ def _validated_human_required_event(value: dict, expected_team_id: str) -> dict 
         "locale": locale,
         "pack_digest": pack_digest,
         **({} if purpose is None else {"purpose": purpose}),
-        **({} if help_url is None else {"help_url": help_url}),
+        **({"help": help_text, "help_url": help_url} if stored else {}),
         **({} if file is None else {"file": file}),
     }
 

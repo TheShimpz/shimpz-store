@@ -33,7 +33,14 @@ def test_the_public_catalog_admits_developers_identifiers() -> None:
     assert catalog._integrations([integration])[0]["id"] == "p" * 64
     with pytest.raises(catalog.CatalogError):
         catalog._integrations([{**integration, "id": "p" * 65, "provider": "p" * 65}])
-    stored_input = {"id": "s" * 64, "kind": "password", "label": "Key", "description": "The API key."}
-    assert catalog._stored_inputs([stored_input]) == [{"id": "s" * 64, "label": "Key"}]
+    stored_input = {
+        "id": "s" * 64,
+        "kind": "password",
+        "label": "Key",
+        "description": "The API key.",
+        "help_url": "https://dashboard.exa.ai/api-keys",
+    }
+    projected = {key: value for key, value in stored_input.items() if key != "kind"}
+    assert catalog._stored_inputs([stored_input]) == [projected]
     with pytest.raises(catalog.CatalogError):
         catalog._stored_inputs([{**stored_input, "id": "s.key"}])

@@ -15,6 +15,8 @@ const DISPLAY_LINE_CHARS = 120;
 const ACTION_EFFECTS = new Set(["read_only", "mutating"]);
 const MAX_STORED_INPUTS = 8;
 const MAX_LINK_CHARS = 256;
+// A Stored Input's help link (Developers manifest `help_url`), the same public-URL grammar at its own bound.
+const MAX_HELP_URL_CHARS = 2048;
 // The Team HTTP protocol's help-URL grammar: one canonical public https URL with a path, an optional query, and no
 // port, credentials, fragment, or dot segment, on a lowercase DNS host that is not an IP, IDN, or reserved name.
 const PUBLIC_URL_RE = new RegExp(
@@ -118,10 +120,14 @@ function validLinks(value) {
 function validStoredInputs(value) {
   return Array.isArray(value) && value.length <= MAX_STORED_INPUTS &&
     value.every((input) =>
-      hasExactKeys(input, ["id", "label"]) &&
+      hasExactKeys(input, ["id", "label", "description", "help_url"]) &&
       boundedText(input.id, 64) &&
       ACTION_ID_RE.test(input.id) &&
-      displayText(input.label, DISPLAY_LINE_CHARS)
+      displayText(input.label, DISPLAY_LINE_CHARS) &&
+      displayText(input.description, ASSISTANT_DESCRIPTION_CHARS) &&
+      typeof input.help_url === "string" &&
+      input.help_url.length <= MAX_HELP_URL_CHARS &&
+      PUBLIC_URL_RE.test(input.help_url)
     ) &&
     new Set(value.map((input) => input.id)).size === value.length;
 }
