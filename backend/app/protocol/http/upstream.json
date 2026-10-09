@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/TheShimpz/shimpz-teams",
-  "commit": "1c6da6e108b89040cd9b367519e114de96893f7a",
+  "commit": "4b610396fde3e065956783b89074b808b9700b84",
   "path": "protocol/http/v1",
   "files": {
     "identifiers.py": "29d382154e787e2e8d3ad5224d1440db6408ef81783b6d04a7c84bc810762f6e",
