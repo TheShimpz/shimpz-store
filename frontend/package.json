@@ -8,25 +8,25 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "prepare": "svelte-kit sync || echo ''",
+    "prepare": "svelte-kit sync",
     "test": "node tests/run-tests.mjs",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/adapter-static": "3.0.10",
     "@sveltejs/kit": "2.70.2",
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
-    "@tailwindcss/vite": "^4.3.2",
-    "svelte": "^5.56.8",
-    "svelte-check": "^4.6.0",
-    "tailwindcss": "^4.3.2",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "@tailwindcss/vite": "4.3.2",
+    "svelte": "5.56.8",
+    "svelte-check": "4.7.2",
+    "tailwindcss": "4.3.2",
+    "typescript": "6.0.3",
+    "vite": "8.1.4"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.1.1",
-    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7",
     "@shimpz/frontend": "https://codeload.github.com/TheShimpz/shimpz-frontend/tar.gz/e15be9f708c129f990f30219948334392d710505"
   }
 }
