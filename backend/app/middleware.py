@@ -30,7 +30,7 @@ _UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
 _CSP_PREFIX = b"default-src 'self'; base-uri 'self'; object-src 'none'; "
 _CSP_STYLE_AND_REST = (
     b"style-src 'self' 'unsafe-inline'; "
-    b"img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; "
+    b"img-src 'self'; font-src 'self' data:; connect-src 'self'; "
     b"frame-src 'none'; "
     b"worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
 )

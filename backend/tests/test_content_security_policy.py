@@ -72,3 +72,11 @@ def test_without_a_build_only_this_origin_may_run_scripts(tmp_path):
     for headers in (page, embed):
         policy = dict(headers)[b"content-security-policy"].decode()
         assert _script_sources(policy) == ["'self'"]
+
+
+def test_pages_load_images_and_open_connections_only_from_this_origin(tmp_path):
+    for headers in middleware.security_headers(tmp_path / "absent"):
+        policy = dict(headers)[b"content-security-policy"].decode()
+        directives = dict(directive.split(" ", 1) for directive in policy.split("; ") if " " in directive)
+        assert directives["img-src"] == "'self'"
+        assert directives["connect-src"] == "'self'"
