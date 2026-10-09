@@ -1,7 +1,5 @@
 """Closed Cloudflare OAuth broker routes."""
 
-from __future__ import annotations
-
 import asyncio
 import functools
 import html

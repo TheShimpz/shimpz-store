@@ -1,7 +1,5 @@
 """Edge coverage for finite Store concurrency admission."""
 
-from __future__ import annotations
-
 import asyncio
 import concurrent.futures
 

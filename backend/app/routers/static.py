@@ -1,7 +1,5 @@
 """Prerendered SvelteKit files registered after every API and WebSocket route."""
 
-from __future__ import annotations
-
 import os
 from pathlib import Path
 

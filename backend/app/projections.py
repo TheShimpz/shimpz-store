@@ -1,7 +1,5 @@
 """Closed browser-safe projections for Store controller responses."""
 
-from __future__ import annotations
-
 from app import catalog
 from app.config import MAX_CHAT_ASSISTANTS
 from app.protocol.http.v1 import payload as team_contract

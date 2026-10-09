@@ -1,7 +1,5 @@
 """Unauthenticated Store health and Assistant release metadata."""
 
-from __future__ import annotations
-
 import hashlib
 import json
 

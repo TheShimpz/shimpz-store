@@ -1,7 +1,5 @@
 """Authenticated shimpz.chat.v7 WebSocket admission, dispatch, and delivery."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import functools

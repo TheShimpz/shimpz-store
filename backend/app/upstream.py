@@ -1,7 +1,5 @@
 """Bounded one-hop JSON transport to trusted internal services."""
 
-from __future__ import annotations
-
 import functools
 import http.client
 import json

@@ -1,7 +1,5 @@
 """Failure coverage for Account-backed Store integration routes."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 

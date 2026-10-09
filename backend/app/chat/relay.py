@@ -1,7 +1,5 @@
 """Bounded blocking relay between the Team NDJSON stream and asyncio."""
 
-from __future__ import annotations
-
 import asyncio
 import http.client
 import json as jsonlib

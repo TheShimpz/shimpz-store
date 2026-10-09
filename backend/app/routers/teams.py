@@ -1,7 +1,5 @@
 """Core Team identity and lifecycle routes."""
 
-from __future__ import annotations
-
 import hashlib
 import re
 

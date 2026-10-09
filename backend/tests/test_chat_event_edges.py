@@ -1,7 +1,5 @@
 """Edge coverage for public chat events and the bounded NDJSON relay."""
 
-from __future__ import annotations
-
 import asyncio
 import hashlib
 

@@ -1,7 +1,5 @@
 """Security contracts for the dedicated Store-to-Neuron CONNECT boundary."""
 
-from __future__ import annotations
-
 import importlib.util
 import json
 import runpy

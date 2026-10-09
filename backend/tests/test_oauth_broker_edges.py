@@ -1,7 +1,5 @@
 """Failure and capacity coverage for the hosted OAuth broker core."""
 
-from __future__ import annotations
-
 import json
 from urllib.parse import urlencode
 

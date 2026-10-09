@@ -1,7 +1,5 @@
 """Strict projection of public Assistant metadata from Developers, in one interface language (ADR-0091)."""
 
-from __future__ import annotations
-
 import re
 
 from app.protocol.http.v1 import payload as team_contract

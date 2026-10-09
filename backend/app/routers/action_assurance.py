@@ -1,7 +1,5 @@
 """Same-origin Account factor ceremonies for one Hosted Action challenge."""
 
-from __future__ import annotations
-
 import re
 
 from fastapi import APIRouter, Request

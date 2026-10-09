@@ -1,7 +1,5 @@
 """Service-level failure and configuration edge coverage."""
 
-from __future__ import annotations
-
 import asyncio
 from types import SimpleNamespace
 

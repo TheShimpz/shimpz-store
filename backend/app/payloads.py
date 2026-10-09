@@ -1,7 +1,5 @@
 """Bounded duplicate-safe JSON request parsing."""
 
-from __future__ import annotations
-
 from fastapi import Request
 
 from app.protocol.http.v1 import strict_json

@@ -1,7 +1,5 @@
 """Bounded Store-egress audit without OAuth or Access credential material."""
 
-from __future__ import annotations
-
 import json
 import os
 import stat

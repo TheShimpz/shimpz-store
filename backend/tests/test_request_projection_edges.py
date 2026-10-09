@@ -1,7 +1,5 @@
 """Fail-closed request parsing and controller projection edge coverage."""
 
-from __future__ import annotations
-
 import asyncio
 
 import pytest

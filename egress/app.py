@@ -1,8 +1,6 @@
 #!/usr/local/bin/python3
 """CONNECT-only outbound enforcement from hosted Store to private Neuron."""
 
-from __future__ import annotations
-
 import contextlib
 import ipaddress
 import select

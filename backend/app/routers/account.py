@@ -1,7 +1,5 @@
 """Public account authentication routes."""
 
-from __future__ import annotations
-
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 

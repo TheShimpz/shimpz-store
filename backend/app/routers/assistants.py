@@ -1,7 +1,5 @@
 """Released cloud Assistant lifecycle routes."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import NamedTuple
 

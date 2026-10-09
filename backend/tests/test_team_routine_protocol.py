@@ -1,7 +1,5 @@
 """Store's mirror of Team's Routine protocol admits exactly Team's golden vectors (ADR-0086, ADR-0101)."""
 
-from __future__ import annotations
-
 import json
 from fractions import Fraction
 from pathlib import Path

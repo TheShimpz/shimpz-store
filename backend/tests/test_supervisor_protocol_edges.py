@@ -1,7 +1,5 @@
 """Edge coverage for the Local Supervisor assertion mirror."""
 
-from __future__ import annotations
-
 import pytest
 
 from app.protocol.http.v1 import supervisor

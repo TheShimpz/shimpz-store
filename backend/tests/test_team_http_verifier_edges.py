@@ -1,7 +1,5 @@
 """Failure coverage for the generated Team HTTP integrity verifier."""
 
-from __future__ import annotations
-
 import hashlib
 import importlib
 import json

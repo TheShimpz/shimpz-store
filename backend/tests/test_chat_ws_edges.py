@@ -1,7 +1,5 @@
 """Failure and cleanup coverage for Hosted chat WebSocket orchestration."""
 
-from __future__ import annotations
-
 import asyncio
 from types import SimpleNamespace
 

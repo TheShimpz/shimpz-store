@@ -1,7 +1,5 @@
 """Bounded worker, turn, and WebSocket connection admission."""
 
-from __future__ import annotations
-
 import asyncio
 import concurrent.futures
 import contextlib

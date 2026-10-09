@@ -1,7 +1,5 @@
 """Edge coverage for the Store's small HTTP route adapters."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import secrets

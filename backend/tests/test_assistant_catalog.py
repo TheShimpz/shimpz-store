@@ -1,7 +1,5 @@
 """Public Store projection of Developers-owned Assistant metadata."""
 
-from __future__ import annotations
-
 import asyncio
 import copy
 import hashlib

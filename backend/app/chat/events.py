@@ -1,7 +1,5 @@
 """Closed browser-visible chat event validation."""
 
-from __future__ import annotations
-
 import re
 
 from fastapi import WebSocket, WebSocketDisconnect

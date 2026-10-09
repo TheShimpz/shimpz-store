@@ -1,7 +1,5 @@
 """Authenticated Store-to-Team Assistant mutation boundary."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from fastapi import Request

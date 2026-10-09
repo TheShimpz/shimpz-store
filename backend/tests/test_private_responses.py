@@ -1,8 +1,5 @@
 """Every authenticated Team, model-provider, and inference response is private and never stored."""
 
-from __future__ import annotations
-
-
 from fastapi.testclient import TestClient
 
 from app import authn

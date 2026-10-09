@@ -1,7 +1,5 @@
 """Store's mirror of Team's Routine phrase reader reads exactly Team's rules (ADR-0101)."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

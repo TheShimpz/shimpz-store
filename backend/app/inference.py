@@ -1,7 +1,5 @@
 """Closed model-catalog validation shared by Store control-surface routers."""
 
-from __future__ import annotations
-
 from app.config import MODEL_CATALOG
 
 PROVIDERS = frozenset(MODEL_CATALOG)

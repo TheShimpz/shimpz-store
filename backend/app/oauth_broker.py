@@ -1,7 +1,5 @@
 """Short-lived hosted Cloudflare OAuth broker for self-hosted local Spaces."""
 
-from __future__ import annotations
-
 import base64
 import hashlib
 import hmac

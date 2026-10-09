@@ -1,7 +1,5 @@
 """Bounded account-session verification shared by Store routers."""
 
-from __future__ import annotations
-
 import os
 import re
 import stat

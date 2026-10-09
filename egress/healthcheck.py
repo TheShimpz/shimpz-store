@@ -1,8 +1,6 @@
 #!/usr/local/bin/python3
 """Prove that the Store CONNECT boundary is accepting local connections."""
 
-from __future__ import annotations
-
 import socket
 
 

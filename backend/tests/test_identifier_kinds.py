@@ -1,7 +1,5 @@
 """Store admits every Team and Developers identifier by its own kind, as the producing protocol defines it."""
 
-from __future__ import annotations
-
 import pytest
 
 from app import catalog
