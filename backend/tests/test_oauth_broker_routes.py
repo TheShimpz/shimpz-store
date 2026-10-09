@@ -1,3 +1,4 @@
+import re
 from contextlib import contextmanager
 from unittest import mock
 
@@ -169,7 +170,16 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
     assert callback.headers["cache-control"] == "private, no-store"
     assert callback.headers["referrer-policy"] == "no-referrer"
     assert callback.headers["cross-origin-opener-policy"] == "same-origin"
-    assert "default-src 'none'" in callback.headers["content-security-policy"]
+    policy = callback.headers["content-security-policy"]
+    assert "default-src 'none'" in policy
+    assert len(callback.headers.get_list("content-security-policy")) == 1
+    script_nonce = re.search(r"script-src 'nonce-([A-Za-z0-9_-]+)';", policy).group(1)
+    style_nonce = re.search(r"style-src 'nonce-([A-Za-z0-9_-]+)';", policy).group(1)
+    assert script_nonce == style_nonce
+    assert f'<script nonce="{script_nonce}">' in callback.text
+    assert f'<style nonce="{style_nonce}">' in callback.text
+    assert "'unsafe-inline'" not in policy
+    assert "sha256-" not in policy
     assert "c1." + "s" * 43 + "." + "a" * 64 in callback.text
     assert "access-token" not in callback.text
     assert "refresh-token" not in callback.text
