@@ -1,11 +1,22 @@
+import asyncio
 import re
 from contextlib import contextmanager
 from unittest import mock
 
+import pytest
+from fastapi import Request
 from fastapi.testclient import TestClient
 
 from app import main
-from app.oauth_broker import SCOPES, BrokerLeaseSigner, OAuthBroker, OAuthOutOfBand, OAuthRedirect
+from app.oauth_broker import (
+    SCOPES,
+    BrokerLeaseSigner,
+    OAuthBroker,
+    OAuthBrokerError,
+    OAuthOutOfBand,
+    OAuthRedirect,
+)
+from app.payloads import ClientPayloadError
 from app.routers import oauth
 
 
@@ -280,3 +291,50 @@ def test_refresh_and_revoke_refuse_a_lease_expiry_with_non_ascii_digits() -> Non
     assert refresh.headers["cache-control"] == "private, no-store"
     neuron.refresh.assert_not_called()
     neuron.revoke.assert_not_called()
+
+
+def _one_shot_request(body: bytes, headers: list[tuple[bytes, bytes]]) -> Request:
+    """Return a request that delivers body once and then reports a client disconnect."""
+    delivered = False
+
+    async def receive() -> dict[str, object]:
+        nonlocal delivered
+        if delivered:
+            return {"type": "http.disconnect"}
+        delivered = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    return Request({"type": "http", "headers": headers}, receive)
+
+
+def test_oauth_body_requires_an_explicit_length() -> None:
+    request = _one_shot_request(b"{}", [(b"content-type", b"application/json")])
+    with pytest.raises(ClientPayloadError) as exc:
+        asyncio.run(oauth._body(request, frozenset()))
+    assert exc.value.status == 411
+
+
+def test_oauth_start_and_callback_translate_broker_failures(monkeypatch) -> None:
+    async def fail(*_args, **_kwargs):
+        raise OAuthBrokerError("failed")
+
+    monkeypatch.setattr(oauth, "_run_bounded", fail)
+    with TestClient(main.app) as client:
+        start = _start(client, callback="loopback")
+        callback = _callback(client)
+    assert start.status_code == 502
+    assert callback.status_code == 502
+
+
+def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch) -> None:
+    async def unexpected(*_args, **_kwargs):
+        return object()
+
+    monkeypatch.setattr(oauth, "_run_bounded", unexpected)
+    with TestClient(main.app) as client:
+        callback = _callback(client)
+    assert callback.status_code == 502
+
+    request = _one_shot_request(b"{}", [(b"content-type", b"application/json"), (b"content-length", b"2")])
+    unknown = asyncio.run(oauth._post(request, "unknown", frozenset()))
+    assert unknown.status_code == 502

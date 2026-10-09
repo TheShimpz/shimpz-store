@@ -123,6 +123,7 @@ def test_files_resolving_outside_the_build_are_refused_while_a_linked_build_serv
     monkeypatch.setattr(static, "BUILD", tmp_path / "linked-build")
 
     assert static.resolve("leak.txt") is None
+    assert static.resolve("../secret.txt") is None
     with TestClient(store.app) as client:
         leaked = client.get("/leak.txt", headers={"Accept": "text/html"})
         home = client.get("/")

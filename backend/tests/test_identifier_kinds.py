@@ -1,19 +1,8 @@
-"""Store admits every Team and Developers identifier by its own kind, as the producing protocol defines it."""
+"""Store admits every Developers identifier by its own kind, as the producing protocol defines it."""
 
 import pytest
 
 from app import catalog
-from app.chat import events
-
-
-def test_a_human_challenge_names_any_canonical_action() -> None:
-    for action in ("dns.read", "zone_get", "a" * 128):
-        assert events._human_identity({"id": action, "summary": "Read"}, "summary", 160) == {
-            "id": action,
-            "summary": "Read",
-        }
-    for action in ("a" * 129, "dns..read", "Lookup"):
-        assert events._human_identity({"id": action, "summary": "Read"}, "summary", 160) is None
 
 
 def test_the_public_catalog_admits_developers_identifiers() -> None:

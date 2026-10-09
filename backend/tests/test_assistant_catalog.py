@@ -409,6 +409,18 @@ def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_public_icon_route_refuses_a_malformed_digest_before_developers(monkeypatch) -> None:
+    async def must_not_run(*_args, **_kwargs):
+        raise AssertionError("a malformed icon digest must not reach Developers")
+
+    monkeypatch.setattr(public, "call_asset_bounded", must_not_run)
+    with TestClient(app) as client:
+        response = client.get("/api/assistant-icons/not-a-hash/not-a-hash.png")
+
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
+
+
 @pytest.mark.parametrize("upstream", [(502, {}), (200, {"version": 1, "locale": "en", "assistants": "bad"})])
 def test_public_route_fails_closed_without_cache(monkeypatch, upstream) -> None:
     def invalid_catalog(*_args, **_kwargs):

@@ -48,7 +48,26 @@ def test_json_transport_rejects_an_oversized_response(monkeypatch):
     _install(monkeypatch, connection)
     assert upstream.call("http://service:80", "GET", "/", timeout=1, max_response_bytes=2) == (
         502,
-        {"detail": "the Space returned an oversized response"},
+        {"detail": "the upstream returned an oversized response"},
+    )
+    assert connection.closed
+
+
+@pytest.mark.parametrize(("body", "expected"), [(b'{"version":1}', {"version": 1}), (b"", {})])
+def test_json_transport_returns_the_status_and_decoded_body(monkeypatch, body, expected):
+    connection = _Connection(_Response(status=200, body=body))
+    _install(monkeypatch, connection)
+    assert upstream.call("http://developers:8080", "GET", "/api/v1/assistants", timeout=1) == (200, expected)
+    assert connection.requests == [(("GET", "/api/v1/assistants"), {})]
+    assert connection.closed
+
+
+def test_json_transport_closes_on_network_failure(monkeypatch):
+    connection = _Connection(error=OSError("unreachable"))
+    _install(monkeypatch, connection)
+    assert upstream.call("http://developers:8080", "GET", "/", timeout=1) == (
+        502,
+        {"detail": "the upstream is unreachable"},
     )
     assert connection.closed
 

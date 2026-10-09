@@ -1,89 +1,15 @@
-"""Environment-derived Store limits, endpoints, and public protocol constants."""
+"""Environment-derived Store limits, endpoints, and cache policies."""
 
-import json
 import os
 from pathlib import Path
 
-from app.protocol.http.v1 import payload as team_contract
-from app.protocol.http.v1 import turn as turn_contract
-from app.protocol.http.v1 import websocket as chat_ws_common
-
 BUILD = Path(os.environ.get("SHIMPZ_STORE_BUILD", "/app/build"))
-ACCOUNT_URL = os.environ.get("SHIMPZ_ACCOUNT_URL", "http://account:7079")
-TEAM_URL = os.environ.get("SHIMPZ_TEAM_URL", "http://team:7077")
 DEVELOPERS_URL = os.environ.get("SHIMPZ_DEVELOPERS_URL", "http://developers-api:8080")
-BRAIN_FINALIZE_TOKEN_FILE = Path(
-    os.environ.get(
-        "SHIMPZ_ACCOUNT_MODEL_PROVIDER_FINALIZE_TOKEN_FILE",
-        "/run/shimpz-account-model-provider-finalize/token",
-    )
-)
-ACCOUNT_VERIFY_TOKEN_FILE = Path(
-    os.environ.get(
-        "SHIMPZ_ACCOUNT_STORE_VERIFY_TOKEN_FILE",
-        "/run/shimpz-account-store-verify/token",
-    )
-)
-ACCOUNT_COOKIE = "shimpz_account"
-COOKIE_MAX_AGE = 7 * 24 * 3600
-MAX_TEAM_CREATE_BODY_BYTES = max(
-    1024,
-    int(os.environ.get("SHIMPZ_STORE_MAX_TEAM_CREATE_BODY_BYTES", str(16 * 1024))),
-)
-MAX_INFERENCE_BODY_BYTES = max(
-    1024,
-    int(os.environ.get("SHIMPZ_STORE_MAX_INFERENCE_BODY_BYTES", str(4 * 1024))),
-)
-MAX_ASSISTANT_INSTALL_BODY_BYTES = max(
-    1024,
-    int(os.environ.get("SHIMPZ_STORE_MAX_ASSISTANT_INSTALL_BODY_BYTES", str(4 * 1024))),
-)
-MAX_AUTH_BODY_BYTES = max(1024, int(os.environ.get("SHIMPZ_STORE_MAX_AUTH_BODY_BYTES", str(16 * 1024))))
 MAX_OAUTH_BODY_BYTES = 32 * 1024
-MAX_WS_FRAME_BYTES = max(1024, int(os.environ.get("SHIMPZ_STORE_MAX_WS_FRAME_BYTES", str(128 * 1024))))
-STREAM_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_STREAM_WORKER_THREADS", "32")))
-STREAM_TURN_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_STREAM_TURN_QUEUE_MAX", "32")))
 CONTROL_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_CONTROL_WORKER_THREADS", "8")))
 CONTROL_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_CONTROL_QUEUE_MAX", "8")))
-AUTH_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_AUTH_WORKER_THREADS", "8")))
-AUTH_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_AUTH_QUEUE_MAX", "8")))
-STOP_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_STOP_WORKER_THREADS", "4")))
-STOP_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_STOP_QUEUE_MAX", "4")))
 OAUTH_WORKER_THREADS = max(1, int(os.environ.get("SHIMPZ_STORE_OAUTH_WORKER_THREADS", "8")))
 OAUTH_QUEUE_MAX = max(0, int(os.environ.get("SHIMPZ_STORE_OAUTH_QUEUE_MAX", "8")))
-WS_GLOBAL_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_GLOBAL_CONNECTION_LIMIT", "64")))
-WS_ACCOUNT_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_ACCOUNT_CONNECTION_LIMIT", "4")))
-WS_TEAM_CONNECTION_LIMIT = max(1, int(os.environ.get("SHIMPZ_STORE_WS_TEAM_CONNECTION_LIMIT", "2")))
-MAX_UPSTREAM_STREAM_LINE_BYTES = 256 * 1024
-MAX_UPSTREAM_STREAM_BYTES = 2 * 1024 * 1024
 HTML_CACHE_CONTROL = "public, no-cache, max-age=0, must-revalidate, no-transform"
 IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
-
-
-canonical_origin = chat_ws_common.canonical_origin
-
-
-def origin_allowed(value: str | None, allowed_origins: frozenset[str]) -> bool:
-    canonical = canonical_origin(value)
-    return canonical is not None and canonical in allowed_origins
-
-
-WS_ALLOWED_ORIGINS = frozenset(
-    origin
-    for raw in os.environ.get("SHIMPZ_WS_ALLOWED_ORIGINS", "https://shimpz.com").split(",")
-    if (origin := canonical_origin(raw.strip())) is not None
-)
-# Browser Assistant mutations and WebSocket chat deliberately share this allowlist; never repoint either alone.
-ASSISTANT_MUTATION_ALLOWED_ORIGINS = WS_ALLOWED_ORIGINS
-MODEL_CATALOG = {
-    provider["id"]: frozenset(model["id"] for model in provider["models"])
-    for provider in json.loads(Path(__file__).with_name("model_catalog.json").read_text(encoding="utf-8"))["providers"]
-}
 PRIVATE_NO_STORE_HEADERS = {"Cache-Control": "private, no-store"}
-MAX_CHAT_MESSAGE_CHARS = team_contract.MAX_CHAT_MESSAGE_CHARS
-MAX_CHAT_FILES = team_contract.MAX_CHAT_FILES
-MAX_CHAT_ASSISTANTS = team_contract.MAX_CHAT_ASSISTANTS
-MAX_CHAT_REPLY_CHARS = turn_contract.MAX_REPLY_CHARS
-MAX_CHAT_ERROR_DETAIL_CHARS = 800
-TERMINAL_CONTRACT_ERROR = "team stream violated the terminal event contract"
-CHAT_WS_SUBPROTOCOL = "shimpz.chat.v7"

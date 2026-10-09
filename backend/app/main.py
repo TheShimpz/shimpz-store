@@ -1,39 +1,19 @@
-"""Serve the Shimpz public console and account-authenticated control surface."""
+"""Serve the Shimpz public site, the public Assistant catalog, and the platform OAuth broker."""
 
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.access import private_json
-from app.chat import ws as chat_ws
 from app.concurrency import ExecutorSaturatedError as _ExecutorSaturatedError
-from app.config import ACCOUNT_COOKIE as ACCOUNT_COOKIE
 from app.logconf import setup
 from app.middleware import TraceIdMiddleware
-from app.payloads import ClientPayloadError
-from app.routers import (
-    account,
-    action_assurance,
-    assistants,
-    files,
-    inference,
-    model_providers,
-    oauth,
-    public,
-    static,
-    teams,
-)
+from app.routers import oauth, public, static
 
 setup("shimpz-store")
 log = structlog.get_logger()
 
 app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(TraceIdMiddleware)
-
-
-@app.exception_handler(ClientPayloadError)
-async def client_payload_error(_request: Request, exc: ClientPayloadError) -> JSONResponse:
-    return private_json({"detail": exc.detail}, exc.status)
 
 
 @app.exception_handler(Exception)
@@ -53,14 +33,6 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
     )
 
 
-app.include_router(account.router)
-app.include_router(assistants.router)
-app.include_router(model_providers.router)
-app.include_router(files.router)
-app.include_router(inference.router)
 app.include_router(oauth.router)
-app.include_router(action_assurance.router)
 app.include_router(public.router)
-app.include_router(teams.router)
-app.include_router(chat_ws.router)
 app.include_router(static.router)

@@ -1,10 +1,9 @@
-"""Bounded one-hop JSON transport to trusted internal services."""
+"""Bounded one-hop JSON and asset transport to trusted internal services."""
 
 import functools
 import http.client
 import json
-from typing import NamedTuple, NotRequired, TypedDict, Unpack
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import structlog
 
@@ -13,108 +12,28 @@ from app.concurrency import BoundedThreadPoolExecutor, run_bounded
 log = structlog.get_logger()
 
 VERIFY_TIMEOUT_SECONDS = 5
-CONTROL_PLANE_TIMEOUT_SECONDS = 30
-CHAT_STOP_TIMEOUT_SECONDS = 10
-FILE_NAME_HEADER = "X-Shimpz-Filename"
 MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_ASSET_RESPONSE_BYTES = 1024 * 1024
 
 
-class _Request(NamedTuple):
-    base: str
-    method: str
-    path: str
-    body: str | bytes | None
-    headers: dict[str, str]
-    timeout: float
-    max_response_bytes: int
-
-
-class _CallOptions(TypedDict):
-    timeout: float
-    max_response_bytes: NotRequired[int]
-
-
-class _RawCallOptions(TypedDict):
-    filename: str
-    media_type: str
-    extra: NotRequired[dict[str, str] | None]
-    timeout: float
-
-
-def _request(request: _Request) -> tuple[int, dict]:
-    parsed = urlparse(request.base)
-    connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=request.timeout)
+def call(
+    base: str, method: str, path: str, *, timeout: float, max_response_bytes: int = MAX_JSON_RESPONSE_BYTES
+) -> tuple[int, dict]:
+    """Proxy one bodiless trusted internal hop with a closed generic failure."""
+    parsed = urlparse(base)
+    connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=timeout)
     try:
-        connection.request(request.method, request.path, request.body, request.headers)
+        connection.request(method, path)
         response = connection.getresponse()
-        raw = response.read(request.max_response_bytes + 1)
-        if len(raw) > request.max_response_bytes:
-            return 502, {"detail": "the Space returned an oversized response"}
+        raw = response.read(max_response_bytes + 1)
+        if len(raw) > max_response_bytes:
+            return 502, {"detail": "the upstream returned an oversized response"}
         return response.status, (json.loads(raw) if raw else {})
     except (OSError, UnicodeError, json.JSONDecodeError, http.client.HTTPException) as exc:
-        log.warning("proxy_unreachable", base=request.base, path=request.path, error=str(exc))
-        return 502, {"detail": "the Space is unreachable"}
+        log.warning("proxy_unreachable", base=base, path=path, error=str(exc))
+        return 502, {"detail": "the upstream is unreachable"}
     finally:
         connection.close()
-
-
-def call(
-    base: str,
-    method: str,
-    path: str,
-    payload: dict | None = None,
-    extra: dict[str, str] | None = None,
-    **options: Unpack[_CallOptions],
-) -> tuple[int, dict]:
-    """Proxy one trusted internal hop with a closed generic failure."""
-    headers: dict[str, str] = dict(extra or {})
-    body = None
-    if payload is not None:
-        body = json.dumps(payload)
-        headers["Content-Type"] = "application/json"
-    return _request(
-        _Request(
-            base,
-            method,
-            path,
-            body,
-            headers,
-            options["timeout"],
-            options.get("max_response_bytes", MAX_JSON_RESPONSE_BYTES),
-        )
-    )
-
-
-def call_raw(
-    base: str,
-    path: str,
-    body: bytes,
-    **options: Unpack[_RawCallOptions],
-) -> tuple[int, dict]:
-    """Proxy one raw file body while retaining a JSON response contract."""
-    headers: dict[str, str] = dict(options.get("extra") or {})
-    headers["Content-Type"] = options["media_type"]
-    headers[FILE_NAME_HEADER] = quote(options["filename"], safe="")
-    return _request(_Request(base, "POST", path, body, headers, options["timeout"], MAX_JSON_RESPONSE_BYTES))
-
-
-async def call_bounded(
-    executor: BoundedThreadPoolExecutor,
-    *args,
-    **kwargs,
-) -> tuple[int, dict]:
-    """Run one internal JSON hop through the caller's bounded executor."""
-    return await run_bounded(executor, functools.partial(call, *args, **kwargs))
-
-
-async def call_raw_bounded(
-    executor: BoundedThreadPoolExecutor,
-    *args,
-    **kwargs,
-) -> tuple[int, dict]:
-    """Run one raw internal file hop through the caller's bounded executor."""
-    return await run_bounded(executor, functools.partial(call_raw, *args, **kwargs))
 
 
 def call_asset(base: str, path: str, *, timeout: float) -> tuple[int, bytes]:

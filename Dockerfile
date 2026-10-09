@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 # Shimpz storefront — multi-stage: node prerenders the SvelteKit app (static HTML, best SEO), python
-# serves the build + the tiny /api. Follows the shimpz-new fullstack shape (frontend/ + backend/).
+# serves the build, the public catalog, and the OAuth broker (frontend/ + backend/).
 
 # ── stage 1: obtain the exact uv binary without retaining an installer toolchain ─────────────────
 FROM ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ceb1506f332c3facae5deceded AS uv
@@ -37,19 +37,14 @@ RUN groupadd --gid 10008 shimpz-store \
  && useradd --uid 10008 --gid 10008 --no-create-home --shell /usr/sbin/nologin shimpz-store
 WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
-COPY backend/app/__init__.py backend/app/authn.py backend/app/concurrency.py backend/app/config.py backend/app/logconf.py backend/app/main.py backend/app/model_catalog.json \
-     backend/app/middleware.py backend/app/payloads.py backend/app/upstream.py ./app/
-COPY backend/app/access.py ./app/
-COPY backend/app/catalog.py ./app/
-COPY backend/app/chat/__init__.py backend/app/chat/events.py backend/app/chat/relay.py backend/app/chat/ws.py ./app/chat/
-COPY backend/app/control.py ./app/
-COPY backend/app/inference.py ./app/
-COPY backend/app/oauth_broker.py ./app/
-COPY backend/app/projections.py ./app/
+COPY backend/app/__init__.py backend/app/catalog.py backend/app/concurrency.py backend/app/config.py \
+     backend/app/control.py backend/app/logconf.py backend/app/main.py backend/app/middleware.py \
+     backend/app/oauth_broker.py backend/app/payloads.py backend/app/upstream.py ./app/
 COPY backend/app/protocol/http/v1/identifiers.py backend/app/protocol/http/v1/payload.py \
     backend/app/protocol/http/v1/purpose.py backend/app/protocol/http/v1/strict_json.py \
-    backend/app/protocol/http/v1/turn.py backend/app/protocol/http/v1/websocket.py ./app/protocol/http/v1/
-COPY backend/app/routers/__init__.py backend/app/routers/account.py backend/app/routers/assistant_lifecycle.py backend/app/routers/assistants.py backend/app/routers/files.py backend/app/routers/inference.py backend/app/routers/model_providers.py backend/app/routers/oauth.py backend/app/routers/action_assurance.py backend/app/routers/public.py backend/app/routers/static.py backend/app/routers/teams.py ./app/routers/
+    backend/app/protocol/http/v1/turn.py ./app/protocol/http/v1/
+COPY backend/app/routers/__init__.py backend/app/routers/oauth.py backend/app/routers/public.py \
+     backend/app/routers/static.py ./app/routers/
 COPY --from=web /w/build ./build
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
