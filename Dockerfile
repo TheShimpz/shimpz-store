@@ -39,7 +39,7 @@ WORKDIR /app
 COPY --from=dependencies /opt/venv /opt/venv
 COPY backend/app/__init__.py backend/app/catalog.py backend/app/concurrency.py backend/app/config.py \
      backend/app/control.py backend/app/logconf.py backend/app/main.py backend/app/middleware.py \
-     backend/app/oauth_broker.py backend/app/payloads.py backend/app/upstream.py ./app/
+     backend/app/oauth_broker.py backend/app/payloads.py backend/app/ratelimit.py backend/app/upstream.py ./app/
 COPY backend/app/protocol/http/v1/identifiers.py backend/app/protocol/http/v1/payload.py \
     backend/app/protocol/http/v1/purpose.py backend/app/protocol/http/v1/strict_json.py \
     backend/app/protocol/http/v1/turn.py ./app/protocol/http/v1/
@@ -55,5 +55,6 @@ EXPOSE 3200
 HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=20 \
   CMD ["python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 3200), 2).close()"]
 # The access log would record the OAuth callback query (`state`, `code`), so it stays off; request outcomes are logged
-# by the application without query values.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200", "--no-access-log", "--no-server-header"]
+# by the application without query values. No forwarded header rewrites the socket peer the start limit reads.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200", "--no-access-log", "--no-server-header", \
+     "--no-proxy-headers"]

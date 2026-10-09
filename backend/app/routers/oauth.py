@@ -10,9 +10,19 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from app.concurrency import BoundedThreadPoolExecutor
-from app.config import MAX_OAUTH_BODY_BYTES, OAUTH_QUEUE_MAX, OAUTH_WORKER_THREADS, PRIVATE_NO_STORE_HEADERS
+from app.config import (
+    MAX_OAUTH_BODY_BYTES,
+    OAUTH_QUEUE_MAX,
+    OAUTH_START_CAPACITY,
+    OAUTH_START_MAX_CLIENTS,
+    OAUTH_START_PERIOD_SECONDS,
+    OAUTH_WORKER_THREADS,
+    PRIVATE_NO_STORE_HEADERS,
+    TRUSTED_PROXIES,
+)
 from app.oauth_broker import OAuthBroker, OAuthBrokerError, OAuthOutOfBand, OAuthRedirect
 from app.payloads import ClientPayloadError, read_bounded_json
+from app.ratelimit import ClientAddressError, TokenBuckets, client_key
 
 log = structlog.get_logger()
 router = APIRouter()
@@ -22,6 +32,11 @@ _EXECUTOR = BoundedThreadPoolExecutor(
     thread_name_prefix="store-oauth",
 )
 _BROKER = OAuthBroker()
+_START_LIMIT = TokenBuckets(
+    capacity=OAUTH_START_CAPACITY,
+    period=OAUTH_START_PERIOD_SECONDS,
+    max_keys=OAUTH_START_MAX_CLIENTS,
+)
 
 
 async def _run_bounded(fn, /, *args):
@@ -115,17 +130,32 @@ async def _body(request: Request, fields: frozenset[str]) -> dict:
     return payload
 
 
-def _failure(operation: str, status: int = 400) -> JSONResponse:
+def _failure(operation: str, status: int = 400, headers: dict[str, str] | None = None) -> JSONResponse:
     log.warning("oauth_broker_rejected", operation=operation)
     return JSONResponse(
         {"detail": "OAuth broker operation failed"},
         status_code=status,
-        headers=PRIVATE_NO_STORE_HEADERS,
+        headers={**PRIVATE_NO_STORE_HEADERS, **(headers or {})},
     )
+
+
+def _start_admission(request: Request) -> JSONResponse | None:
+    """Count every start, malformed or not, against its client before any broker or Neuron work."""
+    peer = request.client.host if request.client is not None else None
+    try:
+        key = client_key(peer, request.headers.getlist("cf-connecting-ip"), TRUSTED_PROXIES)
+    except ClientAddressError:
+        return _failure("start")
+    retry_after = _START_LIMIT.take(key)
+    if retry_after:
+        return _failure("start", 429, {"Retry-After": str(retry_after)})
+    return None
 
 
 @router.get("/api/oauth/cloudflare/start")
 async def cloudflare_start(request: Request) -> Response:
+    if (refused := _start_admission(request)) is not None:
+        return refused
     pairs = list(request.query_params.multi_items())
     keys = {key for key, _value in pairs}
     required = {"state", "code_challenge", "scope", "callback"}

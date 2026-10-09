@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 import re
 from contextlib import contextmanager
 from unittest import mock
@@ -17,6 +18,7 @@ from app.oauth_broker import (
     OAuthRedirect,
 )
 from app.payloads import ClientPayloadError
+from app.ratelimit import TokenBuckets
 from app.routers import oauth
 
 
@@ -69,6 +71,11 @@ def _start(client: TestClient, **changes: str):
 
 def _callback(client: TestClient, **changes: str):
     return client.get("/api/oauth/cloudflare/callback", params={**CALLBACK, **changes}, follow_redirects=False)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_start_limit(monkeypatch):
+    monkeypatch.setattr(oauth, "_START_LIMIT", TokenBuckets(capacity=10, period=60.0, max_keys=4096))
 
 
 @contextmanager
@@ -339,3 +346,65 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch) 
     request = _one_shot_request(b"{}", [(b"content-type", b"application/json"), (b"content-length", b"2")])
     unknown = asyncio.run(oauth._post(request, "unknown", frozenset()))
     assert unknown.status_code == 502
+
+
+def test_oauth_start_limits_each_client_before_any_broker_work() -> None:
+    with _broker() as broker, TestClient(main.app) as client:
+        admitted = [_start(client, callback="loopback").status_code for _ in range(10)]
+        refused = _start(client, callback="loopback")
+
+    assert admitted == [303] * 10
+    assert refused.status_code == 429
+    assert 1 <= int(refused.headers["retry-after"]) <= 6
+    assert refused.headers["cache-control"] == "private, no-store"
+    assert len(broker.calls) == 10
+
+
+def test_oauth_start_counts_malformed_starts_against_the_same_client() -> None:
+    with _broker() as broker, TestClient(main.app) as client:
+        malformed = [_start(client).status_code for _ in range(10)]
+        refused = _start(client, callback="loopback")
+
+    assert malformed == [400] * 10
+    assert refused.status_code == 429
+    assert broker.calls == []
+
+
+def test_oauth_start_keys_a_direct_peer_by_its_socket_even_with_a_forged_client_header() -> None:
+    with _broker(), TestClient(main.app, client=("192.0.2.10", 40000)) as client:
+        statuses = [
+            client.get(
+                "/api/oauth/cloudflare/start",
+                params={**START, "callback": "loopback"},
+                headers={"CF-Connecting-IP": f"203.0.113.{attempt}"},
+                follow_redirects=False,
+            ).status_code
+            for attempt in range(11)
+        ]
+
+    assert statuses == [303] * 10 + [429]
+
+
+def test_oauth_start_keys_a_trusted_tunnel_peer_by_its_one_asserted_client(monkeypatch) -> None:
+    monkeypatch.setattr(oauth, "TRUSTED_PROXIES", (ipaddress.ip_network("10.202.84.0/24"),))
+
+    def start(client: TestClient, *addresses: str):
+        headers = [("CF-Connecting-IP", address) for address in addresses]
+        return client.get(
+            "/api/oauth/cloudflare/start",
+            params={**START, "callback": "loopback"},
+            headers=headers,
+            follow_redirects=False,
+        )
+
+    with _broker() as broker, TestClient(main.app, client=("10.202.84.2", 40000)) as client:
+        first = [start(client, "203.0.113.5").status_code for _ in range(11)]
+        second = start(client, "203.0.113.6")
+        missing = start(client)
+        repeated = start(client, "203.0.113.7", "203.0.113.8")
+        malformed = start(client, "not-an-address")
+
+    assert first == [303] * 10 + [429]
+    assert second.status_code == 303
+    assert missing.status_code == repeated.status_code == malformed.status_code == 400
+    assert len(broker.calls) == 11
