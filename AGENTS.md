@@ -26,7 +26,8 @@
 
 ## Validation
 
-- Run `ruff check --config ruff.toml .`.
+- From the umbrella root, run `ruff check --config ruff.toml store` and `ruff format --config ruff.toml --check store`;
+  the umbrella `ruff.toml` is the only ruff configuration.
 - Run backend tests from `backend/` with
   `DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:9/ci SECRET_KEY=ci-only-not-a-secret uv run --python 3.14
   --locked --with coverage==7.15.2 sh -c "coverage run
