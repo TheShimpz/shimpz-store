@@ -31,7 +31,7 @@ Use Node.js 24 and the lockfile-pinned pnpm release:
 
 ```sh
 cd frontend
-corepack pnpm@11.9.0 install --frozen-lockfile
+corepack pnpm@11.9.0 install --frozen-lockfile --ignore-scripts
 corepack pnpm@11.9.0 test
 corepack pnpm@11.9.0 check
 corepack pnpm@11.9.0 build

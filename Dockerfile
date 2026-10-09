@@ -8,13 +8,14 @@ FROM ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ce
 # ── stage 2: build the prerendered frontend ─────────────────────────────────────────────────────
 # The static site is platform-independent, so it is built once on the build platform. The package install precedes
 # every commit-bound input, so an unchanged lock reuses it at every commit. The frontend tests run in the gate's
-# store-unit lane, not here. adapter-static writes the prerendered site to /w/build.
+# store-unit lane, not here. No dependency install script runs: the build needs none. adapter-static writes the
+# prerendered site to /w/build.
 FROM --platform=$BUILDPLATFORM node:24-slim@sha256:235600a8101ab264e117b1768e925532262668dc9b581ef1dd7d96ced463b8e7 AS web
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc /w/
 RUN cd /w \
  && corepack enable \
  && corepack prepare pnpm@11.9.0 --activate \
- && pnpm install --frozen-lockfile \
+ && pnpm install --frozen-lockfile --ignore-scripts \
  && rm -rf /root/.cache/node /root/.local/share/pnpm /root/.npm
 WORKDIR /w
 COPY frontend/ ./
