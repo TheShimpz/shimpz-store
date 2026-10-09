@@ -64,7 +64,7 @@ def test_relay_abort_does_not_repeat_stop(monkeypatch):
             delivery,
         )
         assert stopped == []
-        assert delivery.terminal_seen
+        assert [frame["type"] for frame in socket.json] == ["error"]
 
     asyncio.run(scenario())
 

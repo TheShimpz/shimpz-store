@@ -90,7 +90,6 @@ async def _ws_verify(ws: WebSocket) -> tuple[str, str]:
 
 @dataclass
 class _RelayDelivery:
-    terminal_seen: bool = False
     aborted: bool = False
     stop_attempted: bool = False
 
@@ -122,7 +121,6 @@ async def _send_relay_event(
         if not delivery.aborted:
             await _stop_delivery_once(turn.team_id, turn.headers, delivery)
         delivery.aborted = True
-    delivery.terminal_seen = True
     await turn.ws.send_json(terminal)
     if turn.state is not None:
         turn.state["pending_human"] = (

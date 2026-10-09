@@ -620,7 +620,7 @@ def test_final_websocket_gate_converts_invalid_events(event: dict, monkeypatch):
             "detail": main.TERMINAL_CONTRACT_ERROR,
         }
         assert stops == [("team_terminal_gate", {"X-Shimpz-Account": "token"})]
-        assert delivery.terminal_seen and delivery.aborted
+        assert delivery.aborted
 
     asyncio.run(scenario())
 
