@@ -18,14 +18,14 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonical} />
   <meta property="og:site_name" content="Shimpz" />
-  <meta property="og:image" content={`${SITE}/brand/shimpz-cyberchimp.png`} />
-  <meta property="og:image:width" content="1254" />
-  <meta property="og:image:height" content="1254" />
+  <meta property="og:image" content={`${SITE}/brand/shimpz-cyberchimp-600.png`} />
+  <meta property="og:image:width" content="600" />
+  <meta property="og:image:height" content="600" />
   <meta property="og:image:alt" content="Shimpz cyberchimp symbol" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
-  <meta name="twitter:image" content={`${SITE}/brand/shimpz-cyberchimp.png`} />
+  <meta name="twitter:image" content={`${SITE}/brand/shimpz-cyberchimp-600.png`} />
   <meta property="og:locale" content={lang} />
   {#each LOCALES as l (l)}
     <link rel="alternate" hreflang={l} href={SITE + swapLocale(path, l as Locale)} />
