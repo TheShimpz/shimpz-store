@@ -18,6 +18,8 @@ function catalog() {
         assistant_id: "example-assistant",
         name: "Example Assistant",
         summary: "A safe example.",
+        description: "Looks up example records and keeps every change behind explicit approval.",
+        links: { site: "https://example.org/assistant", github: "https://github.com/example" },
         assistant_version: "1.2.3",
         creators: ["@creator"],
         github: "https://github.com/example/assistant",
@@ -26,7 +28,14 @@ function catalog() {
         platforms: ["linux/amd64", "linux/arm64"],
         allowed_hosts: ["api.example.com"],
         integrations: [{ id: "example", provider: "example", scopes: ["read"] }],
-        actions: [{ id: "lookup", integrations: ["example"], human_requests: ["approval"] }],
+        stored_inputs: [{ id: "api-token", label: "API token" }],
+        actions: [{
+          id: "lookup",
+          integrations: ["example"],
+          human_requests: ["approval"],
+          effect: "read_only",
+          description: "Look up a record.",
+        }],
       },
     ],
   };
@@ -90,12 +99,85 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 65 }, (_, index) => `api-${index}.example.com`); },
     (value) => { value.assistants[0].platforms = ["windows/amd64"]; },
     (value) => { value.assistants[0].integrations[0].scopes = ["read", "read"]; },
+    (value) => { delete value.assistants[0].description; },
+    (value) => { value.assistants[0].description = ""; },
+    (value) => { value.assistants[0].description = " Leading space."; },
+    (value) => { value.assistants[0].description = "Line\nbreak."; },
+    (value) => { value.assistants[0].description = "C1\u0085control."; },
+    (value) => { value.assistants[0].description = "d".repeat(501); },
+    (value) => { delete value.assistants[0].links; },
+    (value) => { value.assistants[0].links = null; },
+    (value) => { value.assistants[0].links = ["https://example.org/assistant"]; },
+    (value) => { value.assistants[0].links.mastodon = "https://mastodon.social/@example"; },
+    (value) => { value.assistants[0].links.constructor = "https://example.org/assistant"; },
+    (value) => { value.assistants[0].links.github = "https://gitlab.com/example"; },
+    (value) => { value.assistants[0].links.github = "https://github.com.evil.example/example"; },
+    (value) => { value.assistants[0].links.x = "https://twitter.com/example"; },
+    (value) => { value.assistants[0].links.youtube = "https://m.youtube.com/@example"; },
+    (value) => { value.assistants[0].links.linkedin = "https://uk.linkedin.com/in/example"; },
+    (value) => { value.assistants[0].links.instagram = "https://instagr.am/example"; },
+    (value) => { value.assistants[0].links.site = "http://example.org/assistant"; },
+    (value) => { value.assistants[0].links.site = "https://example.org"; },
+    (value) => { value.assistants[0].links.site = "https://127.0.0.1/"; },
+    (value) => { value.assistants[0].links.site = "https://intranet.local/"; },
+    (value) => { value.assistants[0].links.site = "https://xn--80ak6aa92e.com/"; },
+    (value) => { value.assistants[0].links.site = "https://example.org:8443/"; },
+    (value) => { value.assistants[0].links.site = "https://user@example.org/"; },
+    (value) => { value.assistants[0].links.site = "https://example.org/#top"; },
+    (value) => { value.assistants[0].links.site = "https://example.org/a/../b"; },
+    (value) => { value.assistants[0].links.site = `https://example.org/${"a".repeat(237)}`; },
+    (value) => { value.assistants[0].links.site = 42; },
+    (value) => { delete value.assistants[0].actions[0].effect; },
+    (value) => { value.assistants[0].actions[0].effect = "destructive"; },
+    (value) => { value.assistants[0].actions[0].effect = ["read_only"]; },
+    (value) => { delete value.assistants[0].actions[0].description; },
+    (value) => { value.assistants[0].actions[0].description = "a".repeat(121); },
+    (value) => { value.assistants[0].actions[0].description = "Look up a record. "; },
+    (value) => { value.assistants[0].actions[0].stored_inputs = ["api-token"]; },
+    (value) => { delete value.assistants[0].stored_inputs; },
+    (value) => { value.assistants[0].stored_inputs = "api-token"; },
+    (value) => { value.assistants[0].stored_inputs = [42]; },
+    (value) => { value.assistants[0].stored_inputs[0].label = "l".repeat(121); },
+    (value) => { value.assistants[0].stored_inputs[0].label = ""; },
+    (value) => { value.assistants[0].stored_inputs[0].id = "api.token"; },
+    (value) => { value.assistants[0].stored_inputs[0].description = "Used to call the API."; },
+    (value) => { value.assistants[0].stored_inputs.push({ id: "api-token", label: "Second" }); },
+    (value) => {
+      value.assistants[0].stored_inputs = Array.from({ length: 9 }, (_, index) => ({ id: `key-${index}`, label: "Key" }));
+    },
   ];
   for (const mutate of mutations) {
     const value = catalog();
     mutate(value);
     assert.throws(() => parseAssistantCatalog(value));
   }
+});
+
+test("admits every Creator link kind on its host and the localized display copy up to its bounds", () => {
+  const value = catalog();
+  const entry = value.assistants[0];
+  entry.links = {
+    site: `https://example.org/${"a".repeat(236)}`,
+    github: "https://github.com/example",
+    x: "https://x.com/example",
+    youtube: "https://www.youtube.com/@example",
+    linkedin: "https://www.linkedin.com/company/example",
+    instagram: "https://www.instagram.com/example",
+  };
+  entry.description = `${"d".repeat(499)}\u{1F44B}`;
+  entry.actions[0] = { ...entry.actions[0], effect: "mutating", description: "\u00e1".repeat(120) };
+  entry.stored_inputs = Array.from({ length: 8 }, (_, index) => ({ id: `key-${index}`, label: "\u00e7".repeat(120) }));
+  assert.equal(parseAssistantCatalog(value).length, 1);
+
+  entry.links = {
+    youtube: "https://youtube.com/@example",
+    linkedin: "https://linkedin.com/in/example",
+    instagram: "https://instagram.com/example",
+  };
+  entry.stored_inputs = [];
+  assert.equal(parseAssistantCatalog(value).length, 1);
+  entry.links = {};
+  assert.equal(parseAssistantCatalog(value).length, 1);
 });
 
 test("admits the producer's 128 Actions per Assistant and refuses one more", () => {

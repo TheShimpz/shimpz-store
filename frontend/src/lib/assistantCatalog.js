@@ -9,6 +9,30 @@ const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
 // The Assistant summary is a short description of at most 80 characters, in every interface language.
 const ASSISTANT_SUMMARY_CHARS = 80;
 const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+// Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
+const ASSISTANT_DESCRIPTION_CHARS = 500;
+const DISPLAY_LINE_CHARS = 120;
+const ACTION_EFFECTS = new Set(["read_only", "mutating"]);
+const MAX_STORED_INPUTS = 8;
+const MAX_LINK_CHARS = 256;
+// The Team HTTP protocol's help-URL grammar: one canonical public https URL with a path, an optional query, and no
+// port, credentials, fragment, or dot segment, on a lowercase DNS host that is not an IP, IDN, or reserved name.
+const PUBLIC_URL_RE = new RegExp(
+  "^https://(?=[^/]{1,253}/)" +
+    "(?![^/]*\\.(?:arpa|example|home|internal|invalid|lan|local|localdomain|localhost|onion|test)/)" +
+    "(?:(?!xn--)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+(?!xn--)[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?" +
+    "(?:/(?!\\.\\.?(?:/|\\?|(?![\\s\\S])))(?:[A-Za-z0-9._~!$&()*+,;=:@-]|%(?!2E)[0-9A-F]{2})*)+" +
+    "(?:\\?(?:[A-Za-z0-9._~!$&()*+,;=:@/?-]|%[0-9A-F]{2})+)?(?![\\s\\S])",
+);
+// Creator links by kind, each with the exact https origins it admits; `site` admits any public URL host.
+const LINK_PREFIXES = new Map([
+  ["site", ["https://"]],
+  ["github", ["https://github.com/"]],
+  ["x", ["https://x.com/"]],
+  ["youtube", ["https://youtube.com/", "https://www.youtube.com/"]],
+  ["linkedin", ["https://linkedin.com/", "https://www.linkedin.com/"]],
+  ["instagram", ["https://instagram.com/", "https://www.instagram.com/"]],
+]);
 const HUMAN_REQUEST_KINDS = new Set([
   "approval",
   "input:text",
@@ -35,6 +59,9 @@ const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "actions",
   "source_digest",
   "summary",
+  "description",
+  "links",
+  "stored_inputs",
 ]);
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
@@ -61,6 +88,39 @@ function boundedText(value, maximum, allowEmpty = false) {
     (allowEmpty || value.length > 0) &&
     value.trim() === value &&
     !/[\u0000-\u001f\u007f]/u.test(value);
+}
+
+/**
+ * One localized display text: bounded, trimmed, and free of C0, DEL, and C1 controls.
+ * @param {unknown} value
+ * @param {number} maximum
+ */
+function displayText(value, maximum) {
+  return boundedText(value, maximum) && !/[\u0080-\u009f]/u.test(/** @type {string} */ (value));
+}
+
+/** @param {unknown} value */
+function validLinks(value) {
+  return isObject(value) && Object.entries(value).every(([kind, url]) => {
+    const prefixes = LINK_PREFIXES.get(kind);
+    return prefixes !== undefined &&
+      typeof url === "string" &&
+      url.length <= MAX_LINK_CHARS &&
+      PUBLIC_URL_RE.test(url) &&
+      prefixes.some((prefix) => url.startsWith(prefix));
+  });
+}
+
+/** @param {unknown} value */
+function validStoredInputs(value) {
+  return Array.isArray(value) && value.length <= MAX_STORED_INPUTS &&
+    value.every((input) =>
+      hasExactKeys(input, ["id", "label"]) &&
+      boundedText(input.id, 64) &&
+      ACTION_ID_RE.test(input.id) &&
+      displayText(input.label, DISPLAY_LINE_CHARS)
+    ) &&
+    new Set(value.map((input) => input.id)).size === value.length;
 }
 
 /**
@@ -94,9 +154,12 @@ function validIntegrations(value) {
 /** @param {unknown} value */
 function validActions(value) {
   return Array.isArray(value) && value.length >= 1 && value.length <= MAX_ASSISTANT_ACTIONS && value.every((action) =>
-    hasExactKeys(action, ["human_requests", "integrations", "id"]) &&
+    hasExactKeys(action, ["human_requests", "integrations", "id", "effect", "description"]) &&
     boundedText(action.id, 64) &&
     ACTION_ID_RE.test(action.id) &&
+    typeof action.effect === "string" &&
+    ACTION_EFFECTS.has(action.effect) &&
+    displayText(action.description, DISPLAY_LINE_CHARS) &&
     boundedStrings(action.integrations, 16, 64) &&
     boundedStrings(action.human_requests, 11, 25) &&
     (/** @type {string[]} */ (action.human_requests)).every((kind) => HUMAN_REQUEST_KINDS.has(kind))
@@ -113,6 +176,9 @@ function parseAssistant(value) {
     !ASSISTANT_ID_RE.test(record.assistant_id) ||
     !boundedText(record.name, 160) ||
     !boundedText(record.summary, ASSISTANT_SUMMARY_CHARS) ||
+    !displayText(record.description, ASSISTANT_DESCRIPTION_CHARS) ||
+    !validLinks(record.links) ||
+    !validStoredInputs(record.stored_inputs) ||
     !boundedText(record.assistant_version, 80) ||
     typeof record.github !== "string" ||
     !GITHUB_RE.test(record.github) ||
@@ -157,8 +223,10 @@ function parseAssistant(value) {
 }
 
 /**
- * Parse the catalog for exactly the requested interface language. Only each summary is localized, from the
- * publication's own language pack; a catalog in any other language is refused so no cache can mix them.
+ * Parse the catalog for exactly the requested interface language. The display copy is localized from each
+ * publication's own language pack; a catalog in any other language is refused so no cache can mix them. The
+ * Store admits the description, Creator links, Action effects and descriptions, and Stored Input labels but does
+ * not display them.
  * @param {unknown} value
  * @param {string} locale
  */
