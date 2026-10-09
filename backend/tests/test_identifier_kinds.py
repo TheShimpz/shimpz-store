@@ -17,7 +17,14 @@ def test_a_human_challenge_names_any_canonical_action() -> None:
 
 
 def test_the_public_catalog_admits_developers_identifiers() -> None:
-    action = {"id": "a" * 64, "integrations": [], "stored_inputs": [], "human_requests": []}
+    action = {
+        "id": "a" * 64,
+        "integrations": [],
+        "stored_inputs": [],
+        "human_requests": [],
+        "effect": "read_only",
+        "description": "Read records.",
+    }
     assert catalog._actions([action], frozenset())[0]["id"] == "a" * 64
     for action_id in ("a" * 65, "dns.read"):
         with pytest.raises(catalog.CatalogError):
@@ -27,6 +34,6 @@ def test_the_public_catalog_admits_developers_identifiers() -> None:
     with pytest.raises(catalog.CatalogError):
         catalog._integrations([{**integration, "id": "p" * 65, "provider": "p" * 65}])
     stored_input = {"id": "s" * 64, "kind": "password", "label": "Key", "description": "The API key."}
-    assert catalog._stored_inputs([stored_input]) == frozenset({"s" * 64})
+    assert catalog._stored_inputs([stored_input]) == [{"id": "s" * 64, "label": "Key"}]
     with pytest.raises(catalog.CatalogError):
         catalog._stored_inputs([{**stored_input, "id": "s.key"}])

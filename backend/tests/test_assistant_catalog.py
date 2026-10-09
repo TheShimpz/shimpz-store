@@ -22,6 +22,8 @@ def _assistant(**changes) -> dict[str, object]:
         "assistant_id": "hello-world",
         "name": "Hello World",
         "summary": "Greets the Team.",
+        "description": "Greets the Team and keeps the greeting short.",
+        "links": {"site": "https://hello.example.org/", "github": "https://github.com/TheShimpz"},
         "assistant_version": "10.0.0",
         "creators": ["@shimpz"],
         "github": "https://github.com/TheShimpz/hello-world",
@@ -39,6 +41,8 @@ def _assistant(**changes) -> dict[str, object]:
                 "integrations": ["github"],
                 "stored_inputs": ["api-token"],
                 "human_requests": ["approval", "input:text"],
+                "effect": "read_only",
+                "description": "Say hello.",
             }
         ],
     }
@@ -62,6 +66,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "assistant_id": "hello-world",
                 "name": "Hello World",
                 "summary": "Greets the Team.",
+                "description": "Greets the Team and keeps the greeting short.",
+                "links": {"site": "https://hello.example.org/", "github": "https://github.com/TheShimpz"},
                 "assistant_version": "10.0.0",
                 "creators": ["@shimpz"],
                 "github": "https://github.com/TheShimpz/hello-world",
@@ -70,11 +76,14 @@ def test_projects_only_bounded_browser_metadata() -> None:
                 "platforms": ["linux/amd64", "linux/arm64"],
                 "allowed_hosts": ["api.example.com"],
                 "integrations": [{"id": "github", "provider": "github", "scopes": ["repo:read"]}],
+                "stored_inputs": [{"id": "api-token", "label": "API token"}],
                 "actions": [
                     {
                         "id": "hello",
                         "integrations": ["github"],
                         "human_requests": ["approval", "input:text"],
+                        "effect": "read_only",
+                        "description": "Say hello.",
                     }
                 ],
             }
@@ -83,8 +92,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
     serialized = str(projected)
     assert "image_reference" not in serialized
     assert "input_schema" not in serialized
-    # Stored Input declarations are validated but never projected to the browser.
-    assert "stored_inputs" not in serialized
+    # A Stored Input projects only its identifier and localized label; its canonical description stays upstream.
+    assert "Used to call the API." not in serialized
 
 
 @pytest.mark.parametrize(
@@ -130,6 +139,46 @@ def test_projects_only_bounded_browser_metadata() -> None:
         ),
         lambda value: value["assistants"][0]["actions"][0].update(stored_inputs=["undeclared"]),
         lambda value: value["assistants"][0]["actions"][0].update(stored_inputs=["api-token", "api-token"]),
+        lambda value: value["assistants"][0].pop("description"),
+        lambda value: value["assistants"][0].update(description=""),
+        lambda value: value["assistants"][0].update(description=" Leading space."),
+        lambda value: value["assistants"][0].update(description="Line\nbreak."),
+        lambda value: value["assistants"][0].update(description="C1\u0085control."),
+        lambda value: value["assistants"][0].update(description="d" * 501),
+        lambda value: value["assistants"][0].update(description=None),
+        lambda value: value["assistants"][0].pop("links"),
+        lambda value: value["assistants"][0].update(links=None),
+        lambda value: value["assistants"][0].update(links=["https://hello.example.org/"]),
+        lambda value: value["assistants"][0]["links"].update(mastodon="https://mastodon.social/@shimpz"),
+        lambda value: value["assistants"][0]["links"].update(github="https://gitlab.com/TheShimpz"),
+        lambda value: value["assistants"][0]["links"].update(github="https://github.com.evil.example/TheShimpz"),
+        lambda value: value["assistants"][0]["links"].update(x="https://twitter.com/shimpz"),
+        lambda value: value["assistants"][0]["links"].update(x="https://www.x.com/shimpz"),
+        lambda value: value["assistants"][0]["links"].update(youtube="https://m.youtube.com/@shimpz"),
+        lambda value: value["assistants"][0]["links"].update(linkedin="https://uk.linkedin.com/in/shimpz"),
+        lambda value: value["assistants"][0]["links"].update(instagram="https://instagr.am/shimpz"),
+        lambda value: value["assistants"][0]["links"].update(site="http://hello.example.org/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://hello.example.org"),
+        lambda value: value["assistants"][0]["links"].update(site="https://127.0.0.1/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://intranet.local/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://xn--80ak6aa92e.com/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://hello.example.org:8443/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://user@hello.example.org/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://hello.example.org/#top"),
+        lambda value: value["assistants"][0]["links"].update(site="https://hello.example.org/a/../b"),
+        lambda value: value["assistants"][0]["links"].update(site="https://Hello.example.org/"),
+        lambda value: value["assistants"][0]["links"].update(site="https://hello.example.org/" + "a" * 231),
+        lambda value: value["assistants"][0]["links"].update(site=42),
+        lambda value: value["assistants"][0]["actions"][0].pop("effect"),
+        lambda value: value["assistants"][0]["actions"][0].update(effect="destructive"),
+        lambda value: value["assistants"][0]["actions"][0].update(effect=["read_only"]),
+        lambda value: value["assistants"][0]["actions"][0].pop("description"),
+        lambda value: value["assistants"][0]["actions"][0].update(description=""),
+        lambda value: value["assistants"][0]["actions"][0].update(description="a" * 121),
+        lambda value: value["assistants"][0]["actions"][0].update(description="Say hello. "),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(label="l" * 121),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(label=""),
+        lambda value: value["assistants"][0]["stored_inputs"][0].update(description="d" * 501),
     ],
 )
 def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:
@@ -138,6 +187,43 @@ def test_rejects_ambiguous_or_executable_catalog_data(mutate) -> None:
 
     with pytest.raises(catalog.CatalogError):
         catalog.project_catalog(value, "en")
+
+
+def test_admits_every_link_kind_on_its_host_in_canonical_order() -> None:
+    links = {
+        "instagram": "https://www.instagram.com/shimpz",
+        "linkedin": "https://www.linkedin.com/company/shimpz",
+        "youtube": "https://www.youtube.com/@shimpz",
+        "x": "https://x.com/shimpz",
+        "github": "https://github.com/TheShimpz",
+        "site": "https://hello.example.org/docs?tab=about",
+    }
+    projected = catalog.project_catalog(_catalog(_assistant(links=links)), "en")["assistants"][0]["links"]
+    assert list(projected) == ["site", "github", "x", "youtube", "linkedin", "instagram"]
+    assert projected == links
+    bare = {
+        "youtube": "https://youtube.com/@shimpz",
+        "linkedin": "https://linkedin.com/in/shimpz",
+        "instagram": "https://instagram.com/shimpz",
+        "site": "https://hello.example.org/" + "a" * 230,
+    }
+    assert catalog.project_catalog(_catalog(_assistant(links=bare)), "en")["assistants"][0]["links"] == {
+        kind: bare[kind] for kind in ("site", "youtube", "linkedin", "instagram")
+    }
+    assert catalog.project_catalog(_catalog(_assistant(links={})), "en")["assistants"][0]["links"] == {}
+
+
+def test_admits_localized_display_copy_up_to_its_catalog_bounds() -> None:
+    assistant = _assistant(
+        description="D" * 499 + "\u00e9",
+        stored_inputs=[{"id": "api-token", "kind": "password", "label": "\u00e7" * 120, "description": "d" * 500}],
+    )
+    assistant["actions"][0].update(effect="mutating", description="\u00e1" * 120)
+    projected = catalog.project_catalog(_catalog(assistant, locale="pt"), "pt")["assistants"][0]
+    assert projected["description"] == "D" * 499 + "\u00e9"
+    assert projected["actions"][0]["effect"] == "mutating"
+    assert projected["actions"][0]["description"] == "\u00e1" * 120
+    assert projected["stored_inputs"] == [{"id": "api-token", "label": "\u00e7" * 120}]
 
 
 @pytest.mark.parametrize("locale", ["ar", "de", "en", "es", "fr", "ja", "pt", "zh"])
