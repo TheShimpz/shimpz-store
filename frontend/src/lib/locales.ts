@@ -1,3 +1,5 @@
+// The Store interface languages: the Team HTTP protocol's CHAT_LOCALES, pinned equal by the umbrella's Team HTTP
+// protocol test. Each carries its own name and text direction.
 export const LOCALE_OPTIONS = [
   { code: "en", label: "English", dir: "ltr" },
   { code: "pt", label: "Português", dir: "ltr" },

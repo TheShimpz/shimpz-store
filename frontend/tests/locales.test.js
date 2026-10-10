@@ -4,9 +4,9 @@ import test from "node:test";
 
 import { isLocale, localeDirection, LOCALES, LOCALE_OPTIONS } from "../src/lib/locales.ts";
 
-test("matches the Local Admin locale contract and keeps Arabic right-to-left", () => {
-  assert.deepEqual(LOCALES, ["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]);
+test("names each locale once and keeps Arabic right-to-left", () => {
   assert.deepEqual(LOCALE_OPTIONS.map(({ code }) => code), LOCALES);
+  assert.equal(new Set(LOCALES).size, LOCALES.length);
   assert.equal(localeDirection("ar"), "rtl");
   assert.equal(localeDirection("xx"), "ltr");
   for (const locale of LOCALES.filter((locale) => locale !== "ar")) {
