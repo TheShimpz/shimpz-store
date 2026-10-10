@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Shimpz storefront — multi-stage: node prerenders the SvelteKit app (static HTML, best SEO), python
 # serves the build, the public catalog, and the OAuth broker (frontend/ + backend/).
 
@@ -10,7 +10,7 @@ FROM ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ce
 # every commit-bound input, so an unchanged lock reuses it at every commit. The frontend tests run in the gate's
 # store-unit lane, not here. No dependency install script runs: the build needs none. adapter-static writes the
 # prerendered site to /w/build.
-FROM --platform=$BUILDPLATFORM node:24-slim@sha256:235600a8101ab264e117b1768e925532262668dc9b581ef1dd7d96ced463b8e7 AS web
+FROM --platform=$BUILDPLATFORM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS web
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc /w/
 RUN cd /w \
  && corepack enable \
