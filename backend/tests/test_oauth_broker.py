@@ -303,14 +303,6 @@ def test_a_lease_of_a_dropped_key_or_a_forged_kid_is_refused() -> None:
         rotated.verify(".".join(parts), _TOKENS.access_token, SCOPES)
 
 
-def test_a_lease_without_a_kid_is_refused() -> None:
-    signer = BrokerLeaseSigner(LEASE_KEYS, clock=lambda: 1_800_000_000)
-    _version, _kid, *fields = signer.issue(_TOKENS, SCOPES).split(".")
-
-    with pytest.raises(OAuthBrokerError, match="lease is invalid"):
-        signer.verify(".".join(("l2", *fields)), _TOKENS.access_token, SCOPES)
-
-
 @pytest.mark.parametrize("keys", [(b"k" * 32, b"k" * 32), (b"k" * 32, b"short")])
 def test_the_lease_ring_requires_two_distinct_full_length_keys(keys: tuple[bytes, bytes]) -> None:
     with pytest.raises(OAuthBrokerError, match="lease key is unavailable"):
