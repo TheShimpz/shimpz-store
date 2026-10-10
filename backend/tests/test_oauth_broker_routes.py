@@ -21,6 +21,8 @@ from app.payloads import ClientPayloadError
 from app.ratelimit import TokenBuckets
 from app.routers import oauth
 
+LEASE_KEYS = (b"k" * 32, b"p" * 32)
+
 
 class _Broker:
     def __init__(self) -> None:
@@ -281,9 +283,9 @@ def test_token_routes_reject_browser_origin_duplicate_and_extra_fields() -> None
 
 def test_refresh_and_revoke_refuse_a_lease_expiry_with_non_ascii_digits() -> None:
     digest = "a" * 43
-    lease = f"l2.{'\u0661' * 10}.{digest}.{digest}.{digest}.{digest}"
+    lease = f"l3.{'k' * 11}.{'\u0661' * 10}.{digest}.{digest}.{digest}.{digest}"
     neuron = mock.Mock()
-    real = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32, clock=lambda: 1_800_000_000))
+    real = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS, clock=lambda: 1_800_000_000))
     with mock.patch.object(oauth, "_BROKER", real), TestClient(main.app) as client:
         refresh = client.post(
             "/api/oauth/cloudflare/refresh",

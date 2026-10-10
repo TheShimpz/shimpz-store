@@ -53,12 +53,18 @@ ACCESS_CLIENT_SECRET_PATH = Path(
         "/run/shimpz-store-oauth/access-client-secret",
     )
 )
-LEASE_KEY_PATH = Path(os.environ.get("SHIMPZ_OAUTH_BROKER_LEASE_KEY_FILE", "/run/shimpz-store-oauth/lease-key"))
+# The lease key ring: the current key signs every new lease; the previous key only verifies leases it signed before
+# the last rotation. Each key is identified by a kid derived from it, so rotation needs no separate kid file.
+LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key")
+PREVIOUS_LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key-previous")
+LEASE_KEY_BYTES = 32
+_LEASE_KEY_ID_LABEL = b"shimpz-oauth-broker-lease-kid"
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")
 _LEASE = re.compile(
-    r"l2\.([0-9]{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\Z"
+    r"l3\.([A-Za-z0-9_-]{11})\.([0-9]{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})"
+    r"\.([A-Za-z0-9_-]{43})\Z"
 )
 
 
@@ -450,43 +456,54 @@ class NeuronOAuthClient:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
 
 
+def _lease_key_id(key: bytes) -> str:
+    return _base64url(hmac.new(key, _LEASE_KEY_ID_LABEL, hashlib.sha256).digest()[:8])
+
+
 class BrokerLeaseSigner:
-    """Issue a bounded proof that tokens came from one successful broker claim."""
+    """Issue a bounded proof that tokens came from one successful broker claim, under a two-key ring."""
 
     def __init__(
         self,
-        key: bytes | None = None,
+        keys: tuple[bytes, bytes] | None = None,
         *,
         key_path: Path = LEASE_KEY_PATH,
+        previous_key_path: Path = PREVIOUS_LEASE_KEY_PATH,
         clock: Callable[[], float] = time.time,
     ) -> None:
-        self._provided_key = key
-        self._key_path = key_path
+        self._provided_keys = keys
+        self._key_paths = (key_path, previous_key_path)
         self._clock = clock
 
-    def _key(self) -> bytes:
-        key = self._provided_key or _read_secret(
-            self._key_path,
-            maximum=32,
-            modes=frozenset({0o400, 0o440, 0o600, 0o640}),
+    def _ring(self) -> dict[str, bytes]:
+        """Map each kid to its key; the first entry is the current signing key."""
+        keys = self._provided_keys or tuple(
+            _read_secret(path, maximum=LEASE_KEY_BYTES, modes=frozenset({0o400, 0o440, 0o600, 0o640}))
+            for path in self._key_paths
         )
-        if len(key) != 32:
+        ring = {_lease_key_id(key): key for key in keys if len(key) == LEASE_KEY_BYTES}
+        # Two distinct full-length keys, or none: a short key or a reused previous key fails closed.
+        if len(ring) != 2:
             raise OAuthBrokerError("OAuth broker lease key is unavailable")
-        return key
+        return ring
 
     @staticmethod
     def _digest(token: str) -> str:
         return _base64url(hashlib.sha256(token.encode("ascii")).digest())
 
+    @staticmethod
+    def _signature(key: bytes, payload: str) -> str:
+        return _base64url(hmac.new(key, payload.encode("ascii"), hashlib.sha256).digest())
+
     def issue(self, tokens: OAuthTokens, scopes: tuple[str, ...]) -> str:
         expected_scopes = _scopes(list(scopes))
+        key_id, key = next(iter(self._ring().items()))
         expires = int(self._clock()) + LEASE_TTL_SECONDS
         payload = (
-            f"l2.{expires}.{self._digest(tokens.access_token)}.{self._digest(tokens.refresh_token)}."
+            f"l3.{key_id}.{expires}.{self._digest(tokens.access_token)}.{self._digest(tokens.refresh_token)}."
             f"{self._digest(' '.join(expected_scopes))}"
         )
-        signature = _base64url(hmac.new(self._key(), payload.encode("ascii"), hashlib.sha256).digest())
-        return f"{payload}.{signature}"
+        return f"{payload}.{self._signature(key, payload)}"
 
     def verify(self, lease: object, token: str, scopes: tuple[str, ...] | None = None) -> None:
         if not isinstance(lease, str):
@@ -494,9 +511,11 @@ class BrokerLeaseSigner:
         match = _LEASE.fullmatch(lease)
         if match is None:
             raise OAuthBrokerError("OAuth broker lease is invalid")
-        expires, access_digest, refresh_digest, scope_digest, supplied = match.groups()
-        payload = lease.rsplit(".", 1)[0]
-        expected = _base64url(hmac.new(self._key(), payload.encode("ascii"), hashlib.sha256).digest())
+        key_id, expires, access_digest, refresh_digest, scope_digest, supplied = match.groups()
+        key = self._ring().get(key_id)
+        if key is None:
+            raise OAuthBrokerError("OAuth broker lease is invalid")
+        expected = self._signature(key, lease.rsplit(".", 1)[0])
         digest = self._digest(token)
         if (
             int(expires) <= int(self._clock())

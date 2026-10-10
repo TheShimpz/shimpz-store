@@ -7,6 +7,8 @@ import pytest
 
 from app import oauth_broker as broker
 
+LEASE_KEYS = (b"k" * 32, b"p" * 32)
+
 
 class _Unencodable(str):
     def encode(self, *_args, **_kwargs):
@@ -274,15 +276,15 @@ def test_neuron_exchange_refresh_and_revoke_validate_results():
 def test_lease_signer_rejects_short_key_non_string_and_expired_lease():
     tokens = broker.OAuthTokens("a" * 16, "b" * 16, 3600)
     with pytest.raises(broker.OAuthBrokerError, match="key"):
-        broker.BrokerLeaseSigner(b"short").issue(tokens, broker.SCOPES)
+        broker.BrokerLeaseSigner((b"short", b"p" * 32)).issue(tokens, broker.SCOPES)
     now = 1_800_000_000
-    signer = broker.BrokerLeaseSigner(b"k" * 32, clock=lambda: now)
+    signer = broker.BrokerLeaseSigner(LEASE_KEYS, clock=lambda: now)
     with pytest.raises(broker.OAuthBrokerError, match="lease"):
         signer.verify(None, tokens.access_token)
     lease = signer.issue(tokens, broker.SCOPES)
     with pytest.raises(broker.OAuthBrokerError, match="lease"):
         signer.verify(lease, "c" * 16)
-    expired = broker.BrokerLeaseSigner(b"k" * 32, clock=lambda: now + broker.LEASE_TTL_SECONDS + 1)
+    expired = broker.BrokerLeaseSigner(LEASE_KEYS, clock=lambda: now + broker.LEASE_TTL_SECONDS + 1)
     with pytest.raises(broker.OAuthBrokerError, match="lease"):
         expired.verify(lease, tokens.access_token)
 
@@ -313,7 +315,7 @@ def _start(instance, state="s" * 43):
 
 
 def test_broker_expires_grants_and_enforces_start_capacity(monkeypatch):
-    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(b"k" * 32), clock=lambda: 100)
+    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100)
     tokens = broker.OAuthTokens("a" * 16, "b" * 16, 3600)
     for index, state in enumerate(("s" * 43, "t" * 43)):
         instance._authorizations[str(index) * 43] = broker._PendingAuthorization(
@@ -332,7 +334,7 @@ def test_broker_expires_grants_and_enforces_start_capacity(monkeypatch):
 def test_broker_retries_binding_and_cleans_failed_authorization(monkeypatch):
     instance = broker.OAuthBroker(
         _Neuron(fail_authorization=True),
-        broker.BrokerLeaseSigner(b"k" * 32),
+        broker.BrokerLeaseSigner(LEASE_KEYS),
         clock=lambda: 100,
     )
     instance._authorizations["a" * 43] = broker._PendingAuthorization(
@@ -360,14 +362,14 @@ def test_broker_failed_authorization_tolerates_concurrent_removal():
             raise broker.OAuthBrokerError("failed")
 
     neuron = RemovingNeuron()
-    instance = broker.OAuthBroker(neuron, broker.BrokerLeaseSigner(b"k" * 32), clock=lambda: 100)
+    instance = broker.OAuthBroker(neuron, broker.BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100)
     neuron.instance = instance
     with pytest.raises(broker.OAuthBrokerError):
         _start(instance)
 
 
 def test_broker_callback_enforces_capacity_and_cleans_failed_exchange(monkeypatch):
-    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(b"k" * 32), clock=lambda: 100)
+    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100)
     _start(instance)
     state = next(iter(instance._authorizations))
     monkeypatch.setattr(broker, "CAPACITY", 0)
@@ -377,7 +379,7 @@ def test_broker_callback_enforces_capacity_and_cleans_failed_exchange(monkeypatc
     monkeypatch.setattr(broker, "CAPACITY", 4096)
     failed = broker.OAuthBroker(
         _Neuron(fail_exchange=True),
-        broker.BrokerLeaseSigner(b"k" * 32),
+        broker.BrokerLeaseSigner(LEASE_KEYS),
         clock=lambda: 100,
     )
     _start(failed)
@@ -389,7 +391,7 @@ def test_broker_callback_enforces_capacity_and_cleans_failed_exchange(monkeypatc
 
 
 def test_broker_callback_retries_claim_collision_and_claim_rejects_shape(monkeypatch):
-    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(b"k" * 32), clock=lambda: 100)
+    instance = broker.OAuthBroker(_Neuron(), broker.BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100)
     _start(instance)
     state = next(iter(instance._authorizations))
     instance._grants["a" * 64] = broker._PendingGrant(

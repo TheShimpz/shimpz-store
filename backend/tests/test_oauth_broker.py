@@ -15,6 +15,7 @@ from app.oauth_broker import (
     LOCAL_DOMAIN_CALLBACK,
     PLATFORM_CALLBACK,
     LEASE_KEY_PATH,
+    PREVIOUS_LEASE_KEY_PATH,
     LOCAL_CALLBACK,
     SCOPES,
     BrokerLeaseSigner,
@@ -29,11 +30,14 @@ from app.oauth_broker import (
     _pkce_challenge,
 )
 
+LEASE_KEYS = (b"k" * 32, b"p" * 32)
+
 
 def test_default_lease_key_uses_the_initialized_private_volume() -> None:
     assert Path("/run/shimpz-store-oauth/access-client-id") == ACCESS_CLIENT_ID_PATH
     assert Path("/run/shimpz-store-oauth/access-client-secret") == ACCESS_CLIENT_SECRET_PATH
     assert Path("/run/shimpz-store-oauth/lease-key") == LEASE_KEY_PATH
+    assert Path("/run/shimpz-store-oauth/lease-key-previous") == PREVIOUS_LEASE_KEY_PATH
 
 
 class _ProxySocket:
@@ -243,15 +247,90 @@ def test_neuron_client_rejects_world_readable_access_files() -> None:
 def test_broker_lease_signer_rejects_a_world_readable_key() -> None:
     with tempfile.TemporaryDirectory() as directory:
         key = _secret(Path(directory) / "lease-key", b"k" * 32)
+        previous = _secret(Path(directory) / "lease-key-previous", b"p" * 32)
         key.chmod(0o444)
 
         with pytest.raises(OAuthBrokerError, match="file contract"):
-            BrokerLeaseSigner(key_path=key).issue(OAuthTokens("access-token", "refresh-token", 3600), SCOPES)
+            BrokerLeaseSigner(key_path=key, previous_key_path=previous).issue(
+                OAuthTokens("access-token", "refresh-token", 3600), SCOPES
+            )
+
+
+_TOKENS = OAuthTokens("access-token-private", "refresh-token-private", 3600)
+
+
+def test_lease_names_its_signing_key_and_verifies_under_that_key_from_the_file_ring() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        signer = BrokerLeaseSigner(
+            key_path=_secret(root / "lease-key", b"k" * 32),
+            previous_key_path=_secret(root / "lease-key-previous", b"p" * 32),
+            clock=lambda: 1_800_000_000,
+        )
+        lease = signer.issue(_TOKENS, SCOPES)
+        signer.verify(lease, _TOKENS.refresh_token, SCOPES)
+
+    version, kid, *_rest = lease.split(".")
+    assert version == "l3"
+    assert kid == BrokerLeaseSigner((b"k" * 32, b"q" * 32)).issue(_TOKENS, SCOPES).split(".")[1]
+    assert kid != BrokerLeaseSigner((b"p" * 32, b"k" * 32)).issue(_TOKENS, SCOPES).split(".")[1]
+
+
+def test_rotation_keeps_leases_of_the_previous_key_and_signs_only_with_the_new_key() -> None:
+    before = BrokerLeaseSigner((b"k" * 32, b"o" * 32), clock=lambda: 1_800_000_000)
+    lease = before.issue(_TOKENS, SCOPES)
+    rotated = BrokerLeaseSigner((b"n" * 32, b"k" * 32), clock=lambda: 1_800_000_000)
+
+    rotated.verify(lease, _TOKENS.access_token, SCOPES)
+    fresh = rotated.issue(_TOKENS, SCOPES)
+    assert fresh.split(".")[1] != lease.split(".")[1]
+    with pytest.raises(OAuthBrokerError, match="lease is invalid"):
+        before.verify(fresh, _TOKENS.access_token, SCOPES)
+
+
+def test_a_lease_of_a_dropped_key_or_a_forged_kid_is_refused() -> None:
+    lease = BrokerLeaseSigner((b"k" * 32, b"o" * 32), clock=lambda: 1_800_000_000).issue(_TOKENS, SCOPES)
+    dropped = BrokerLeaseSigner((b"n" * 32, b"m" * 32), clock=lambda: 1_800_000_000)
+    with pytest.raises(OAuthBrokerError, match="lease is invalid"):
+        dropped.verify(lease, _TOKENS.access_token, SCOPES)
+
+    # Relabelling a lease with a trusted kid does not move it under that key.
+    rotated = BrokerLeaseSigner((b"n" * 32, b"o" * 32), clock=lambda: 1_800_000_000)
+    trusted_kid = rotated.issue(_TOKENS, SCOPES).split(".")[1]
+    parts = lease.split(".")
+    parts[1] = trusted_kid
+    with pytest.raises(OAuthBrokerError, match="lease is invalid"):
+        rotated.verify(".".join(parts), _TOKENS.access_token, SCOPES)
+
+
+def test_a_lease_without_a_kid_is_refused() -> None:
+    signer = BrokerLeaseSigner(LEASE_KEYS, clock=lambda: 1_800_000_000)
+    _version, _kid, *fields = signer.issue(_TOKENS, SCOPES).split(".")
+
+    with pytest.raises(OAuthBrokerError, match="lease is invalid"):
+        signer.verify(".".join(("l2", *fields)), _TOKENS.access_token, SCOPES)
+
+
+@pytest.mark.parametrize("keys", [(b"k" * 32, b"k" * 32), (b"k" * 32, b"short")])
+def test_the_lease_ring_requires_two_distinct_full_length_keys(keys: tuple[bytes, bytes]) -> None:
+    with pytest.raises(OAuthBrokerError, match="lease key is unavailable"):
+        BrokerLeaseSigner(keys).issue(_TOKENS, SCOPES)
+
+
+def test_a_missing_previous_lease_key_file_fails_closed() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        signer = BrokerLeaseSigner(
+            key_path=_secret(root / "lease-key", b"k" * 32),
+            previous_key_path=root / "lease-key-previous",
+        )
+        with pytest.raises(OAuthBrokerError, match="unavailable"):
+            signer.issue(_TOKENS, SCOPES)
 
 
 def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() -> None:
     neuron = _Neuron()
-    signer = BrokerLeaseSigner(b"k" * 32, clock=lambda: 1_800_000_000)
+    signer = BrokerLeaseSigner(LEASE_KEYS, clock=lambda: 1_800_000_000)
     broker = OAuthBroker(neuron, signer, clock=lambda: 100.0)
     local_verifier = "v" * 43
     local_state = "s" * 43
@@ -306,7 +385,7 @@ def test_broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() ->
 def test_broker_preserves_a_read_only_scope_subset_without_refresh_widening() -> None:
     read_scopes = ("dns.read", "offline_access", "zone.read")
     neuron = _Neuron()
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100.0)
     verifier = "v" * 43
     state = "s" * 43
 
@@ -340,7 +419,7 @@ def test_broker_preserves_a_read_only_scope_subset_without_refresh_widening() ->
 def test_broker_refuses_callback_scope_drift_before_token_exchange() -> None:
     read_scopes = ("dns.read", "offline_access", "zone.read")
     neuron = _Neuron()
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100.0)
     state = "s" * 43
     broker.start(
         local_state=state,
@@ -363,7 +442,7 @@ def test_broker_refuses_callback_scope_drift_before_token_exchange() -> None:
 
 def test_broker_returns_only_the_named_local_domain_admin_callback() -> None:
     neuron = _Neuron()
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100.0)
     broker.start(
         local_state="s" * 43,
         local_code_challenge="c" * 43,
@@ -390,7 +469,7 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
     now = [100.0]
     broker = OAuthBroker(
         neuron,
-        BrokerLeaseSigner(b"k" * 32, clock=lambda: now[0]),
+        BrokerLeaseSigner(LEASE_KEYS, clock=lambda: now[0]),
         clock=lambda: now[0],
     )
     verifier = "v" * 43
@@ -429,7 +508,7 @@ def test_broker_rejects_wrong_pkce_tampered_lease_and_expired_state() -> None:
 def test_broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract() -> None:
     neuron = _Neuron()
     now = [100.0]
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: now[0])
     verifier = "v" * 43
     state = "s" * 43
     broker.start(
@@ -474,7 +553,7 @@ def _claimable_grant(broker: OAuthBroker, neuron: _Neuron, state: str, verifier:
 def test_broker_claim_delivers_only_the_token_lifetime_left_after_the_handoff() -> None:
     neuron = _Neuron()
     now = [100.0]
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: now[0])
     verifier = "v" * 43
 
     claim = _claimable_grant(broker, neuron, "s" * 43, verifier)
@@ -498,7 +577,7 @@ def test_broker_refuses_a_claim_whose_token_lifetime_is_nearly_spent() -> None:
 
     neuron = ShortLivedNeuron()
     now = [100.0]
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: now[0])
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: now[0])
     verifier = "v" * 43
 
     claim = _claimable_grant(broker, neuron, "s" * 43, verifier)
@@ -515,7 +594,7 @@ def test_broker_refuses_a_claim_whose_token_lifetime_is_nearly_spent() -> None:
 
 def test_broker_reserves_one_local_state_until_its_grant_is_claimed() -> None:
     neuron = _Neuron()
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100.0)
     verifier = "v" * 43
     state = "s" * 43
 
@@ -556,7 +635,7 @@ def test_broker_reserves_local_state_while_neuron_exchanges_the_code() -> None:
             return super().exchange(code=code, verifier=verifier, scopes=scopes)
 
     neuron = BlockingNeuron()
-    broker = OAuthBroker(neuron, BrokerLeaseSigner(b"k" * 32), clock=lambda: 100.0)
+    broker = OAuthBroker(neuron, BrokerLeaseSigner(LEASE_KEYS), clock=lambda: 100.0)
     state = "s" * 43
     broker.start(
         local_state=state,
