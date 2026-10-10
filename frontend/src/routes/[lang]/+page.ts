@@ -1,4 +1,4 @@
-import { LOCALES } from "$lib/locales";
+import { LOCALES } from "#lib/locales.js";
 
 export const prerender = true;
 

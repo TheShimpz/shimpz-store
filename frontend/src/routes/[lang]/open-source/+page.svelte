@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Locale } from "$lib/locales";
+  import type { Locale } from "#lib/locales.js";
   import { ActionLink } from "@shimpz/frontend";
-  import InstitutionalPage from "$lib/components/InstitutionalPage.svelte";
-  import Seo from "$lib/components/Seo.svelte";
-  import { institutionalPage } from "$lib/institutional";
+  import InstitutionalPage from "#lib/components/InstitutionalPage.svelte";
+  import Seo from "#lib/components/Seo.svelte";
+  import { institutionalPage } from "#lib/institutional.js";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

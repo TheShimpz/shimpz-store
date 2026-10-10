@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Button } from "@shimpz/frontend";
   import { onDestroy } from "svelte";
-  import type { Locale } from "$lib/locales";
-  import { tr } from "$lib/i18n";
+  import type { Locale } from "#lib/locales.js";
+  import { tr } from "#lib/i18n.js";
 
   const command = "curl -fsSL https://install.shimpz.com | sh";
   let { lang }: { lang: Locale } = $props();

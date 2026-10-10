@@ -1,4 +1,4 @@
-import type { Locale } from "$lib/locales";
+import type { Locale } from "#lib/locales.js";
 
 export type HomepageContent = {
   seoTitle: string;

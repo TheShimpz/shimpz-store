@@ -1,5 +1,5 @@
-import type { Handle } from "@sveltejs/kit";
-import { isLocale, localeDirection } from "$lib/locales";
+import type { Handle } from "@sveltejs/kit/hooks";
+import { isLocale, localeDirection } from "#lib/locales.js";
 
 export const handle: Handle = async ({ event, resolve }) => {
   const routeLanguage = event.url.pathname.split("/")[1];

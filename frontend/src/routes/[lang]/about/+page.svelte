@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Locale } from "$lib/locales";
-  import InstitutionalPage from "$lib/components/InstitutionalPage.svelte";
-  import Seo from "$lib/components/Seo.svelte";
-  import { institutionalPage } from "$lib/institutional";
+  import type { Locale } from "#lib/locales.js";
+  import InstitutionalPage from "#lib/components/InstitutionalPage.svelte";
+  import Seo from "#lib/components/Seo.svelte";
+  import { institutionalPage } from "#lib/institutional.js";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

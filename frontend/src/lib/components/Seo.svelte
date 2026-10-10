@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { page } from "$app/stores";
-  import { LOCALES, type Locale } from "$lib/locales";
-  import { SITE, swapLocale } from "$lib/url";
+  import { page } from "$app/state";
+  import { LOCALES, type Locale } from "#lib/locales.js";
+  import { SITE, swapLocale } from "#lib/url.js";
 
   let { title, description, lang }: { title: string; description: string; lang: Locale } = $props();
 
-  const path = $derived($page.url.pathname);
+  const path = $derived(page.url.pathname);
   const canonical = $derived(SITE + path);
 </script>
 

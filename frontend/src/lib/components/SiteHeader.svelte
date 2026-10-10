@@ -1,10 +1,10 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
   import { ActionLink, DropdownMenu, SiteHeader as PublicSiteHeader } from "@shimpz/frontend";
-  import type { Locale } from "$lib/locales";
-  import { tr } from "$lib/i18n";
-  import { LOCALE_OPTIONS } from "$lib/locales";
-  import { swapLocale, u } from "$lib/url";
+  import type { Locale } from "#lib/locales.js";
+  import { tr } from "#lib/i18n.js";
+  import { LOCALE_OPTIONS } from "#lib/locales.js";
+  import { swapLocale, u } from "#lib/url.js";
 
   let { lang, path }: { lang: Locale; path: string } = $props();
   const currentLanguage = $derived(LOCALE_OPTIONS.find(({ code }) => code === lang)?.label ?? "English");
@@ -93,7 +93,7 @@
   >
     GitHub
   </ActionLink>
-  <div class="language-switch" data-sveltekit-noscroll onclickcapture={rememberLanguageScroll}>
+  <div class="language-switch" data-sveltekit-reset="false" onclickcapture={rememberLanguageScroll}>
     <DropdownMenu
       items={languageItems}
       value={lang}

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { AssistantIcon, SignalList } from "@shimpz/frontend";
-  import type { Locale } from "$lib/locales";
-  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import { tr } from "$lib/i18n";
-  import { u } from "$lib/url";
+  import type { Locale } from "#lib/locales.js";
+  import { parseAssistantCatalog } from "#lib/assistantCatalog.js";
+  import { tr } from "#lib/i18n.js";
+  import { u } from "#lib/url.js";
 
   type CatalogAssistant = ReturnType<typeof parseAssistantCatalog>[number];
 

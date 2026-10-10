@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { browser } from "$app/environment";
-  import { page } from "$app/stores";
-  import type { Locale } from "$lib/locales";
-  import SiteFooter from "$lib/components/SiteFooter.svelte";
-  import SiteHeader from "$lib/components/SiteHeader.svelte";
-  import { tr } from "$lib/i18n";
-  import { localeDirection } from "$lib/locales";
+  import { browser } from "$app/env";
+  import { page } from "$app/state";
+  import type { Locale } from "#lib/locales.js";
+  import SiteFooter from "#lib/components/SiteFooter.svelte";
+  import SiteHeader from "#lib/components/SiteHeader.svelte";
+  import { tr } from "#lib/i18n.js";
+  import { localeDirection } from "#lib/locales.js";
 
   let { data, children } = $props();
   const lang = $derived(data.lang as Locale);
-  const pathname = $derived($page.url.pathname);
-  const path = $derived(pathname + (browser ? $page.url.search : ""));
+  const pathname = $derived(page.url.pathname);
+  const path = $derived(pathname + (browser ? page.url.search : ""));
   const home = $derived(pathname.replace(/\/$/, "") === `/${lang}`);
 
   $effect(() => {

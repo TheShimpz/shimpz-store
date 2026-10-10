@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Card, PageIntro } from "@shimpz/frontend";
-  import type { InstitutionalPageContent } from "$lib/institutional";
+  import type { InstitutionalPageContent } from "#lib/institutional.js";
 
   let { content }: { content: InstitutionalPageContent } = $props();
 </script>

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ActionLink, PageIntro } from "@shimpz/frontend";
-  import { tr } from "$lib/i18n";
-  import type { Locale } from "$lib/locales";
-  import { u } from "$lib/url";
+  import { tr } from "#lib/i18n.js";
+  import type { Locale } from "#lib/locales.js";
+  import { u } from "#lib/url.js";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

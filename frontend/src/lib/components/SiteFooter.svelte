@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SiteFooter as PublicSiteFooter } from "@shimpz/frontend";
-  import type { Locale } from "$lib/locales";
-  import { tr } from "$lib/i18n";
-  import { u } from "$lib/url";
+  import type { Locale } from "#lib/locales.js";
+  import { tr } from "#lib/i18n.js";
+  import { u } from "#lib/url.js";
 
   let { lang, statement }: { lang: Locale; statement?: string } = $props();
 </script>

@@ -1,5 +1,5 @@
-import { LOCALES } from "$lib/locales";
-import { SITE, u } from "$lib/url";
+import { LOCALES } from "#lib/locales.js";
+import { SITE, u } from "#lib/url.js";
 
 export const prerender = true;
 

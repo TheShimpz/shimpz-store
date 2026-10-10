@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import SiteFooter from "$lib/components/SiteFooter.svelte";
-  import SiteHeader from "$lib/components/SiteHeader.svelte";
-  import { SITE } from "$lib/url";
+  import SiteFooter from "#lib/components/SiteFooter.svelte";
+  import SiteHeader from "#lib/components/SiteHeader.svelte";
+  import { SITE } from "#lib/url.js";
 
   let {
     title,

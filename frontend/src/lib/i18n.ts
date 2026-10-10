@@ -1,5 +1,5 @@
 // UI chrome uses English as the explicit fallback for incomplete operational translations.
-import type { Locale } from "$lib/locales";
+import type { Locale } from "#lib/locales.js";
 
 type Translation = { en: string } & Partial<Record<Locale, string>>;
 type Dict = Record<string, Translation>;

@@ -1,16 +1,16 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { untrack } from "svelte";
   import { PageIntro } from "@shimpz/frontend";
-  import type { Locale } from "$lib/locales";
-  import { tr } from "$lib/i18n";
-  import { fetchAssistantCatalog, parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import { requestedAssistantFromSearch } from "$lib/assistantStoreUrl.js";
-  import AssistantStore from "$lib/components/AssistantStore.svelte";
-  import AssistantDetail from "$lib/components/AssistantDetail.svelte";
-  import Seo from "$lib/components/Seo.svelte";
-  import { u } from "$lib/url";
+  import type { Locale } from "#lib/locales.js";
+  import { tr } from "#lib/i18n.js";
+  import { fetchAssistantCatalog, parseAssistantCatalog } from "#lib/assistantCatalog.js";
+  import { requestedAssistantFromSearch } from "#lib/assistantStoreUrl.js";
+  import AssistantStore from "#lib/components/AssistantStore.svelte";
+  import AssistantDetail from "#lib/components/AssistantDetail.svelte";
+  import Seo from "#lib/components/Seo.svelte";
+  import { u } from "#lib/url.js";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

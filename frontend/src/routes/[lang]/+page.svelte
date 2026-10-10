@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { Locale } from "$lib/locales";
-  import HomepageMeshBackground from "$lib/components/HomepageMeshBackground.svelte";
-  import InstallCommand from "$lib/components/InstallCommand.svelte";
-  import Seo from "$lib/components/Seo.svelte";
-  import { homepage } from "$lib/homepage";
-  import { tr } from "$lib/i18n";
+  import type { Locale } from "#lib/locales.js";
+  import HomepageMeshBackground from "#lib/components/HomepageMeshBackground.svelte";
+  import InstallCommand from "#lib/components/InstallCommand.svelte";
+  import Seo from "#lib/components/Seo.svelte";
+  import { homepage } from "#lib/homepage.js";
+  import { tr } from "#lib/i18n.js";
 
   let { data } = $props();
   const lang = $derived(data.lang as Locale);

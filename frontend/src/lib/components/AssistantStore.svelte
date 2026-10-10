@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Locale } from "$lib/locales";
-  import { tr } from "$lib/i18n";
-  import { parseAssistantCatalog } from "$lib/assistantCatalog.js";
-  import { closedAssistantStoreHref } from "$lib/assistantStoreUrl.js";
+  import type { Locale } from "#lib/locales.js";
+  import { tr } from "#lib/i18n.js";
+  import { parseAssistantCatalog } from "#lib/assistantCatalog.js";
+  import { closedAssistantStoreHref } from "#lib/assistantStoreUrl.js";
   import { AssistantCard, PageIntro } from "@shimpz/frontend";
 
   type CatalogAssistant = ReturnType<typeof parseAssistantCatalog>[number];
