@@ -111,7 +111,8 @@ def _completion_page(completion: OAuthOutOfBand) -> HTMLResponse:
             "Content-Security-Policy": (
                 "default-src 'none'; "
                 f"style-src 'nonce-{nonce}'; script-src 'nonce-{nonce}'; "
-                "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+                "base-uri 'none'; form-action 'none'; frame-ancestors 'none'; "
+                "require-trusted-types-for 'script'; trusted-types 'none'"
             ),
             "Cross-Origin-Opener-Policy": "same-origin",
             "X-Content-Type-Options": "nosniff",

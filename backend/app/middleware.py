@@ -28,6 +28,9 @@ from app.config import BUILD
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
 _CSP_PREFIX = b"default-src 'self'; base-uri 'self'; object-src 'none'; "
+# Every DOM HTML or script-URL sink refuses a plain string; only Svelte's own template policy may create the trusted
+# values it needs, so any other injection sink, in this application or a dependency, fails closed at runtime.
+_CSP_TRUSTED_TYPES = b"require-trusted-types-for 'script'; trusted-types svelte-trusted-html; "
 _CSP_STYLE_AND_REST = (
     b"style-src 'self' 'unsafe-inline'; "
     b"img-src 'self'; font-src 'self' data:; connect-src 'self'; "
@@ -99,7 +102,11 @@ def security_headers(build: Path) -> tuple[tuple[bytes, bytes], ...]:
         _COMMON_SECURITY_HEADERS[0],
         (
             b"content-security-policy",
-            _CSP_PREFIX + b"frame-ancestors 'none'; form-action 'self'; " + script_policy + _CSP_STYLE_AND_REST,
+            _CSP_PREFIX
+            + b"frame-ancestors 'none'; form-action 'self'; "
+            + script_policy
+            + _CSP_TRUSTED_TYPES
+            + _CSP_STYLE_AND_REST,
         ),
         _COMMON_SECURITY_HEADERS[1],
         (b"x-frame-options", b"DENY"),

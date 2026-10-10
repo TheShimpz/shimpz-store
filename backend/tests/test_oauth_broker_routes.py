@@ -192,6 +192,7 @@ def test_out_of_band_callback_renders_only_a_hardened_completion_code() -> None:
     assert callback.headers["cross-origin-opener-policy"] == "same-origin"
     policy = callback.headers["content-security-policy"]
     assert "default-src 'none'" in policy
+    assert "require-trusted-types-for 'script'; trusted-types 'none'" in policy
     assert len(callback.headers.get_list("content-security-policy")) == 1
     script_nonce = re.search(r"script-src 'nonce-([A-Za-z0-9_-]+)';", policy).group(1)
     style_nonce = re.search(r"style-src 'nonce-([A-Za-z0-9_-]+)';", policy).group(1)

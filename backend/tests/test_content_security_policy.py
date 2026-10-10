@@ -66,6 +66,21 @@ def test_no_response_admits_unsafe_inline_scripts(monkeypatch, tmp_path):
         assert "'unsafe-eval'" not in _script_sources(policy)
 
 
+def test_every_response_refuses_plain_strings_at_dom_injection_sinks(monkeypatch, tmp_path):
+    build = _build(tmp_path)
+    monkeypatch.setattr(static, "BUILD", build)
+    monkeypatch.setattr(middleware, "BUILD", build)
+
+    with TestClient(store.app) as client:
+        responses = [client.get("/api/health"), client.get("/en"), client.get("/_app/missing.js")]
+
+    for response in responses:
+        directives = response.headers["content-security-policy"].split("; ")
+        assert "require-trusted-types-for 'script'" in directives, response.url
+        # Svelte's template policy is the only one a page may create; no permissive default policy exists.
+        assert "trusted-types svelte-trusted-html" in directives, response.url
+
+
 def test_without_a_build_only_this_origin_may_run_scripts(tmp_path):
     policy = dict(middleware.security_headers(tmp_path / "absent"))[b"content-security-policy"].decode()
 
