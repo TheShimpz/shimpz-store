@@ -10,19 +10,23 @@ FROM ghcr.io/astral-sh/uv:0.12.1@sha256:cf4eedcaa81655197f625739489effcbe71b61ce
 # every commit-bound input, so an unchanged lock reuses it at every commit. The frontend tests run in the gate's
 # store-unit lane, not here. No dependency install script runs: the build needs none. adapter-static writes the
 # prerendered site to /w/build.
-FROM --platform=$BUILDPLATFORM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS web
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc /w/
+FROM --platform=$BUILDPLATFORM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS web
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc \
+     frontend/bootstrap-pnpm.sh /w/
+# Node.js 26 bundles no Corepack: bootstrap-pnpm.sh installs the exact pnpm the manifest names from its registry
+# tarball, verified against the sha256 the script pins.
+ENV PATH="/opt/pnpm/bin:$PATH"
 RUN cd /w \
- && corepack enable \
- && corepack prepare pnpm@11.9.0 --activate \
+ && sh bootstrap-pnpm.sh /tmp/pnpm-cache /opt/pnpm \
+ && rm -rf /tmp/pnpm-cache \
  && pnpm install --frozen-lockfile --ignore-scripts \
- && rm -rf /root/.cache/node /root/.local/share/pnpm /root/.npm
+ && rm -rf /root/.cache/pnpm /root/.local/share/pnpm /root/.npm
 WORKDIR /w
 COPY frontend/ ./
 ARG SOURCE_DATE_EPOCH=0
 RUN pnpm run build \
  && find /w/build -depth -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} + \
- && rm -rf /root/.cache/node /root/.local/share/pnpm /root/.npm
+ && rm -rf /root/.cache/pnpm /root/.local/share/pnpm /root/.npm
 
 # ── stage 3: resolve target-platform Python dependencies ─────────────────────────────────────────
 # This layer is the runtime's base and a pure function of the pinned base, uv, and the lock (Shimpz ADR-0098): no ARG

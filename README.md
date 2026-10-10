@@ -27,14 +27,17 @@ their respective `tests/` directories; built-browser behavior is exercised from 
 
 ## Frontend commands
 
-Use Node.js 24 and the lockfile-pinned pnpm release:
+Use Node.js 26 and the exact pnpm release `frontend/bootstrap-pnpm.sh` installs from its hash-pinned registry tarball
+(Node.js 26 bundles no Corepack):
 
 ```sh
 cd frontend
-corepack pnpm@11.9.0 install --frozen-lockfile --ignore-scripts
-corepack pnpm@11.9.0 test
-corepack pnpm@11.9.0 check
-corepack pnpm@11.9.0 build
+sh bootstrap-pnpm.sh /tmp/pnpm-cache /tmp/pnpm
+export PATH="/tmp/pnpm/bin:$PATH"
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm test
+pnpm check
+pnpm build
 ```
 
 `test` runs the dependency-free frontend contracts with half of the host processors. `check` validates

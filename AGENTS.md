@@ -20,7 +20,8 @@
   mutable install fallbacks, or earlier repository-state cleanup.
 - Preserve no Docker socket, exact source digests, non-cacheable private data, file-backed capabilities, and secret
   redaction.
-- Use Python 3.14 and Node.js 24. User-visible Svelte behavior requires Playwright against the built application.
+- Use Python 3.14, and Node.js 26 for every Node.js workload this repository runs. User-visible Svelte behavior
+  requires Playwright against the built application.
 - Tests that support workers use half of local processors and all GitHub Actions runner processors. Do not add
   Cypress or an experimental component-test runner.
 
@@ -33,4 +34,4 @@
   --locked --with coverage==7.15.2 sh -c "coverage run
   --branch --source=app --omit='app/protocol/*' -m pytest -q tests && coverage report --skip-empty
   --fail-under=100"` (the generated Team-protocol mirror is proven by its producer and byte-identity checks).
-- Run frontend tests/check/build from `frontend/` with the pinned pnpm release.
+- Run frontend tests/check/build from `frontend/` with the pnpm release `frontend/bootstrap-pnpm.sh` installs.
