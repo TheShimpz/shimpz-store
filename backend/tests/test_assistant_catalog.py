@@ -303,6 +303,94 @@ def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypa
         assert response.json()["assistants"][0]["source_digest"] == DIGEST
 
 
+@pytest.fixture(autouse=True)
+def _fresh_catalogs():
+    """Each test starts with no locale's catalog kept."""
+    public._catalogs.clear()
+    yield
+    public._catalogs.clear()
+
+
+def test_a_burst_of_visitors_shares_one_read_and_the_next_minute_reuses_it(monkeypatch) -> None:
+    calls = []
+    release = threading.Event()
+
+    def slow_catalog(*args, **_kwargs):
+        calls.append(args[2])
+        release.wait(5)
+        return 200, _catalog(_assistant(), locale="en")
+
+    monkeypatch.setattr(public, "call", slow_catalog)
+
+    async def burst():
+        visitors = [asyncio.create_task(public._served_catalog("en")) for _ in range(8)]
+        await asyncio.sleep(0.05)
+        release.set()
+        return await asyncio.gather(*visitors)
+
+    served = asyncio.run(burst())
+    assert len(set(served)) == 1 and served[0] is not None
+    assert calls == ["/api/v1/assistants?locale=en"]
+    # Within the minute the kept catalog answers without Developers; past it, the catalog is read again.
+    assert asyncio.run(public._served_catalog("en")) == served[0]
+    assert len(calls) == 1
+    kept_at, body = public._catalogs["en"]
+    public._catalogs["en"] = (kept_at - public.CATALOG_CACHE_SECONDS, body)
+    assert asyncio.run(public._served_catalog("en"))[1] == body
+    assert len(calls) == 2
+
+
+def test_a_kept_catalog_tells_later_caches_how_old_it_is(monkeypatch) -> None:
+    monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
+    with TestClient(app) as client:
+        assert client.get("/api/assistants?locale=en").headers["age"] == "0"
+        read_at, body = public._catalogs["en"]
+        public._catalogs["en"] = (read_at - 59, body)
+        assert client.get("/api/assistants?locale=en").headers["age"] == "59"
+
+
+def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(monkeypatch) -> None:
+    active, peak = [], []
+    lock = threading.Lock()
+
+    def counted(*args, **_kwargs):
+        with lock:
+            active.append(args[2])
+            peak.append(len(active))
+        threading.Event().wait(0.05)
+        with lock:
+            active.remove(args[2])
+        return 200, _catalog(_assistant(), locale=args[2].rpartition("=")[2])
+
+    monkeypatch.setattr(public, "call", counted)
+
+    async def cold_locales():
+        return await asyncio.gather(*(public._served_catalog(locale) for locale in ("en", "pt", "es", "fr", "de")))
+
+    assert all(body is not None for body in asyncio.run(cold_locales()))
+    assert max(peak) <= public.DEVELOPERS_CATALOG_LOADS
+
+
+def test_a_read_that_waits_past_its_deadline_for_a_load_slot_is_refused(monkeypatch) -> None:
+    monkeypatch.setattr(public, "VERIFY_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
+    for _ in range(public.DEVELOPERS_CATALOG_LOADS):
+        public._catalog_loads.acquire()
+    try:
+        assert public._catalog_body("en") is None
+    finally:
+        for _ in range(public.DEVELOPERS_CATALOG_LOADS):
+            public._catalog_loads.release()
+
+
+def test_a_failed_catalog_read_is_never_kept(monkeypatch) -> None:
+    answers = iter([(503, {}), (200, _catalog(_assistant(), locale="en"))])
+    monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: next(answers))
+    assert asyncio.run(public._served_catalog("en")) is None
+    assert "en" not in public._catalogs
+    assert asyncio.run(public._served_catalog("en")) is not None
+
+
 @pytest.mark.parametrize(
     "query",
     ["", "?locale=", "?locale=it", "?locale=EN", "?locale=pt&locale=en", "?locale=pt&page=2", "?page=2&locale=pt"],
@@ -467,12 +555,14 @@ def test_the_summary_is_a_short_description_of_at_most_eighty_characters(monkeyp
     for summary in ("s" * 80, "s" * 79 + "\U0001f44b"):
         catalog_value = _catalog(_assistant(summary=summary))
         monkeypatch.setattr(public, "call", lambda *_args, value=catalog_value, **_kwargs: (200, value))
+        public._catalogs.clear()
         with TestClient(app) as client:
             response = client.get("/api/assistants?locale=en")
         assert response.status_code == 200
         assert response.json()["assistants"][0]["summary"] == summary
     over = _catalog(_assistant(summary="s" * 81))
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, over))
+    public._catalogs.clear()
     with TestClient(app) as client:
         assert client.get("/api/assistants?locale=en").status_code != 200
 
