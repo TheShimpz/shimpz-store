@@ -1,6 +1,5 @@
 """Closed Cloudflare OAuth broker routes."""
 
-import asyncio
 import functools
 import html
 import secrets
@@ -9,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from app.concurrency import BoundedThreadPoolExecutor
+from app.concurrency import BoundedThreadPoolExecutor, run_bounded
 from app.config import (
     MAX_OAUTH_BODY_BYTES,
     OAUTH_QUEUE_MAX,
@@ -37,11 +36,6 @@ _START_LIMIT = TokenBuckets(
     period=OAUTH_START_PERIOD_SECONDS,
     max_keys=OAUTH_START_MAX_CLIENTS,
 )
-
-
-async def _run_bounded(fn, /, *args):
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(_EXECUTOR, fn, *args)
 
 
 def _redirect(location: str) -> RedirectResponse:
@@ -167,7 +161,8 @@ async def cloudflare_start(request: Request) -> Response:
     if callback_mode not in {"loopback", "local-domain", "out-of-band"}:
         return _failure("start")
     try:
-        location = await _run_bounded(
+        location = await run_bounded(
+            _EXECUTOR,
             functools.partial(
                 _BROKER.start,
                 local_state=fields["state"],
@@ -188,13 +183,14 @@ async def cloudflare_callback(request: Request) -> Response:
         return _failure("callback")
     fields = dict(pairs)
     try:
-        completion = await _run_bounded(
+        completion = await run_bounded(
+            _EXECUTOR,
             functools.partial(
                 _BROKER.callback,
                 state=fields["state"],
                 code=fields["code"],
                 scopes=fields["scope"].split(" "),
-            )
+            ),
         )
     except OAuthBrokerError:
         return _failure("callback", 502)
@@ -209,7 +205,8 @@ async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSO
     try:
         payload = await _body(request, fields)
         if operation == "claim":
-            result = await _run_bounded(
+            result = await run_bounded(
+                _EXECUTOR,
                 functools.partial(
                     _BROKER.claim,
                     claim=payload["claim"],
@@ -218,7 +215,8 @@ async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSO
                 ),
             )
         elif operation == "refresh":
-            result = await _run_bounded(
+            result = await run_bounded(
+                _EXECUTOR,
                 functools.partial(
                     _BROKER.refresh,
                     refresh_token=payload["refresh_token"],
@@ -227,7 +225,8 @@ async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSO
                 ),
             )
         elif operation == "revoke":
-            await _run_bounded(
+            await run_bounded(
+                _EXECUTOR,
                 functools.partial(
                     _BROKER.revoke,
                     token=payload["token"],

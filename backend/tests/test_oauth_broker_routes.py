@@ -329,7 +329,7 @@ def test_oauth_start_and_callback_translate_broker_failures(monkeypatch) -> None
     async def fail(*_args, **_kwargs):
         raise OAuthBrokerError("failed")
 
-    monkeypatch.setattr(oauth, "_run_bounded", fail)
+    monkeypatch.setattr(oauth, "run_bounded", fail)
     with TestClient(main.app) as client:
         start = _start(client, callback="loopback")
         callback = _callback(client)
@@ -341,7 +341,7 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch) 
     async def unexpected(*_args, **_kwargs):
         return object()
 
-    monkeypatch.setattr(oauth, "_run_bounded", unexpected)
+    monkeypatch.setattr(oauth, "run_bounded", unexpected)
     with TestClient(main.app) as client:
         callback = _callback(client)
     assert callback.status_code == 502

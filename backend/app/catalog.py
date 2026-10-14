@@ -55,17 +55,6 @@ _ACTION_EFFECTS = ("read_only", "mutating")
 # Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
 DESCRIPTION_BOUND = 500
 LINE_BOUND = 120
-MAX_LINK_CHARS = 256
-# Creator links in canonical display order, each with the exact https origins its kind admits; `site` admits any
-# public host the help-URL grammar admits.
-_LINK_PREFIXES: dict[str, tuple[str, ...]] = {
-    "site": ("https://",),
-    "github": ("https://github.com/",),
-    "x": ("https://x.com/",),
-    "youtube": ("https://youtube.com/", "https://www.youtube.com/"),
-    "linkedin": ("https://linkedin.com/", "https://www.linkedin.com/"),
-    "instagram": ("https://instagram.com/", "https://www.instagram.com/"),
-}
 
 
 class CatalogError(ValueError):
@@ -87,17 +76,11 @@ def _display(value: object, maximum: int) -> str:
 
 
 def _links(value: object) -> dict[str, str]:
-    if not isinstance(value, dict) or not set(value) <= set(_LINK_PREFIXES):
+    """A Creator's links as Team's protocol admits them, in its canonical order."""
+    links = team_contract.canonical_creator_links(value)
+    if links is None:
         raise CatalogError("catalog links are invalid")
-    for kind, url in value.items():
-        if (
-            not isinstance(url, str)
-            or len(url) > MAX_LINK_CHARS
-            or team_contract.canonical_help_url(url) is None
-            or not url.startswith(_LINK_PREFIXES[kind])
-        ):
-            raise CatalogError("catalog link is invalid")
-    return {kind: value[kind] for kind in _LINK_PREFIXES if kind in value}
+    return links
 
 
 def _closed_strings(value: object, maximum: int, item_maximum: int) -> list[str]:
