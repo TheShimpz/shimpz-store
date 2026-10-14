@@ -256,7 +256,7 @@ test("fetches the catalog for one locale and refuses failures or a catalog in an
   assert.equal((await fetchAssistantCatalog(fetcher(portuguese), "pt")).length, 1);
   assert.deepEqual(requests[0], {
     url: "/api/assistants?locale=pt",
-    options: { cache: "no-store", headers: { Accept: "application/json" } },
+    options: { headers: { Accept: "application/json" } },
   });
   await assert.rejects(fetchAssistantCatalog(fetcher(portuguese), "ja"));
   await assert.rejects(fetchAssistantCatalog(fetcher({}, false, 503), "pt"), /HTTP 503/);

@@ -265,8 +265,8 @@ export function parseAssistantCatalog(value, locale) {
  * @param {string} locale
  */
 export async function fetchAssistantCatalog(fetcher, locale) {
+  // The browser may keep a catalog as long as the Store's response says; the Store bounds its age.
   const response = await fetcher(`/api/assistants?locale=${encodeURIComponent(locale)}`, {
-    cache: "no-store",
     headers: { Accept: "application/json" },
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
