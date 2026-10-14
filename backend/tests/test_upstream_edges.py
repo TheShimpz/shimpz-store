@@ -1,7 +1,5 @@
 """Edge coverage for bounded Store upstream transports."""
 
-import asyncio
-
 import pytest
 
 from app import upstream
@@ -98,20 +96,3 @@ def test_asset_transport_closes_on_network_failure(monkeypatch):
     _install(monkeypatch, connection)
     assert upstream.call_asset("http://developers:8080", "/icon.png", timeout=1) == (502, b"")
     assert connection.closed
-
-
-def test_asset_bounded_delegates_to_the_caller_executor(monkeypatch):
-    captured = []
-
-    async def run(executor, operation):
-        captured.append(executor)
-        return operation()
-
-    monkeypatch.setattr(upstream, "run_bounded", run)
-    monkeypatch.setattr(upstream, "call_asset", lambda *_args, **_kwargs: (200, b"asset"))
-    executor = object()
-    assert asyncio.run(upstream.call_asset_bounded(executor, "http://developers:8080", "/icon.png", timeout=1)) == (
-        200,
-        b"asset",
-    )
-    assert captured == [executor]

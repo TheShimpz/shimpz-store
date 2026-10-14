@@ -305,10 +305,12 @@ def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypa
 
 @pytest.fixture(autouse=True)
 def _fresh_catalogs():
-    """Each test starts with no locale's catalog kept."""
+    """Each test starts with no locale's catalog and no icon kept."""
     public._catalogs.clear()
+    public._icons.clear()
     yield
     public._catalogs.clear()
+    public._icons.clear()
 
 
 def test_a_burst_of_visitors_shares_one_read_and_the_next_minute_reuses_it(monkeypatch) -> None:
@@ -372,15 +374,33 @@ def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(m
 
 
 def test_a_read_that_waits_past_its_deadline_for_a_load_slot_is_refused(monkeypatch) -> None:
-    monkeypatch.setattr(public, "VERIFY_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(public, "VERIFY_TIMEOUT_SECONDS", 0.05)
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
-    for _ in range(public.DEVELOPERS_CATALOG_LOADS):
-        public._catalog_loads.acquire()
-    try:
-        assert public._catalog_body("en") is None
-    finally:
-        for _ in range(public.DEVELOPERS_CATALOG_LOADS):
-            public._catalog_loads.release()
+    monkeypatch.setattr(public, "call_asset", lambda *_args, **_kwargs: (200, b"icon"))
+
+    async def starved():
+        release = asyncio.Event()
+
+        async def hold(kind, size):
+            async with public._developers_slot(kind, size) as admitted:
+                assert admitted
+                await release.wait()
+
+        holders = [
+            asyncio.create_task(hold(kind, size))
+            for kind, size in (("catalog", public.DEVELOPERS_CATALOG_LOADS), ("icon", public.DEVELOPERS_ICON_LOADS))
+            for _ in range(size)
+        ]
+        await asyncio.sleep(0)
+        refused = (
+            await public._served_catalog("en"),
+            await public._read_icon(("a" * 64, hashlib.sha256(b"icon").hexdigest())),
+        )
+        release.set()
+        await asyncio.gather(*holders)
+        return refused
+
+    assert asyncio.run(starved()) == (None, None)
 
 
 def test_a_failed_catalog_read_is_never_kept(monkeypatch) -> None:
@@ -469,10 +489,13 @@ def test_public_icon_route_verifies_and_immutably_caches_exact_bytes(monkeypatch
     contents = b"canonical icon"
     icon_hash = hashlib.sha256(contents).hexdigest()
 
-    async def valid_icon(*_args, **_kwargs):
+    reads = []
+
+    def valid_icon(*args, **_kwargs):
+        reads.append(args[1])
         return 200, contents
 
-    monkeypatch.setattr(public, "call_asset_bounded", valid_icon)
+    monkeypatch.setattr(public, "call_asset", valid_icon)
     with TestClient(app) as client:
         response = client.get(f"/api/assistant-icons/{'a' * 64}/{icon_hash}.png")
 
@@ -480,13 +503,14 @@ def test_public_icon_route_verifies_and_immutably_caches_exact_bytes(monkeypatch
     assert response.content == contents
     assert response.headers["content-type"] == "image/png"
     assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
+    # A verified icon is kept: the next visitor gets it without another Developers read.
+    with TestClient(app) as client:
+        assert client.get(f"/api/assistant-icons/{'a' * 64}/{icon_hash}.png").content == contents
+    assert reads == [f"/api/v1/assistant-publications/sha256:{'a' * 64}/icon.png"]
 
 
 def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
-    async def invalid_icon(*_args, **_kwargs):
-        return 200, b"wrong icon"
-
-    monkeypatch.setattr(public, "call_asset_bounded", invalid_icon)
+    monkeypatch.setattr(public, "call_asset", lambda *_args, **_kwargs: (200, b"wrong icon"))
     with TestClient(app) as client:
         response = client.get(f"/api/assistant-icons/{'a' * 64}/{'b' * 64}.png")
 
@@ -495,10 +519,10 @@ def test_public_icon_route_fails_closed_on_digest_mismatch(monkeypatch) -> None:
 
 
 def test_public_icon_route_refuses_a_malformed_digest_before_developers(monkeypatch) -> None:
-    async def must_not_run(*_args, **_kwargs):
+    def must_not_run(*_args, **_kwargs):
         raise AssertionError("a malformed icon digest must not reach Developers")
 
-    monkeypatch.setattr(public, "call_asset_bounded", must_not_run)
+    monkeypatch.setattr(public, "call_asset", must_not_run)
     with TestClient(app) as client:
         response = client.get("/api/assistant-icons/not-a-hash/not-a-hash.png")
 
@@ -580,3 +604,104 @@ def test_an_action_may_use_several_declared_stored_inputs() -> None:
     assistant["actions"][0]["stored_inputs"] = [*names, "key-8"]
     with pytest.raises(catalog.CatalogError):
         catalog.project_catalog(_catalog(assistant), "en")
+
+
+def test_icons_are_read_two_at_a_time_and_kept_within_their_budget(monkeypatch) -> None:
+    active, peak = [], []
+    lock = threading.Lock()
+
+    def counted(*args, **_kwargs):
+        with lock:
+            active.append(args[1])
+            peak.append(len(active))
+        threading.Event().wait(0.02)
+        with lock:
+            active.remove(args[1])
+        return 200, args[1].encode()
+
+    monkeypatch.setattr(public, "call_asset", counted)
+    sources = [f"{index:064x}" for index in range(12)]
+
+    def icon(source: str) -> str:
+        return hashlib.sha256(f"/api/v1/assistant-publications/sha256:{source}/icon.png".encode()).hexdigest()
+
+    async def grid():
+        return await asyncio.gather(*(public.assistant_icon(source, icon(source)) for source in sources))
+
+    assert all(response.status_code == 200 for response in asyncio.run(grid()))
+    assert max(peak) <= public.DEVELOPERS_ICON_LOADS
+    monkeypatch.setattr(public, "MAX_KEPT_ICONS", 3)
+    public._keep_icon(("x", "y"), b"z")
+    assert len(public._icons) == 3 and ("x", "y") in public._icons
+    monkeypatch.setattr(public, "MAX_KEPT_ICON_BYTES", 1)
+    public._keep_icon(("big", "icon"), b"zz")
+    assert public._icons == {}
+
+
+def test_visitors_asking_for_one_cold_icon_together_share_one_read(monkeypatch) -> None:
+    contents = b"one icon"
+    reads = []
+    release = threading.Event()
+
+    def slow_icon(*args, **_kwargs):
+        reads.append(args[1])
+        release.wait(5)
+        return 200, contents
+
+    monkeypatch.setattr(public, "call_asset", slow_icon)
+    icon_hash = hashlib.sha256(contents).hexdigest()
+
+    async def burst():
+        visitors = [asyncio.create_task(public.assistant_icon("a" * 64, icon_hash)) for _ in range(24)]
+        await asyncio.sleep(0.05)
+        release.set()
+        return await asyncio.gather(*visitors)
+
+    assert all(response.status_code == 200 for response in asyncio.run(burst()))
+    assert len(reads) == 1
+    assert public._icon_reads == {}
+
+
+def test_a_grid_of_cold_icons_waits_on_the_loop_and_leaves_the_catalog_its_executor(monkeypatch) -> None:
+    def icon(*args, **_kwargs):
+        threading.Event().wait(0.01)
+        return 200, args[1].encode()
+
+    monkeypatch.setattr(public, "call_asset", icon)
+    monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
+    sources = [f"{index:064x}" for index in range(24)]
+
+    def digest(source: str) -> str:
+        return hashlib.sha256(f"/api/v1/assistant-publications/sha256:{source}/icon.png".encode()).hexdigest()
+
+    async def page():
+        icons = [public.assistant_icon(source, digest(source)) for source in sources]
+        return await asyncio.gather(public._served_catalog("en"), *icons)
+
+    catalog_read, *icons = asyncio.run(page())
+    assert catalog_read is not None
+    assert all(response.status_code == 200 for response in icons)
+
+
+def test_icons_past_the_pending_bound_are_refused_and_never_queued(monkeypatch) -> None:
+    monkeypatch.setattr(public, "MAX_PENDING_ICON_READS", 1)
+    release = threading.Event()
+
+    def slow(*_args, **_kwargs):
+        release.wait(5)
+        return 200, b"icon"
+
+    monkeypatch.setattr(public, "call_asset", slow)
+    digest = hashlib.sha256(b"icon").hexdigest()
+
+    async def burst():
+        first = asyncio.create_task(public.assistant_icon("a" * 64, digest))
+        joined = asyncio.create_task(public.assistant_icon("a" * 64, digest))
+        await asyncio.sleep(0.02)
+        other = await public.assistant_icon("b" * 64, digest)
+        release.set()
+        return other, await first, await joined
+
+    other, first, joined = asyncio.run(burst())
+    assert other.status_code == 503
+    assert (first.status_code, joined.status_code) == (200, 200)

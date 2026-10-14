@@ -1,13 +1,10 @@
 """Bounded one-hop JSON and asset transport to trusted internal services."""
 
-import functools
 import http.client
 import json
 from urllib.parse import urlparse
 
 import structlog
-
-from app.concurrency import BoundedThreadPoolExecutor, run_bounded
 
 log = structlog.get_logger()
 
@@ -63,12 +60,3 @@ def call_asset(base: str, path: str, *, timeout: float) -> tuple[int, bytes]:
         return 502, b""
     finally:
         connection.close()
-
-
-async def call_asset_bounded(
-    executor: BoundedThreadPoolExecutor,
-    *args,
-    **kwargs,
-) -> tuple[int, bytes]:
-    """Run one internal asset read through the caller's bounded executor."""
-    return await run_bounded(executor, functools.partial(call_asset, *args, **kwargs))
