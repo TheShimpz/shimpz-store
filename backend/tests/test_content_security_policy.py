@@ -45,7 +45,7 @@ def test_the_build_inline_scripts_are_admitted_by_their_exact_hashes(tmp_path):
 def test_no_response_admits_unsafe_inline_scripts(monkeypatch, tmp_path):
     build = _build(tmp_path)
     monkeypatch.setattr(static, "BUILD", build)
-    monkeypatch.setattr(middleware, "BUILD", build)
+    monkeypatch.setattr(middleware, "_PAGE_HEADERS", middleware.security_headers(build))
     expected = ["'self'", *sorted({_source(REDIRECT), _source(BOOTSTRAP), _source('{"a":1}')})]
 
     with TestClient(store.app) as client:
@@ -69,7 +69,7 @@ def test_no_response_admits_unsafe_inline_scripts(monkeypatch, tmp_path):
 def test_every_response_refuses_plain_strings_at_dom_injection_sinks(monkeypatch, tmp_path):
     build = _build(tmp_path)
     monkeypatch.setattr(static, "BUILD", build)
-    monkeypatch.setattr(middleware, "BUILD", build)
+    monkeypatch.setattr(middleware, "_PAGE_HEADERS", middleware.security_headers(build))
 
     with TestClient(store.app) as client:
         responses = [client.get("/api/health"), client.get("/en"), client.get("/_app/missing.js")]

@@ -124,8 +124,12 @@ _NO_REFERRER_PATHS = frozenset(
 _RESPONSE_CSP_PATHS = frozenset({"/api/oauth/cloudflare/callback"})
 
 
+# The shipped build is immutable, so its policy is computed while the app loads rather than inside a first request.
+_PAGE_HEADERS = security_headers(BUILD)
+
+
 def _security_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
-    headers = security_headers(BUILD)
+    headers = _PAGE_HEADERS
     if path not in _NO_REFERRER_PATHS:
         return headers
     return tuple((name, b"no-referrer") if name == b"referrer-policy" else (name, value) for name, value in headers)
