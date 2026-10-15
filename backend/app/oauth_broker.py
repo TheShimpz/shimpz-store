@@ -51,6 +51,8 @@ ACCESS_CLIENT_SECRET_PATH = Path("/run/shimpz-store-oauth/access-client-secret")
 LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key")
 PREVIOUS_LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key-previous")
 LEASE_KEY_BYTES = 32
+# A broker secret file is private to its owner and readable at most by its group.
+_SECRET_MODES = frozenset({0o400, 0o440, 0o600, 0o640})
 _LEASE_KEY_ID_LABEL = b"shimpz-oauth-broker-lease-kid"
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
@@ -179,7 +181,7 @@ def _pkce_challenge(verifier: str) -> str:
     return _base64url(hashlib.sha256(verifier.encode("ascii")).digest())
 
 
-def _read_secret(path: Path, *, maximum: int, modes: frozenset[int]) -> bytes:
+def _read_secret(path: Path, *, maximum: int) -> bytes:
     descriptor = -1
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
@@ -188,7 +190,7 @@ def _read_secret(path: Path, *, maximum: int, modes: frozenset[int]) -> bytes:
             not stat.S_ISREG(metadata.st_mode)
             or metadata.st_uid not in {0, os.geteuid()}
             or metadata.st_nlink != 1
-            or stat.S_IMODE(metadata.st_mode) not in modes
+            or stat.S_IMODE(metadata.st_mode) not in _SECRET_MODES
             or not 1 <= metadata.st_size <= maximum
         ):
             raise OAuthBrokerError("OAuth broker secret failed its file contract")
@@ -307,12 +309,10 @@ class NeuronOAuthClient:
             client_id = _read_secret(
                 self._client_id_path,
                 maximum=256,
-                modes=frozenset({0o400, 0o440, 0o600, 0o640}),
             ).decode("ascii")
             client_secret = _read_secret(
                 self._client_secret_path,
                 maximum=1024,
-                modes=frozenset({0o400, 0o440, 0o600, 0o640}),
             ).decode("ascii")
         except UnicodeError as exc:
             raise OAuthBrokerError("Neuron Access service credential is invalid") from exc
@@ -470,10 +470,7 @@ class BrokerLeaseSigner:
 
     def _ring(self) -> dict[str, bytes]:
         """Map each kid to its key; the first entry is the current signing key."""
-        keys = self._provided_keys or tuple(
-            _read_secret(path, maximum=LEASE_KEY_BYTES, modes=frozenset({0o400, 0o440, 0o600, 0o640}))
-            for path in self._key_paths
-        )
+        keys = self._provided_keys or tuple(_read_secret(path, maximum=LEASE_KEY_BYTES) for path in self._key_paths)
         ring = {_lease_key_id(key): key for key in keys if len(key) == LEASE_KEY_BYTES}
         # Two distinct full-length keys, or none: a short key or a reused previous key fails closed.
         if len(ring) != 2:

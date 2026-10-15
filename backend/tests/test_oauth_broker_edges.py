@@ -95,19 +95,19 @@ def test_code_rejects_unencodable_text():
 def test_secret_reader_translates_open_and_short_read_failures(tmp_path, monkeypatch):
     missing = tmp_path / "missing"
     with pytest.raises(broker.OAuthBrokerError, match="unavailable"):
-        broker._read_secret(missing, maximum=32, modes=frozenset({0o400}))
+        broker._read_secret(missing, maximum=32)
 
     path = tmp_path / "secret"
     path.write_bytes(b"secret")
     path.chmod(0o400)
     monkeypatch.setattr(broker.os, "read", lambda *_args: b"")
     with pytest.raises(broker.OAuthBrokerError, match="file contract"):
-        broker._read_secret(path, maximum=32, modes=frozenset({0o400}))
+        broker._read_secret(path, maximum=32)
 
     chunks = iter((b"x" * 33,))
     monkeypatch.setattr(broker.os, "read", lambda *_args: next(chunks))
     with pytest.raises(broker.OAuthBrokerError, match="file contract"):
-        broker._read_secret(path, maximum=32, modes=frozenset({0o400}))
+        broker._read_secret(path, maximum=32)
 
 
 def test_proxy_reader_translates_socket_and_size_failures(monkeypatch):
