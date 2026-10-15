@@ -12,8 +12,6 @@ from app.protocol.http.v1 import payload as team_contract
 MAX_ASSISTANTS = 1000
 # Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
 MAX_ACTIONS = 128
-VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
-_CREATOR = re.compile(r"^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 _GITHUB = re.compile(
     r"^https://github\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/"
     r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$"
@@ -95,8 +93,8 @@ def _closed_strings(value: object, maximum: int, item_maximum: int) -> list[str]
 
 
 def _creators(value: object) -> list[str]:
-    creators = _closed_strings(value, 16, 39)
-    if not creators or any(_CREATOR.fullmatch(creator) is None for creator in creators):
+    creators = _closed_strings(value, team_contract.MAX_DETAILS_CREATORS, 39)
+    if not creators or any(team_contract.DETAILS_CREATOR_RE.fullmatch(creator) is None for creator in creators):
         raise CatalogError("catalog creators are invalid")
     return creators
 
@@ -186,7 +184,7 @@ def _assistant(value: object) -> dict[str, object]:
     icon_digest = value["icon_digest"]
     platforms = value["platforms"]
     github = value["github"]
-    if not isinstance(version, str) or VERSION_RE.fullmatch(version) is None:
+    if not isinstance(version, str) or team_contract.ASSISTANT_VERSION_RE.fullmatch(version) is None:
         raise CatalogError("catalog Assistant version is invalid")
     if not isinstance(digest, str) or team_contract.SOURCE_DIGEST_RE.fullmatch(digest) is None:
         raise CatalogError("catalog source digest is invalid")
