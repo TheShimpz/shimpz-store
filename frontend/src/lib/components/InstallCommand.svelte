@@ -9,6 +9,9 @@
   let copyState = $state<"idle" | "copied" | "error">("idle");
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
   let copyButton = $state<HTMLButtonElement>();
+  const copyLabel = $derived(
+    tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang),
+  );
 
   function fallbackCopy(): boolean {
     const textarea = document.createElement("textarea");
@@ -69,13 +72,11 @@
       dir="auto"
       type="button"
       onclick={copyCommand}
-      aria-label={tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
+      aria-label={copyLabel}
     >
-      {tr(copyState === "copied" ? "home_copied" : copyState === "error" ? "home_copy_failed" : "home_copy", lang)}
+      {copyLabel}
     </Button>
-    <span class="sr-status" aria-live="polite">
-      {copyState === "copied" ? tr("home_copied", lang) : copyState === "error" ? tr("home_copy_failed", lang) : ""}
-    </span>
+    <span class="sr-status" aria-live="polite">{copyState === "idle" ? "" : copyLabel}</span>
   </div>
   <a class="script-link" href="https://install.shimpz.com" target="_blank" rel="noopener noreferrer">
     {tr("home_read_script", lang)} <span aria-hidden="true">↗</span>
