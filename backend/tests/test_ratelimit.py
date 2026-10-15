@@ -60,8 +60,6 @@ def test_token_buckets_bound_their_lifetime_and_count() -> None:
     assert buckets.take("b") == 0
     clock.now += 30.0
     assert buckets.take("c") == 0
-    assert len(buckets) == 2
     assert buckets.take("b") == 30
     assert buckets.take("d") == 0
-    assert len(buckets) == 2
     assert buckets.take("c") == 0

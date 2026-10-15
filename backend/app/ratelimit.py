@@ -76,9 +76,6 @@ class TokenBuckets:
         self._clock = clock
         self._buckets: OrderedDict[str, tuple[float, float]] = OrderedDict()
 
-    def __len__(self) -> int:
-        return len(self._buckets)
-
     def take(self, key: str) -> int:
         """Spend one token for `key`: 0 when admitted, otherwise the whole seconds until a token is available."""
         now = self._clock()
