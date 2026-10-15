@@ -3,6 +3,7 @@
 import functools
 import html
 import secrets
+from collections.abc import Callable
 
 import structlog
 from fastapi import APIRouter, Request
@@ -201,41 +202,12 @@ async def cloudflare_callback(request: Request) -> Response:
     return _failure("callback", 502)
 
 
-async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSONResponse:
+async def _post(
+    request: Request, operation: str, fields: frozenset[str], act: Callable[[dict], dict[str, object]]
+) -> JSONResponse:
     try:
         payload = await _body(request, fields)
-        if operation == "claim":
-            result = await run_bounded(
-                _EXECUTOR,
-                functools.partial(
-                    _BROKER.claim,
-                    claim=payload["claim"],
-                    state=payload["state"],
-                    code_verifier=payload["code_verifier"],
-                ),
-            )
-        elif operation == "refresh":
-            result = await run_bounded(
-                _EXECUTOR,
-                functools.partial(
-                    _BROKER.refresh,
-                    refresh_token=payload["refresh_token"],
-                    lease=payload["broker_lease"],
-                    scopes=payload["scopes"],
-                ),
-            )
-        elif operation == "revoke":
-            await run_bounded(
-                _EXECUTOR,
-                functools.partial(
-                    _BROKER.revoke,
-                    token=payload["token"],
-                    lease=payload["broker_lease"],
-                ),
-            )
-            result = {"revoked": True}
-        else:
-            raise OAuthBrokerError("OAuth broker operation is unavailable")
+        result = await run_bounded(_EXECUTOR, act, payload)
     except ClientPayloadError as exc:
         return _failure(operation, exc.status)
     except OAuthBrokerError:
@@ -243,16 +215,31 @@ async def _post(request: Request, operation: str, fields: frozenset[str]) -> JSO
     return JSONResponse(result, headers=PRIVATE_NO_STORE_HEADERS)
 
 
+def _claim(payload: dict) -> dict[str, object]:
+    return _BROKER.claim(claim=payload["claim"], state=payload["state"], code_verifier=payload["code_verifier"])
+
+
+def _refresh(payload: dict) -> dict[str, object]:
+    return _BROKER.refresh(
+        refresh_token=payload["refresh_token"], lease=payload["broker_lease"], scopes=payload["scopes"]
+    )
+
+
+def _revoke(payload: dict) -> dict[str, object]:
+    _BROKER.revoke(token=payload["token"], lease=payload["broker_lease"])
+    return {"revoked": True}
+
+
 @router.post("/api/oauth/cloudflare/claim")
 async def cloudflare_claim(request: Request) -> JSONResponse:
-    return await _post(request, "claim", frozenset({"claim", "state", "code_verifier"}))
+    return await _post(request, "claim", frozenset({"claim", "state", "code_verifier"}), _claim)
 
 
 @router.post("/api/oauth/cloudflare/refresh")
 async def cloudflare_refresh(request: Request) -> JSONResponse:
-    return await _post(request, "refresh", frozenset({"refresh_token", "broker_lease", "scopes"}))
+    return await _post(request, "refresh", frozenset({"refresh_token", "broker_lease", "scopes"}), _refresh)
 
 
 @router.post("/api/oauth/cloudflare/revoke")
 async def cloudflare_revoke(request: Request) -> JSONResponse:
-    return await _post(request, "revoke", frozenset({"token", "broker_lease"}))
+    return await _post(request, "revoke", frozenset({"token", "broker_lease"}), _revoke)

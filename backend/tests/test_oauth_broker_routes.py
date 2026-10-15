@@ -337,7 +337,7 @@ def test_oauth_start_and_callback_translate_broker_failures(monkeypatch) -> None
     assert callback.status_code == 502
 
 
-def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch) -> None:
+def test_oauth_callback_rejects_an_unexpected_result(monkeypatch) -> None:
     async def unexpected(*_args, **_kwargs):
         return object()
 
@@ -345,10 +345,6 @@ def test_oauth_callback_and_unknown_post_reject_unexpected_results(monkeypatch) 
     with TestClient(main.app) as client:
         callback = _callback(client)
     assert callback.status_code == 502
-
-    request = _one_shot_request(b"{}", [(b"content-type", b"application/json"), (b"content-length", b"2")])
-    unknown = asyncio.run(oauth._post(request, "unknown", frozenset()))
-    assert unknown.status_code == 502
 
 
 def test_oauth_start_limits_each_client_before_any_broker_work() -> None:
