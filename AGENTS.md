@@ -30,8 +30,7 @@
 - From the umbrella root, run `ruff check --config ruff.toml store` and `ruff format --config ruff.toml --check store`;
   the umbrella `ruff.toml` is the only ruff configuration.
 - Run backend tests from `backend/` with
-  `DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:9/ci SECRET_KEY=ci-only-not-a-secret uv run --python 3.14
-  --locked --with coverage==7.15.2 sh -c "coverage run
+  `uv run --python 3.14 --locked --with coverage==7.15.2 sh -c "coverage run
   --branch --source=app --omit='app/protocol/*' -m pytest -q tests && coverage report --skip-empty
   --fail-under=100"` (the generated Team-protocol mirror is proven by its producer and byte-identity checks).
 - Run frontend tests/check/build from `frontend/` with the pnpm release `frontend/bootstrap-pnpm.sh` installs.

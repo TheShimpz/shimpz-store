@@ -1,7 +1,6 @@
 # Shimpz default .gitignore — secrets + heavy build artifacts, never committed
 .env
 .env.*
-!.env.example
 node_modules/
 .pnpm-store/
 .venv/
