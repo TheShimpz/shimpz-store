@@ -8,11 +8,11 @@ AUDIT = AuditWriter(Path("/var/log/store-egress/audit.jsonl"), "store-egress")
 SUBJECTS = frozenset({"neuron.shimpz.com:443", "rejected-target"})
 
 
-def record(decision) -> str:
+def record(decision) -> None:
     """Persist one network-gated decision without request or credential content."""
     if decision.result not in {"denied", "error", "ok"} or decision.subject not in SUBJECTS:
         raise AuditError("invalid Store egress audit event")
-    return AUDIT.write(
+    AUDIT.write(
         {
             "principal_class": "machine",
             "principal_id": "store",
