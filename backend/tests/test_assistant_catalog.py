@@ -284,7 +284,7 @@ def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypa
     requested: list[str] = []
 
     def valid_catalog(*args, **_kwargs):
-        path = args[2]
+        path = args[1]
         requested.append(path)
         locale = path.rpartition("=")[2]
         return 200, _catalog(_assistant(summary=f"Summary ({locale})."), locale=locale)
@@ -318,7 +318,7 @@ def test_a_burst_of_visitors_shares_one_read_and_the_next_minute_reuses_it(monke
     release = threading.Event()
 
     def slow_catalog(*args, **_kwargs):
-        calls.append(args[2])
+        calls.append(args[1])
         release.wait(5)
         return 200, _catalog(_assistant(), locale="en")
 
@@ -357,12 +357,12 @@ def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(m
 
     def counted(*args, **_kwargs):
         with lock:
-            active.append(args[2])
+            active.append(args[1])
             peak.append(len(active))
         threading.Event().wait(0.05)
         with lock:
-            active.remove(args[2])
-        return 200, _catalog(_assistant(), locale=args[2].rpartition("=")[2])
+            active.remove(args[1])
+        return 200, _catalog(_assistant(), locale=args[1].rpartition("=")[2])
 
     monkeypatch.setattr(public, "call", counted)
 
@@ -374,7 +374,7 @@ def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(m
 
 
 def test_a_read_that_waits_past_its_deadline_for_a_load_slot_is_refused(monkeypatch) -> None:
-    monkeypatch.setattr(public, "VERIFY_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(public, "DEVELOPERS_TIMEOUT_SECONDS", 0.05)
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
     monkeypatch.setattr(public, "call_asset", lambda *_args, **_kwargs: (200, b"icon"))
 

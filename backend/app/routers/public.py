@@ -16,9 +16,11 @@ from app import catalog, config
 from app.concurrency import run_bounded
 from app.control import EXECUTOR as CONTROL_EXECUTOR
 from app.protocol.http.v1 import payload as team_contract
-from app.upstream import VERIFY_TIMEOUT_SECONDS, call, call_asset
+from app.upstream import call, call_asset
 
 router = APIRouter()
+# How long one catalog or icon read may wait for a Developers load slot, and then for Developers itself.
+DEVELOPERS_TIMEOUT_SECONDS = 5
 
 
 @router.get("/api/health")
@@ -35,10 +37,7 @@ def _catalog_locale(request: Request) -> str | None:
 def _catalog_body(locale: str) -> bytes | None:
     """Read, validate, project, and serialize one locale's catalog inside one control worker."""
     status, value = call(
-        config.DEVELOPERS_URL,
-        "GET",
-        f"/api/v1/assistants?locale={locale}",
-        timeout=VERIFY_TIMEOUT_SECONDS,
+        config.DEVELOPERS_URL, f"/api/v1/assistants?locale={locale}", timeout=DEVELOPERS_TIMEOUT_SECONDS
     )
     if status != 200:
         return None
@@ -94,7 +93,7 @@ async def _developers_slot(kind: str, size: int) -> AsyncIterator[bool]:
         _slots_loop = weakref.ref(loop)
     slot = _slots.setdefault(kind, asyncio.Semaphore(size))
     try:
-        await asyncio.wait_for(slot.acquire(), VERIFY_TIMEOUT_SECONDS)
+        await asyncio.wait_for(slot.acquire(), DEVELOPERS_TIMEOUT_SECONDS)
     except TimeoutError:
         yield False
         return
@@ -167,7 +166,7 @@ def _icon_body(source_hash: str, icon_hash: str) -> bytes | None:
     status, contents = call_asset(
         config.DEVELOPERS_URL,
         f"/api/v1/assistant-publications/sha256:{source_hash}/icon.png",
-        timeout=VERIFY_TIMEOUT_SECONDS,
+        timeout=DEVELOPERS_TIMEOUT_SECONDS,
     )
     if status != 200 or hashlib.sha256(contents).hexdigest() != icon_hash:
         return None

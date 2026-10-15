@@ -8,22 +8,19 @@ import structlog
 
 log = structlog.get_logger()
 
-VERIFY_TIMEOUT_SECONDS = 5
 MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_ASSET_RESPONSE_BYTES = 1024 * 1024
 
 
-def call(
-    base: str, method: str, path: str, *, timeout: float, max_response_bytes: int = MAX_JSON_RESPONSE_BYTES
-) -> tuple[int, dict]:
-    """Proxy one bodiless trusted internal hop with a closed generic failure."""
+def call(base: str, path: str, *, timeout: float) -> tuple[int, dict]:
+    """Read one bounded JSON document from a trusted internal service with a closed generic failure."""
     parsed = urlparse(base)
     connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=timeout)
     try:
-        connection.request(method, path)
+        connection.request("GET", path)
         response = connection.getresponse()
-        raw = response.read(max_response_bytes + 1)
-        if len(raw) > max_response_bytes:
+        raw = response.read(MAX_JSON_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_JSON_RESPONSE_BYTES:
             return 502, {"detail": "the upstream returned an oversized response"}
         return response.status, (json.loads(raw) if raw else {})
     except (OSError, UnicodeError, json.JSONDecodeError, http.client.HTTPException) as exc:
