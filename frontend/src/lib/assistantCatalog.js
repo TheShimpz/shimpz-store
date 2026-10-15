@@ -1,7 +1,7 @@
 const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
 // The Developers catalog contract and the Store backend both admit up to 1,000 public Assistants.
-export const MAX_CATALOG_ASSISTANTS = 1000;
+const MAX_CATALOG_ASSISTANTS = 1000;
 // Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
 const MAX_ASSISTANT_ACTIONS = 128;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;

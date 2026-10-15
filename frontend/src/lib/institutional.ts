@@ -1,6 +1,6 @@
 import type { Locale } from "#lib/locales.js";
 
-export type Concept = { title: string; body: string };
+type Concept = { title: string; body: string };
 
 export type InstitutionalPageContent = {
   seoTitle: string;
