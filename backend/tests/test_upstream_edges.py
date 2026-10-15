@@ -45,7 +45,7 @@ def test_json_transport_rejects_an_oversized_response(monkeypatch):
     connection = _Connection(_Response(body=b"{}x"))
     _install(monkeypatch, connection)
     monkeypatch.setattr(upstream, "MAX_JSON_RESPONSE_BYTES", 2)
-    assert upstream.call("http://service:80", "/", timeout=1) == (
+    assert upstream.call("/") == (
         502,
         {"detail": "the upstream returned an oversized response"},
     )
@@ -56,7 +56,7 @@ def test_json_transport_rejects_an_oversized_response(monkeypatch):
 def test_json_transport_returns_the_status_and_decoded_body(monkeypatch, body, expected):
     connection = _Connection(_Response(status=200, body=body))
     _install(monkeypatch, connection)
-    assert upstream.call("http://developers:8080", "/api/v1/assistants", timeout=1) == (200, expected)
+    assert upstream.call("/api/v1/assistants") == (200, expected)
     assert connection.requests == [(("GET", "/api/v1/assistants"), {})]
     assert connection.closed
 
@@ -64,7 +64,7 @@ def test_json_transport_returns_the_status_and_decoded_body(monkeypatch, body, e
 def test_json_transport_closes_on_network_failure(monkeypatch):
     connection = _Connection(error=OSError("unreachable"))
     _install(monkeypatch, connection)
-    assert upstream.call("http://developers:8080", "/", timeout=1) == (
+    assert upstream.call("/") == (
         502,
         {"detail": "the upstream is unreachable"},
     )
@@ -88,12 +88,12 @@ def test_json_transport_closes_on_network_failure(monkeypatch):
 def test_asset_transport_enforces_status_type_length_and_exact_body(monkeypatch, response, expected):
     connection = _Connection(response)
     _install(monkeypatch, connection)
-    assert upstream.call_asset("http://developers:8080", "/icon.png", timeout=1) == expected
+    assert upstream.call_asset("/icon.png") == expected
     assert connection.closed
 
 
 def test_asset_transport_closes_on_network_failure(monkeypatch):
     connection = _Connection(error=OSError("unreachable"))
     _install(monkeypatch, connection)
-    assert upstream.call_asset("http://developers:8080", "/icon.png", timeout=1) == (502, b"")
+    assert upstream.call_asset("/icon.png") == (502, b"")
     assert connection.closed

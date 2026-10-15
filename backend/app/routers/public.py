@@ -19,8 +19,6 @@ from app.protocol.http.v1 import payload as team_contract
 from app.upstream import call, call_asset
 
 router = APIRouter()
-# How long one catalog or icon read may wait for a Developers load slot, and then for Developers itself.
-DEVELOPERS_TIMEOUT_SECONDS = 5
 
 
 @router.get("/api/health")
@@ -36,9 +34,7 @@ def _catalog_locale(request: Request) -> str | None:
 
 def _catalog_body(locale: str) -> bytes | None:
     """Read, validate, project, and serialize one locale's catalog inside one control worker."""
-    status, value = call(
-        config.DEVELOPERS_URL, f"/api/v1/assistants?locale={locale}", timeout=DEVELOPERS_TIMEOUT_SECONDS
-    )
+    status, value = call(f"/api/v1/assistants?locale={locale}")
     if status != 200:
         return None
     try:
@@ -93,7 +89,7 @@ async def _developers_slot(kind: str, size: int) -> AsyncIterator[bool]:
         _slots_loop = weakref.ref(loop)
     slot = _slots.setdefault(kind, asyncio.Semaphore(size))
     try:
-        await asyncio.wait_for(slot.acquire(), DEVELOPERS_TIMEOUT_SECONDS)
+        await asyncio.wait_for(slot.acquire(), config.DEVELOPERS_TIMEOUT_SECONDS)
     except TimeoutError:
         yield False
         return
@@ -158,11 +154,7 @@ _icon_reads: dict[tuple[str, str], asyncio.Task[bytes | None]] = {}
 
 def _icon_body(source_hash: str, icon_hash: str) -> bytes | None:
     """Read one publication's icon inside one control worker; only bytes matching its hash are returned."""
-    status, contents = call_asset(
-        config.DEVELOPERS_URL,
-        f"/api/v1/assistant-publications/sha256:{source_hash}/icon.png",
-        timeout=DEVELOPERS_TIMEOUT_SECONDS,
-    )
+    status, contents = call_asset(f"/api/v1/assistant-publications/sha256:{source_hash}/icon.png")
     if status != 200 or hashlib.sha256(contents).hexdigest() != icon_hash:
         return None
     return contents

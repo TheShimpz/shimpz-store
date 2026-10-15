@@ -1,4 +1,4 @@
-"""Bounded one-hop JSON and asset transport to trusted internal services."""
+"""Bounded one-hop JSON and asset transport to Developers."""
 
 import http.client
 import json
@@ -6,16 +6,22 @@ from urllib.parse import urlparse
 
 import structlog
 
+from app import config
+
 log = structlog.get_logger()
 
 MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_ASSET_RESPONSE_BYTES = 1024 * 1024
 
 
-def call(base: str, path: str, *, timeout: float) -> tuple[int, dict]:
-    """Read one bounded JSON document from a trusted internal service with a closed generic failure."""
-    parsed = urlparse(base)
-    connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=timeout)
+def _connection() -> http.client.HTTPConnection:
+    parsed = urlparse(config.DEVELOPERS_URL)
+    return http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=config.DEVELOPERS_TIMEOUT_SECONDS)
+
+
+def call(path: str) -> tuple[int, dict]:
+    """Read one bounded JSON document from Developers with a closed generic failure."""
+    connection = _connection()
     try:
         connection.request("GET", path)
         response = connection.getresponse()
@@ -24,16 +30,15 @@ def call(base: str, path: str, *, timeout: float) -> tuple[int, dict]:
             return 502, {"detail": "the upstream returned an oversized response"}
         return response.status, (json.loads(raw) if raw else {})
     except (OSError, UnicodeError, json.JSONDecodeError, http.client.HTTPException) as exc:
-        log.warning("proxy_unreachable", base=base, path=path, error=str(exc))
+        log.warning("proxy_unreachable", path=path, error=str(exc))
         return 502, {"detail": "the upstream is unreachable"}
     finally:
         connection.close()
 
 
-def call_asset(base: str, path: str, *, timeout: float) -> tuple[int, bytes]:
-    """Read one bounded immutable asset from a fixed trusted internal service."""
-    parsed = urlparse(base)
-    connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=timeout)
+def call_asset(path: str) -> tuple[int, bytes]:
+    """Read one bounded immutable asset from Developers."""
+    connection = _connection()
     try:
         connection.request("GET", path, headers={"Accept": "image/png"})
         response = connection.getresponse()
@@ -53,7 +58,7 @@ def call_asset(base: str, path: str, *, timeout: float) -> tuple[int, bytes]:
         contents = response.read(MAX_ASSET_RESPONSE_BYTES + 1)
         return (200, contents) if len(contents) == expected else (502, b"")
     except (OSError, UnicodeError, http.client.HTTPException) as exc:
-        log.warning("asset_proxy_unreachable", base=base, path=path, error=str(exc))
+        log.warning("asset_proxy_unreachable", path=path, error=str(exc))
         return 502, b""
     finally:
         connection.close()

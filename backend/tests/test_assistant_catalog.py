@@ -283,8 +283,7 @@ def test_an_assistant_with_the_producer_maximum_of_actions_is_projected() -> Non
 def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypatch) -> None:
     requested: list[str] = []
 
-    def valid_catalog(*args, **_kwargs):
-        path = args[1]
+    def valid_catalog(path):
         requested.append(path)
         locale = path.rpartition("=")[2]
         return 200, _catalog(_assistant(summary=f"Summary ({locale})."), locale=locale)
@@ -317,8 +316,8 @@ def test_a_burst_of_visitors_shares_one_read_and_the_next_minute_reuses_it(monke
     calls = []
     release = threading.Event()
 
-    def slow_catalog(*args, **_kwargs):
-        calls.append(args[1])
+    def slow_catalog(path):
+        calls.append(path)
         release.wait(5)
         return 200, _catalog(_assistant(), locale="en")
 
@@ -355,14 +354,14 @@ def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(m
     active, peak = [], []
     lock = threading.Lock()
 
-    def counted(*args, **_kwargs):
+    def counted(path):
         with lock:
-            active.append(args[1])
+            active.append(path)
             peak.append(len(active))
         threading.Event().wait(0.05)
         with lock:
-            active.remove(args[1])
-        return 200, _catalog(_assistant(), locale=args[1].rpartition("=")[2])
+            active.remove(path)
+        return 200, _catalog(_assistant(), locale=path.rpartition("=")[2])
 
     monkeypatch.setattr(public, "call", counted)
 
@@ -374,7 +373,7 @@ def test_reads_of_different_locales_never_exceed_what_developers_loads_at_once(m
 
 
 def test_a_read_that_waits_past_its_deadline_for_a_load_slot_is_refused(monkeypatch) -> None:
-    monkeypatch.setattr(public, "DEVELOPERS_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(public.config, "DEVELOPERS_TIMEOUT_SECONDS", 0.05)
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))
     monkeypatch.setattr(public, "call_asset", lambda *_args, **_kwargs: (200, b"icon"))
 
@@ -491,8 +490,8 @@ def test_public_icon_route_verifies_and_immutably_caches_exact_bytes(monkeypatch
 
     reads = []
 
-    def valid_icon(*args, **_kwargs):
-        reads.append(args[1])
+    def valid_icon(path):
+        reads.append(path)
         return 200, contents
 
     monkeypatch.setattr(public, "call_asset", valid_icon)
@@ -610,14 +609,14 @@ def test_icons_are_read_two_at_a_time_and_kept_within_their_budget(monkeypatch) 
     active, peak = [], []
     lock = threading.Lock()
 
-    def counted(*args, **_kwargs):
+    def counted(path):
         with lock:
-            active.append(args[1])
+            active.append(path)
             peak.append(len(active))
         threading.Event().wait(0.02)
         with lock:
-            active.remove(args[1])
-        return 200, args[1].encode()
+            active.remove(path)
+        return 200, path.encode()
 
     monkeypatch.setattr(public, "call_asset", counted)
     sources = [f"{index:064x}" for index in range(12)]
@@ -643,8 +642,8 @@ def test_visitors_asking_for_one_cold_icon_together_share_one_read(monkeypatch) 
     reads = []
     release = threading.Event()
 
-    def slow_icon(*args, **_kwargs):
-        reads.append(args[1])
+    def slow_icon(path):
+        reads.append(path)
         release.wait(5)
         return 200, contents
 
@@ -663,9 +662,9 @@ def test_visitors_asking_for_one_cold_icon_together_share_one_read(monkeypatch) 
 
 
 def test_a_grid_of_cold_icons_waits_on_the_loop_and_leaves_the_catalog_its_executor(monkeypatch) -> None:
-    def icon(*args, **_kwargs):
+    def icon(path):
         threading.Event().wait(0.01)
-        return 200, args[1].encode()
+        return 200, path.encode()
 
     monkeypatch.setattr(public, "call_asset", icon)
     monkeypatch.setattr(public, "call", lambda *_args, **_kwargs: (200, _catalog(_assistant(), locale="en")))

@@ -8,6 +8,8 @@ from app.ratelimit import trusted_proxies
 BUILD = Path("/app/build")
 # Developers on the private developers_store network.
 DEVELOPERS_URL = "http://developers:8080"
+# How long one catalog or icon read may wait for a Developers load slot, and then for Developers itself.
+DEVELOPERS_TIMEOUT_SECONDS = 5
 MAX_OAUTH_BODY_BYTES = 32 * 1024
 CONTROL_WORKER_THREADS = 8
 CONTROL_QUEUE_MAX = 8
