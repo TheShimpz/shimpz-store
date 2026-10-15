@@ -40,7 +40,7 @@
   :global(.institutional-card .content > span) { color: var(--color-cyan); font: 600 .65rem/1 var(--font-mono); }
   :global(.institutional-card .content > h2) { margin: auto 0 1rem; font-size: clamp(1.35rem,2.5vw,2rem); line-height: 1.12; }
   :global(.institutional-card .content > p) { margin: 0; color: var(--color-muted); line-height: 1.7; }
-  aside { display: grid; grid-template-columns: minmax(10rem,.35fr) minmax(0,1fr); gap: 2rem; padding: clamp(1.5rem,4vw,2.5rem); margin-block-start: 1rem; background: var(--color-surface); border: 1px solid var(--color-border); }
+  aside { display: grid; grid-template-columns: minmax(10rem,.35fr) minmax(0,1fr); gap: 2rem; padding: clamp(1.5rem,4vw,2.5rem); margin-block-start: 1rem; border: 1px solid var(--color-border); }
   aside > p { margin: 0; color: var(--color-cyan); font: 600 .65rem/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
   aside h2 { margin: 0 0 .75rem; font-size: clamp(1.2rem,2vw,1.6rem); }
   aside div p { max-width: 64rem; margin: 0; color: var(--color-muted); line-height: 1.7; }
