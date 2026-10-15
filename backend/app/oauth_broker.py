@@ -153,6 +153,11 @@ def _code(value: object, *, label: str, minimum: int = 16, maximum: int = 4096) 
     return value
 
 
+def _token(value: object) -> str:
+    """One OAuth access or refresh token in its admitted printable-ASCII bounds."""
+    return _code(value, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
+
+
 def _scope_list(value: object) -> list[str]:
     if (
         not isinstance(value, list)
@@ -408,21 +413,7 @@ class NeuronOAuthClient:
         expires = value.get("expires_in")
         if type(expires) is not int or not MIN_TOKEN_SECONDS <= expires <= 31_536_000:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
-        return OAuthTokens(
-            _code(
-                value.get("access_token"),
-                label="token",
-                minimum=16,
-                maximum=MAX_TOKEN_BYTES,
-            ),
-            _code(
-                value.get("refresh_token"),
-                label="token",
-                minimum=16,
-                maximum=MAX_TOKEN_BYTES,
-            ),
-            expires,
-        )
+        return OAuthTokens(_token(value.get("access_token")), _token(value.get("refresh_token")), expires)
 
     def exchange(self, *, code: str, verifier: str, scopes: tuple[str, ...]) -> OAuthTokens:
         expected_scopes = _scopes(list(scopes))
@@ -683,12 +674,12 @@ class OAuthBroker:
 
     def refresh(self, *, refresh_token: object, lease: object, scopes: object) -> dict[str, object]:
         requested_scopes = _scopes(scopes)
-        token = _code(refresh_token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
+        token = _token(refresh_token)
         self._signer.verify(lease, token, requested_scopes)
         tokens = self._neuron.refresh(refresh_token=token, scopes=requested_scopes)
         return self._token_payload(tokens, requested_scopes, tokens.expires_in)
 
     def revoke(self, *, token: object, lease: object) -> None:
-        value = _code(token, label="token", minimum=16, maximum=MAX_TOKEN_BYTES)
+        value = _token(token)
         self._signer.verify(lease, value)
         self._neuron.revoke(token=value)
