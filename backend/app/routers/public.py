@@ -13,12 +13,18 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
 from app import catalog, config
-from app.concurrency import run_bounded
-from app.control import EXECUTOR as CONTROL_EXECUTOR
+from app.concurrency import BoundedThreadPoolExecutor, run_bounded
+from app.config import CONTROL_QUEUE_MAX, CONTROL_WORKER_THREADS
 from app.protocol.http.v1 import payload as team_contract
 from app.upstream import call, call_asset
 
 router = APIRouter()
+# The bounded admission catalog and icon reads share; OAuth runs on its own executor.
+CONTROL_EXECUTOR = BoundedThreadPoolExecutor(
+    max_workers=CONTROL_WORKER_THREADS,
+    max_outstanding=CONTROL_WORKER_THREADS + CONTROL_QUEUE_MAX,
+    thread_name_prefix="shimpz-control",
+)
 
 
 @router.get("/api/health")
@@ -73,7 +79,7 @@ async def _read_catalog(locale: str) -> tuple[float, bytes] | None:
 
 
 # Developers' few load slots are taken here, on the event loop, before any work reaches the control executor: a burst
-# of reads waits for them without filling the executor that every other Store request shares. The table belongs to the
+# of reads waits for them without filling the executor catalog and icon reads share. The table belongs to the
 # event loop serving the Store and starts again on another one.
 _slots: dict[str, asyncio.Semaphore] = {}
 _slots_loop: weakref.ReferenceType[asyncio.AbstractEventLoop] | None = None

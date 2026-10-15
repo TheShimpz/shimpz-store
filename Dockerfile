@@ -57,7 +57,7 @@ RUN groupadd --gid 10008 shimpz-store \
 # layer and the final import check.
 WORKDIR /app
 COPY --link backend/app/__init__.py backend/app/catalog.py backend/app/concurrency.py backend/app/config.py \
-     backend/app/control.py backend/app/logconf.py backend/app/main.py backend/app/middleware.py \
+     backend/app/logconf.py backend/app/main.py backend/app/middleware.py \
      backend/app/oauth_broker.py backend/app/payloads.py backend/app/ratelimit.py backend/app/upstream.py ./app/
 COPY --link backend/app/protocol/http/v1/identifiers.py backend/app/protocol/http/v1/payload.py \
     backend/app/protocol/http/v1/purpose.py backend/app/protocol/http/v1/strict_json.py \
