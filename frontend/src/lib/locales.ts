@@ -12,7 +12,7 @@ export const LOCALE_OPTIONS = [
 ] as const;
 
 export type Locale = (typeof LOCALE_OPTIONS)[number]["code"];
-export type Direction = (typeof LOCALE_OPTIONS)[number]["dir"];
+type Direction = (typeof LOCALE_OPTIONS)[number]["dir"];
 
 export const LOCALES = LOCALE_OPTIONS.map(({ code }) => code) as Locale[];
 

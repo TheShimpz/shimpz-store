@@ -13,7 +13,7 @@ export type InstitutionalPageContent = {
   noteBody: string;
 };
 
-export type InstitutionalPage = "openSource" | "about";
+type InstitutionalPage = "openSource" | "about";
 type PageTuple = [string, string, string, [string, string][], string, string];
 
 function buildPages(input: Record<Locale, PageTuple>): Record<Locale, InstitutionalPageContent> {
