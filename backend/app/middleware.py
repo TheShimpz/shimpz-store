@@ -15,7 +15,6 @@ alone keeps the nonce policy its route sets.
 """
 
 import base64
-import functools
 import hashlib
 import re
 from html.parser import HTMLParser
@@ -94,8 +93,7 @@ def build_script_sources(build: Path) -> tuple[bytes, ...]:
     return tuple(sorted(sources))
 
 
-@functools.cache
-def security_headers(build: Path) -> tuple[tuple[bytes, bytes], ...]:
+def page_headers(build: Path) -> tuple[tuple[bytes, bytes], ...]:
     """The page header set: one script policy bound to the build's exact inline scripts."""
     script_policy = b"script-src " + b" ".join((b"'self'", *build_script_sources(build))) + b"; "
     return (
@@ -125,10 +123,10 @@ _RESPONSE_CSP_PATHS = frozenset({"/api/oauth/cloudflare/callback"})
 
 
 # The shipped build is immutable, so its policy is computed while the app loads rather than inside a first request.
-_PAGE_HEADERS = security_headers(BUILD)
+_PAGE_HEADERS = page_headers(BUILD)
 
 
-def _security_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
+def _path_headers(path: str) -> tuple[tuple[bytes, bytes], ...]:
     headers = _PAGE_HEADERS
     if path not in _NO_REFERRER_PATHS:
         return headers
@@ -153,7 +151,7 @@ class TraceIdMiddleware:
         # Bind WITHOUT reset: each request runs in its own contextvars copy (can't leak across requests),
         # and the id must stay visible to the exception handler in the outer error middleware.
         structlog.contextvars.bind_contextvars(trace_id=trace_id)
-        security_headers = _security_headers(scope.get("path", ""))
+        path_headers = _path_headers(scope.get("path", ""))
 
         async def send_with_id(message):
             if message["type"] == "http.response.start":
@@ -162,11 +160,11 @@ class TraceIdMiddleware:
                     (value for name, value in response_headers if name.lower() == b"content-security-policy"),
                     None,
                 )
-                selected_headers = security_headers
+                selected_headers = path_headers
                 if scope.get("path", "") in _RESPONSE_CSP_PATHS and response_csp is not None:
                     selected_headers = tuple(
                         (name, response_csp) if name == b"content-security-policy" else (name, value)
-                        for name, value in security_headers
+                        for name, value in path_headers
                     )
                 managed = _MANAGED_SECURITY_HEADERS | {b"x-request-id"}
                 message["headers"] = [(name, value) for name, value in response_headers if name.lower() not in managed]
