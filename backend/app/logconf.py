@@ -1,9 +1,8 @@
 """Logging house standard — structlog to JSON on stdout, one event per line.
 
-Call setup("<service>") ONCE at boot (main.py); everywhere else use structlog.get_logger(). Never
-print(), never the stdlib logging module directly — the shimpz-stdcheck gate BLOCKs both. Per-request
-trace_id is bound in app/middleware.py and rides every line automatically (contextvars). LOG_FORMAT=console
-gives human output in dev (default json); LOG_LEVEL sets the level (default INFO).
+Call setup("<service>") ONCE at boot (main.py); everywhere else use structlog.get_logger(), never print() or the
+stdlib logging module directly. Per-request trace_id is bound in app/middleware.py and rides every line automatically
+(contextvars). LOG_FORMAT=console gives human output in dev (default json); LOG_LEVEL sets the level (default INFO).
 """
 
 import logging

@@ -1,4 +1,4 @@
-"""Prerendered SvelteKit files registered after every API and WebSocket route."""
+"""Prerendered SvelteKit files registered after every API route."""
 
 import os
 from pathlib import Path
