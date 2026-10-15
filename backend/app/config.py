@@ -6,7 +6,8 @@ from pathlib import Path
 from app.ratelimit import trusted_proxies
 
 BUILD = Path("/app/build")
-DEVELOPERS_URL = os.environ.get("SHIMPZ_DEVELOPERS_URL", "http://developers-api:8080")
+# Developers on the private developers_store network.
+DEVELOPERS_URL = "http://developers:8080"
 MAX_OAUTH_BODY_BYTES = 32 * 1024
 CONTROL_WORKER_THREADS = 8
 CONTROL_QUEUE_MAX = 8
