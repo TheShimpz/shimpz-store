@@ -10,7 +10,7 @@ from collections import OrderedDict
 from collections.abc import AsyncIterator, Awaitable, Callable
 
 from fastapi import APIRouter, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 
 from app import catalog, config
 from app.concurrency import run_bounded
@@ -121,25 +121,20 @@ async def _shared[K, T](
     return await asyncio.shield(task)
 
 
+def _uncached_error(detail: str, status: int) -> Response:
+    """A closed JSON error no cache may keep."""
+    return JSONResponse({"detail": detail}, status_code=status, headers={"Cache-Control": "no-store"})
+
+
 @router.get("/api/assistants")
 async def assistant_catalog(request: Request) -> Response:
     # The visitor's interface language selects the catalog; caches key it by this exact URL.
     locale = _catalog_locale(request)
     if locale is None:
-        return Response(
-            content='{"detail":"Assistant catalog locale is invalid"}',
-            status_code=400,
-            media_type="application/json",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _uncached_error("Assistant catalog locale is invalid", 400)
     served = await _served_catalog(locale)
     if served is None:
-        return Response(
-            content='{"detail":"Assistant catalog is unavailable"}',
-            status_code=503,
-            media_type="application/json",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _uncached_error("Assistant catalog is unavailable", 503)
     read_at, body = served
     # A kept catalog says how old it already is, so no cache after this one keeps it past its own lifetime.
     return Response(
@@ -211,9 +206,4 @@ async def assistant_icon(source_hash: str, icon_hash: str) -> Response:
 
 
 def _icon_unavailable() -> Response:
-    return Response(
-        content='{"detail":"Assistant icon is unavailable"}',
-        status_code=503,
-        media_type="application/json",
-        headers={"Cache-Control": "no-store"},
-    )
+    return _uncached_error("Assistant icon is unavailable", 503)

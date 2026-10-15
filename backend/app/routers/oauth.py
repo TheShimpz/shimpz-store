@@ -43,10 +43,7 @@ def _redirect(location: str) -> RedirectResponse:
     return RedirectResponse(
         location,
         status_code=303,
-        headers={
-            "Cache-Control": "private, no-store",
-            "Referrer-Policy": "no-referrer",
-        },
+        headers={**PRIVATE_NO_STORE_HEADERS, "Referrer-Policy": "no-referrer"},
     )
 
 
@@ -101,7 +98,7 @@ def _completion_page(completion: OAuthOutOfBand) -> HTMLResponse:
     return HTMLResponse(
         document,
         headers={
-            "Cache-Control": "private, no-store",
+            **PRIVATE_NO_STORE_HEADERS,
             "Referrer-Policy": "no-referrer",
             "Content-Security-Policy": (
                 "default-src 'none'; "
