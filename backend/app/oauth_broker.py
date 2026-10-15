@@ -44,15 +44,8 @@ MAX_RESPONSE_BYTES = 32 * 1024
 MAX_TOKEN_BYTES = 16 * 1024
 HTTP_TIMEOUT_SECONDS = 10
 MAX_PROXY_RESPONSE_BYTES = 1024
-ACCESS_CLIENT_ID_PATH = Path(
-    os.environ.get("SHIMPZ_NEURON_ACCESS_CLIENT_ID_FILE", "/run/shimpz-store-oauth/access-client-id")
-)
-ACCESS_CLIENT_SECRET_PATH = Path(
-    os.environ.get(
-        "SHIMPZ_NEURON_ACCESS_CLIENT_SECRET_FILE",
-        "/run/shimpz-store-oauth/access-client-secret",
-    )
-)
+ACCESS_CLIENT_ID_PATH = Path("/run/shimpz-store-oauth/access-client-id")
+ACCESS_CLIENT_SECRET_PATH = Path("/run/shimpz-store-oauth/access-client-secret")
 # The lease key ring: the current key signs every new lease; the previous key only verifies leases it signed before
 # the last rotation. Each key is identified by a kid derived from it, so rotation needs no separate kid file.
 LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key")

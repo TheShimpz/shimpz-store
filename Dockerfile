@@ -67,8 +67,7 @@ COPY --link backend/app/routers/__init__.py backend/app/routers/oauth.py backend
 COPY --link --from=web /w/build ./build
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    SHIMPZ_STORE_BUILD=/app/build
+    PYTHONUNBUFFERED=1
 # Fail during the image build if the explicit copy surface omits an imported module, then compile the application like
 # its environment. Compose owns the health probe.
 RUN python -c "import app.main" && \
