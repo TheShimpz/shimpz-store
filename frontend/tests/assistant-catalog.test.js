@@ -113,6 +113,11 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].actions = "lookup"; },
     (value) => { value.assistants[0].allowed_hosts = ["api.example.com", "api.example.com"]; },
     (value) => { value.assistants[0].allowed_hosts = [42]; },
+    // An allowed host is a lowercase DNS name under an alphabetic top-level label, never a URL, address, or port.
+    ...[
+      "API.example.com", "api.example.com:443", "https://api.example.com", "1.2.3.4", "localhost", "-api.example.com",
+      "api-.example.com", "api..example.com", "api_v1.example.com", "not a host", `${"a".repeat(64)}.example.com`,
+    ].map((host) => (value) => { value.assistants[0].allowed_hosts = [host]; }),
     (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 33 }, (_, index) => `api-${index}.example.com`); },
     (value) => { value.assistants[0].assistant_id = "a".repeat(41); },
     (value) => { value.assistants[0].name = "n".repeat(81); },

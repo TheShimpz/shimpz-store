@@ -26,6 +26,9 @@ const MAX_INTEGRATIONS = 16;
 const MAX_INTEGRATION_SCOPES = 32;
 const MAX_SCOPE_CHARS = 128;
 const INTEGRATION_SCOPE_RE = /^[a-z0-9][a-z0-9.:/_-]*$/;
+// Developers' valid_public_host shape, as the Store backend admits it (`ALLOWED_HOST_RE`): lowercase DNS labels under an
+// alphabetic top-level label, within 253 characters.
+const ALLOWED_HOST_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 // An Action names at most 4 Integrations and raises at most 8 human requests, no more than one of them an approval or
 // an authentication (Developers `CatalogAction`).
 const MAX_ACTION_INTEGRATIONS = 4;
@@ -248,7 +251,7 @@ function parseAssistant(value) {
     record.creators.length === 0 ||
     !boundedStrings(record.creators, 16, MAX_CREATOR_CHARS, CREATOR_RE) ||
     !exactPlatforms(record.platforms) ||
-    !boundedStrings(record.allowed_hosts, 32, 253) ||
+    !boundedStrings(record.allowed_hosts, 32, 253, ALLOWED_HOST_RE) ||
     !validIntegrations(record.integrations) ||
     !validActions(record.actions)
   ) {
