@@ -106,7 +106,7 @@
               {#each assistant.integrations as integration (integration.id)}
                 <li>
                   <strong>{integration.provider}</strong>
-                  <span>{integration.scopes.length ? integration.scopes.join(", ") : tr("assistants_none", lang)}</span>
+                  <span>{integration.scopes.join(", ")}</span>
                 </li>
               {/each}
             </ul>
