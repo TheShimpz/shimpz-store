@@ -71,7 +71,7 @@ test("projects sorted unique Integration providers for public categorization", (
   value.assistants[0].integrations = [
     { id: "zeta", provider: "zeta", scopes: ["read"] },
     { id: "alpha", provider: "alpha", scopes: ["read"] },
-    { id: "alpha-write", provider: "alpha", scopes: ["write"] },
+    { id: "alpha", provider: "alpha", scopes: ["write"] },
   ];
   assert.deepEqual(parseAssistantCatalog(value)[0].providers, ["alpha", "zeta"]);
 
@@ -109,6 +109,21 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].creators = [`@${"c".repeat(39)}`]; },
     (value) => { value.assistants[0].platforms = ["windows/amd64"]; },
     (value) => { value.assistants[0].integrations[0].scopes = ["read", "read"]; },
+    (value) => { value.assistants[0].integrations[0].scopes = Array.from({ length: 33 }, (_, index) => `scope-${index}`); },
+    (value) => { value.assistants[0].integrations[0].scopes = ["s".repeat(129)]; },
+    (value) => { value.assistants[0].integrations = Array.from({ length: 17 }, () => ({ id: "example", provider: "example", scopes: [] })); },
+    (value) => { value.assistants[0].integrations[0] = { id: "example", provider: "other", scopes: ["read"] }; },
+    (value) => { value.assistants[0].integrations[0] = { id: "Example", provider: "Example", scopes: ["read"] }; },
+    (value) => { value.assistants[0].integrations[0] = { id: "e".repeat(65), provider: "e".repeat(65), scopes: ["read"] }; },
+    (value) => { value.assistants[0].creators = []; },
+    (value) => { value.assistants[0].assistant_version = "1.2"; },
+    (value) => { value.assistants[0].assistant_version = "01.2.3"; },
+    (value) => { value.assistants[0].assistant_version = "1.2.3-beta"; },
+    (value) => { value.assistants[0].platforms = ["linux/amd64"]; },
+    (value) => { value.assistants[0].platforms = ["linux/arm64", "linux/amd64"]; },
+    (value) => {
+      value.assistants.unshift({ ...structuredClone(value.assistants[0]), assistant_id: "zeta-assistant" });
+    },
     (value) => { delete value.assistants[0].description; },
     (value) => { value.assistants[0].description = ""; },
     (value) => { value.assistants[0].description = " Leading space."; },
@@ -213,6 +228,12 @@ test("admits each identity field up to the producer's bound", () => {
   entry.name = "n".repeat(80);
   entry.creators = [`@${"c".repeat(38)}`, "@a", "@a-b"];
   entry.allowed_hosts = Array.from({ length: 32 }, (_, index) => `api-${index}.example.com`);
+  entry.integrations = Array.from({ length: 16 }, () => ({
+    id: "e".repeat(64),
+    provider: "e".repeat(64),
+    scopes: Array.from({ length: 32 }, (_, index) => `${index}`.padStart(128, "s")),
+  }));
+  entry.assistant_version = "10.0.12345678901234567890";
   assert.equal(parseAssistantCatalog(value)[0].id, "a".repeat(40));
 });
 

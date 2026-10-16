@@ -1,7 +1,14 @@
-/** The Developers published-Assistant `identifier` grammar: an Assistant id and each Action or Stored Input id. */
+/**
+ * The Developers published-Assistant `identifier` grammar: an Assistant id and each Action, Integration, or Stored Input
+ * id.
+ */
 const IDENTIFIER_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-// The Store backend admits an Assistant id of at most 40 characters (Team HTTP `MAX_ASSISTANT_ID_CHARS`).
+// The Store backend admits an Assistant id of at most 40 characters (Team HTTP `MAX_ASSISTANT_ID_CHARS`) and any other
+// identifier of at most 64 (`canonical_identifier`).
 const MAX_ASSISTANT_ID_CHARS = 40;
+const MAX_IDENTIFIER_CHARS = 64;
+// An Assistant's version is exactly MAJOR.MINOR.PATCH (Team HTTP `ASSISTANT_VERSION_RE`).
+const ASSISTANT_VERSION_RE = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$/;
 // A Creator is one GitHub login after an @, at most 39 characters in all (Team HTTP `DETAILS_CREATOR_RE`).
 const CREATOR_RE = /^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 const MAX_CREATOR_CHARS = 39;
@@ -11,7 +18,12 @@ const MAX_CATALOG_ASSISTANTS = 1000;
 // Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
 const MAX_ASSISTANT_ACTIONS = 128;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;
-const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
+// Every publication is built for exactly these platforms, in this order.
+const PLATFORMS = Object.freeze(["linux/amd64", "linux/arm64"]);
+// The Store backend admits at most 16 Integrations, each with at most 32 scopes of at most 128 characters.
+const MAX_INTEGRATIONS = 16;
+const MAX_INTEGRATION_SCOPES = 32;
+const MAX_SCOPE_CHARS = 128;
 // The Assistant summary is a short description of at most 80 characters, in every interface language.
 const ASSISTANT_SUMMARY_CHARS = 80;
 // Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
@@ -76,6 +88,11 @@ export function isAssistantId(value) {
   return typeof value === "string" && value.length <= MAX_ASSISTANT_ID_CHARS && IDENTIFIER_RE.test(value);
 }
 
+/** @param {unknown} value @returns {value is string} */
+function isIdentifier(value) {
+  return typeof value === "string" && value.length <= MAX_IDENTIFIER_CHARS && IDENTIFIER_RE.test(value);
+}
+
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -131,8 +148,7 @@ function validStoredInputs(value) {
   return Array.isArray(value) && value.length <= MAX_STORED_INPUTS &&
     value.every((input) =>
       hasExactKeys(input, ["id", "label", "description", "help_url"]) &&
-      boundedText(input.id, 64) &&
-      IDENTIFIER_RE.test(input.id) &&
+      isIdentifier(input.id) &&
       displayText(input.label, DISPLAY_LINE_CHARS) &&
       displayText(input.description, ASSISTANT_DESCRIPTION_CHARS) &&
       typeof input.help_url === "string" &&
@@ -161,12 +177,18 @@ function boundedStrings(value, maximumItems, maximumLength, pattern = null) {
 }
 
 /** @param {unknown} value */
+function exactPlatforms(value) {
+  return Array.isArray(value) && value.length === PLATFORMS.length &&
+    value.every((platform, index) => platform === PLATFORMS[index]);
+}
+
+/** @param {unknown} value */
 function validIntegrations(value) {
-  return Array.isArray(value) && value.length <= 32 && value.every((integration) =>
+  return Array.isArray(value) && value.length <= MAX_INTEGRATIONS && value.every((integration) =>
     hasExactKeys(integration, ["id", "provider", "scopes"]) &&
-    boundedText(integration.id, 80) &&
-    boundedText(integration.provider, 80) &&
-    boundedStrings(integration.scopes, 64, 160)
+    isIdentifier(integration.id) &&
+    integration.provider === integration.id &&
+    boundedStrings(integration.scopes, MAX_INTEGRATION_SCOPES, MAX_SCOPE_CHARS)
   );
 }
 
@@ -174,8 +196,7 @@ function validIntegrations(value) {
 function validActions(value) {
   return Array.isArray(value) && value.length >= 1 && value.length <= MAX_ASSISTANT_ACTIONS && value.every((action) =>
     hasExactKeys(action, ["human_requests", "integrations", "id", "effect", "description"]) &&
-    boundedText(action.id, 64) &&
-    IDENTIFIER_RE.test(action.id) &&
+    isIdentifier(action.id) &&
     typeof action.effect === "string" &&
     ACTION_EFFECTS.has(action.effect) &&
     displayText(action.description, DISPLAY_LINE_CHARS) &&
@@ -197,15 +218,18 @@ function parseAssistant(value) {
     !displayText(record.description, ASSISTANT_DESCRIPTION_CHARS) ||
     !validLinks(record.links) ||
     !validStoredInputs(record.stored_inputs) ||
-    !boundedText(record.assistant_version, 80) ||
+    typeof record.assistant_version !== "string" ||
+    !ASSISTANT_VERSION_RE.test(record.assistant_version) ||
     typeof record.github !== "string" ||
     !GITHUB_RE.test(record.github) ||
     typeof record.source_digest !== "string" ||
     !SOURCE_DIGEST_RE.test(record.source_digest) ||
     typeof record.icon_digest !== "string" ||
     !SOURCE_DIGEST_RE.test(record.icon_digest) ||
+    !Array.isArray(record.creators) ||
+    record.creators.length === 0 ||
     !boundedStrings(record.creators, 16, MAX_CREATOR_CHARS, CREATOR_RE) ||
-    !boundedStrings(record.platforms, 2, 20, PLATFORM_RE) ||
+    !exactPlatforms(record.platforms) ||
     !boundedStrings(record.allowed_hosts, 32, 253) ||
     !validIntegrations(record.integrations) ||
     !validActions(record.actions)
@@ -262,8 +286,9 @@ export function parseAssistantCatalog(value, locale) {
   }
   if (record.assistants.length > MAX_CATALOG_ASSISTANTS) throw new Error("Assistant catalog is too large");
   const assistants = record.assistants.map(parseAssistant);
-  if (new Set(assistants.map((assistant) => assistant.id)).size !== assistants.length) {
-    throw new Error("duplicate Assistant catalog entry");
+  // The Store backend lists each Assistant once, in ascending id order.
+  if (assistants.some((assistant, index) => index > 0 && assistants[index - 1].id >= assistant.id)) {
+    throw new Error("duplicate or unordered Assistant catalog entry");
   }
   return Object.freeze(assistants);
 }
