@@ -20,10 +20,17 @@ const MAX_ASSISTANT_ACTIONS = 128;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$/;
 // Every publication is built for exactly these platforms, in this order.
 const PLATFORMS = Object.freeze(["linux/amd64", "linux/arm64"]);
-// The Store backend admits at most 16 Integrations, each with at most 32 scopes of at most 128 characters.
+// The Store backend admits at most 16 Integrations, each with 1 to 32 scopes of at most 128 characters in the
+// Developers `IntegrationIntent` scope grammar (`INTEGRATION_SCOPE_RE`).
 const MAX_INTEGRATIONS = 16;
 const MAX_INTEGRATION_SCOPES = 32;
 const MAX_SCOPE_CHARS = 128;
+const INTEGRATION_SCOPE_RE = /^[a-z0-9][a-z0-9.:/_-]*$/;
+// An Action names at most 4 Integrations and raises at most 8 human requests, no more than one of them an approval or
+// an authentication (Developers `CatalogAction`).
+const MAX_ACTION_INTEGRATIONS = 4;
+const MAX_HUMAN_REQUESTS = 8;
+const GATE_KINDS = new Set(["approval", "auth:password", "auth:totp", "auth:passkey"]);
 // The Assistant summary is a short description of at most 80 characters, in every interface language.
 const ASSISTANT_SUMMARY_CHARS = 80;
 // Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
@@ -184,26 +191,37 @@ function exactPlatforms(value) {
 
 /** @param {unknown} value */
 function validIntegrations(value) {
-  return Array.isArray(value) && value.length <= MAX_INTEGRATIONS && value.every((integration) =>
+  // Each Integration appears once, in ascending id order, as the Store backend admits them.
+  return Array.isArray(value) && value.length <= MAX_INTEGRATIONS && value.every((integration, index) =>
     hasExactKeys(integration, ["id", "provider", "scopes"]) &&
     isIdentifier(integration.id) &&
     integration.provider === integration.id &&
-    boundedStrings(integration.scopes, MAX_INTEGRATION_SCOPES, MAX_SCOPE_CHARS)
+    (index === 0 || value[index - 1].id < integration.id) &&
+    Array.isArray(integration.scopes) &&
+    integration.scopes.length > 0 &&
+    boundedStrings(integration.scopes, MAX_INTEGRATION_SCOPES, MAX_SCOPE_CHARS, INTEGRATION_SCOPE_RE)
   );
 }
 
 /** @param {unknown} value */
+function validHumanRequests(value) {
+  return boundedStrings(value, MAX_HUMAN_REQUESTS, 25) &&
+    (/** @type {string[]} */ (value)).every((kind) => HUMAN_REQUEST_KINDS.has(kind)) &&
+    (/** @type {string[]} */ (value)).filter((kind) => GATE_KINDS.has(kind)).length <= 1;
+}
+
+/** @param {unknown} value */
 function validActions(value) {
+  // Action ids are unique, in the order the Assistant's machine contract declares them.
   return Array.isArray(value) && value.length >= 1 && value.length <= MAX_ASSISTANT_ACTIONS && value.every((action) =>
     hasExactKeys(action, ["human_requests", "integrations", "id", "effect", "description"]) &&
     isIdentifier(action.id) &&
     typeof action.effect === "string" &&
     ACTION_EFFECTS.has(action.effect) &&
     displayText(action.description, DISPLAY_LINE_CHARS) &&
-    boundedStrings(action.integrations, 16, 64) &&
-    boundedStrings(action.human_requests, 11, 25) &&
-    (/** @type {string[]} */ (action.human_requests)).every((kind) => HUMAN_REQUEST_KINDS.has(kind))
-  );
+    boundedStrings(action.integrations, MAX_ACTION_INTEGRATIONS, MAX_IDENTIFIER_CHARS, IDENTIFIER_RE) &&
+    validHumanRequests(action.human_requests)
+  ) && new Set(value.map((action) => action.id)).size === value.length;
 }
 
 /** @param {unknown} value */
@@ -236,9 +254,6 @@ function parseAssistant(value) {
   ) {
     throw new Error("invalid Assistant catalog");
   }
-  const providers = [...new Set(
-    (/** @type {{ provider: string }[]} */ (record.integrations)).map(({ provider }) => provider),
-  )].sort((left, right) => left.localeCompare(right, "en"));
   const integrations = (/** @type {{ id: string, provider: string, scopes: string[] }[]} */ (record.integrations))
     .map(({ id, provider, scopes }) => Object.freeze({ id, provider, scopes: Object.freeze([...scopes]) }));
   const actions = (/** @type {{ id: string, integrations: string[], human_requests: string[] }[]} */ (record.actions))
@@ -253,7 +268,6 @@ function parseAssistant(value) {
     summary: record.summary,
     version: record.assistant_version,
     creators: Object.freeze([...(/** @type {string[]} */ (record.creators))]),
-    providers: Object.freeze(providers),
     github: record.github,
     platforms: Object.freeze([...(/** @type {string[]} */ (record.platforms))]),
     allowedHosts: Object.freeze([...(/** @type {string[]} */ (record.allowed_hosts))]),

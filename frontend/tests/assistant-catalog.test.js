@@ -54,7 +54,6 @@ test("projects the exact immutable publication identity needed by the Store", ()
       summary: "A safe example.",
       version: "1.2.3",
       creators: ["@creator"],
-      providers: ["example"],
       github: "https://github.com/example/assistant",
       platforms: ["linux/amd64", "linux/arm64"],
       allowedHosts: ["api.example.com"],
@@ -66,17 +65,19 @@ test("projects the exact immutable publication identity needed by the Store", ()
   ]);
 });
 
-test("projects sorted unique Integration providers for public categorization", () => {
+test("admits every Action shape Developers emits, in its declared order", () => {
   const value = catalog();
-  value.assistants[0].integrations = [
-    { id: "zeta", provider: "zeta", scopes: ["read"] },
-    { id: "alpha", provider: "alpha", scopes: ["read"] },
-    { id: "alpha", provider: "alpha", scopes: ["write"] },
+  const ids = ["alpha", "beta", "gamma", "zeta"];
+  value.assistants[0].integrations = ids.map((id) => ({ id, provider: id, scopes: ["repo:read", "user/email_1.2-x"] }));
+  const inputs = ["text", "textarea", "password", "phone", "select", "choice", "choices"].map((kind) => `input:${kind}`);
+  const action = value.assistants[0].actions[0];
+  value.assistants[0].actions = [
+    { ...action, id: "zeta", integrations: ids, human_requests: [...inputs, "auth:passkey"] },
+    { ...action, id: "alpha", integrations: [], human_requests: [] },
   ];
-  assert.deepEqual(parseAssistantCatalog(value)[0].providers, ["alpha", "zeta"]);
-
-  value.assistants[0].integrations = [];
-  assert.deepEqual(parseAssistantCatalog(value)[0].providers, []);
+  const [assistant] = parseAssistantCatalog(value);
+  assert.deepEqual(assistant.actions.map(({ id }) => id), ["zeta", "alpha"]);
+  assert.equal(assistant.actions[0].humanRequests.length, 8);
 });
 
 test("fails closed on ambiguous or executable catalog data", () => {
@@ -95,7 +96,16 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].actions[0].human_requests = ["input:magic"]; },
     (value) => { value.assistants[0].actions[0].human_requests = ["approval", "approval"]; },
     (value) => { value.assistants[0].actions = []; },
-    (value) => { value.assistants[0].actions[0].integrations = Array.from({ length: 17 }, (_, index) => `integration-${index}`); },
+    (value) => { value.assistants[0].actions[0].integrations = ["a", "b", "c", "d", "e"]; },
+    (value) => { value.assistants[0].actions[0].integrations = ["Example"]; },
+    (value) => { value.assistants[0].actions[0].human_requests = ["approval", "auth:totp"]; },
+    (value) => { value.assistants[0].actions[0].human_requests = ["auth:password", "auth:passkey"]; },
+    (value) => { value.assistants[0].actions.push(structuredClone(value.assistants[0].actions[0])); },
+    (value) => { value.assistants[0].integrations[0].scopes = []; },
+    (value) => { value.assistants[0].integrations[0].scopes = ["Read"]; },
+    (value) => { value.assistants[0].integrations[0].scopes = ["read write"]; },
+    (value) => { value.assistants[0].integrations.push(structuredClone(value.assistants[0].integrations[0])); },
+    (value) => { value.assistants[0].integrations.unshift({ id: "zeta", provider: "zeta", scopes: ["read"] }); },
     (value) => { value.assistants[0].actions[0].integrations = ["a".repeat(65)]; },
     (value) => { value.assistants[0].integrations = "example"; },
     (value) => { value.assistants[0].actions = "lookup"; },
@@ -228,9 +238,9 @@ test("admits each identity field up to the producer's bound", () => {
   entry.name = "n".repeat(80);
   entry.creators = [`@${"c".repeat(38)}`, "@a", "@a-b"];
   entry.allowed_hosts = Array.from({ length: 32 }, (_, index) => `api-${index}.example.com`);
-  entry.integrations = Array.from({ length: 16 }, () => ({
-    id: "e".repeat(64),
-    provider: "e".repeat(64),
+  entry.integrations = Array.from({ length: 16 }, (_, index) => ({
+    id: `${"e".repeat(62)}${String(index).padStart(2, "0")}`,
+    provider: `${"e".repeat(62)}${String(index).padStart(2, "0")}`,
     scopes: Array.from({ length: 32 }, (_, index) => `${index}`.padStart(128, "s")),
   }));
   entry.assistant_version = "10.0.12345678901234567890";
