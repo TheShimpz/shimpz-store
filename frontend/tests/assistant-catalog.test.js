@@ -8,6 +8,8 @@ const parseAssistantCatalog = (value) => parseLocalized(value, "en");
 
 const DIGEST = `sha256:${"a".repeat(64)}`;
 const ICON_DIGEST = `sha256:${"b".repeat(64)}`;
+// The longest public host Developers admits: four DNS labels and a top-level label, 253 characters in all.
+const LONGEST_HOST = [..."abc"].map((label) => label.repeat(63)).concat("d".repeat(57), "com").join(".");
 
 function catalog() {
   return {
@@ -114,6 +116,11 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 33 }, (_, index) => `api-${index}.example.com`); },
     (value) => { value.assistants[0].assistant_id = "a".repeat(41); },
     (value) => { value.assistants[0].name = "n".repeat(81); },
+    (value) => { value.assistants[0].name = "bad\nname"; },
+    (value) => { value.assistants[0].name = "bad\u007fname"; },
+    (value) => { value.assistants[0].summary = "A safe\u0007example."; },
+    (value) => { value.assistants[0].creators = Array.from({ length: 17 }, (_, index) => `@creator-${index}`); },
+    (value) => { value.assistants[0].allowed_hosts = [`${LONGEST_HOST}x`]; },
     (value) => { value.assistants[0].creators = ["creator"]; },
     (value) => { value.assistants[0].creators = ["@-creator"]; },
     (value) => { value.assistants[0].creators = [`@${"c".repeat(39)}`]; },
@@ -192,9 +199,10 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].stored_inputs[0].help_url = "https://dashboard.example.com/api-keys#new"; },
     (value) => { value.assistants[0].stored_inputs[0].help_url = `https://example.com/${"a".repeat(2040)}`; },
     (value) => { value.assistants[0].stored_inputs[0].help_url = 42; },
-    (value) => { value.assistants[0].stored_inputs.push({ id: "api-token", label: "Second" }); },
+    (value) => { value.assistants[0].stored_inputs.push({ ...value.assistants[0].stored_inputs[0], label: "Second" }); },
     (value) => {
-      value.assistants[0].stored_inputs = Array.from({ length: 9 }, (_, index) => ({ id: `key-${index}`, label: "Key" }));
+      const [input] = value.assistants[0].stored_inputs;
+      value.assistants[0].stored_inputs = Array.from({ length: 9 }, (_, index) => ({ ...input, id: `key-${index}` }));
     },
   ];
   for (const mutate of mutations) {
@@ -242,7 +250,7 @@ test("admits each identity field up to the producer's bound", () => {
   entry.assistant_id = "a".repeat(40);
   entry.name = "n".repeat(80);
   entry.creators = [`@${"c".repeat(38)}`, "@a", "@a-b"];
-  entry.allowed_hosts = Array.from({ length: 32 }, (_, index) => `api-${index}.example.com`);
+  entry.allowed_hosts = [LONGEST_HOST, ...Array.from({ length: 31 }, (_, index) => `api-${index}.example.com`)];
   entry.integrations = Array.from({ length: 16 }, (_, index) => ({
     id: `${"e".repeat(62)}${String(index).padStart(2, "0")}`,
     provider: `${"e".repeat(62)}${String(index).padStart(2, "0")}`,
