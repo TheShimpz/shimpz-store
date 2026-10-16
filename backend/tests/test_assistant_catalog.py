@@ -15,6 +15,8 @@ from fastapi.testclient import TestClient
 DIGEST = "sha256:" + ("a" * 64)
 ICON_DIGEST = "sha256:" + ("b" * 64)
 HELP_URL = "https://dashboard.example.com/api-keys"
+# The longest public host Developers admits: four DNS labels and a top-level label, 253 characters in all.
+LONGEST_HOST = ".".join(("a" * 63, "b" * 63, "c" * 63, "d" * 57, "com"))
 
 
 def _assistant(**changes) -> dict[str, object]:
@@ -118,7 +120,26 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value.update(locale=None),
         lambda value: value.update(version=2),
         lambda value: value["assistants"][0].update(name="bad\nname"),
+        lambda value: value["assistants"][0].update(name="Hello\x7fWorld"),
+        lambda value: value["assistants"][0].update(name=" Hello World"),
+        lambda value: value["assistants"][0].update(name="Hello World "),
+        lambda value: value["assistants"][0].update(summary="Greets\x7fthe Team."),
+        lambda value: value["assistants"][0].update(summary=" Greets the Team."),
+        lambda value: value["assistants"][0].update(summary="Greets the Team.\u00a0"),
         lambda value: value["assistants"][0].update(creators=[]),
+        lambda value: value["assistants"][0].update(allowed_hosts="api.example.com"),
+        lambda value: value["assistants"][0].update(allowed_hosts=[42]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api.example.com", "api.example.com"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["API.example.com"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api.example.com:443"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api.example.com/v1"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["127.0.0.1"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["localhost"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api.example.com."]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["-api.example.com"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api_v1.example.com"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["api.example.com\n"]),
+        lambda value: value["assistants"][0].update(allowed_hosts=["e" * 64 + ".example.com"]),
         lambda value: value["assistants"][0].update(integrations="invalid"),
         lambda value: value["assistants"][0].update(integrations=[{"id": "github"}]),
         lambda value: value["assistants"][0].update(
@@ -249,6 +270,15 @@ def test_admits_every_link_kind_on_its_host_in_canonical_order() -> None:
         kind: bare[kind] for kind in ("site", "youtube", "linkedin", "instagram")
     }
     assert catalog.project_catalog(_catalog(_assistant(links={})), "en")["assistants"][0]["links"] == {}
+
+
+def test_admits_every_allowed_host_shape_developers_emits() -> None:
+    hosts = [LONGEST_HOST, "a.co", "api-2.example.com", "9to5.example.org"] + [
+        f"api-{index:02}.example.com" for index in range(28)
+    ]
+    projected = catalog.project_catalog(_catalog(_assistant(allowed_hosts=hosts)), "en")
+    assert projected["assistants"][0]["allowed_hosts"] == hosts
+    assert catalog.project_catalog(_catalog(_assistant(allowed_hosts=[])), "en")["assistants"][0]["allowed_hosts"] == []
 
 
 def test_admits_localized_display_copy_up_to_its_catalog_bounds() -> None:
@@ -596,7 +626,8 @@ def test_a_full_utf8_catalog_is_served_as_utf8_within_the_consumer_byte_limit(mo
             assistant_id=f"assistant-{index:04d}",
             name=name,
             summary=summary,
-            allowed_hosts=[f"{'á' * 60}{host:02d}.example.com" for host in range(16)],
+            description="Ó" * 500,
+            allowed_hosts=[f"{'a' * 60}{host:02d}.example.com" for host in range(16)],
         )
 
     upstream_value = _catalog(*(entry(index) for index in range(1000)))

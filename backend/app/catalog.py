@@ -53,6 +53,8 @@ _ACTION_EFFECTS = ("read_only", "mutating")
 # Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
 DESCRIPTION_BOUND = 500
 LINE_BOUND = 120
+# Developers' valid_public_host shape: lowercase DNS labels under an alphabetic top-level label, within 253 characters.
+ALLOWED_HOST_RE = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?")
 
 
 class CatalogError(ValueError):
@@ -60,7 +62,13 @@ class CatalogError(ValueError):
 
 
 def _text(value: object, maximum: int) -> str:
-    if not isinstance(value, str) or not 1 <= len(value) <= maximum or any(ord(char) < 32 for char in value):
+    """One bounded, trimmed, control-free line of display text, as Developers emits it and both consumers admit it."""
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= maximum
+        or value.strip() != value
+        or any(ord(char) < 32 or ord(char) == 127 for char in value)
+    ):
         raise CatalogError("catalog text is invalid")
     return value
 
@@ -68,7 +76,7 @@ def _text(value: object, maximum: int) -> str:
 def _display(value: object, maximum: int) -> str:
     """One localized display text as Team admits it: bounded, trimmed, printable, and NFC."""
     text = _text(value, maximum)
-    if text.strip() != text or not text.isprintable() or not unicodedata.is_normalized("NFC", text):
+    if not text.isprintable() or not unicodedata.is_normalized("NFC", text):
         raise CatalogError("catalog display text is invalid")
     return text
 
@@ -97,6 +105,13 @@ def _creators(value: object) -> list[str]:
     if not creators or any(team_contract.DETAILS_CREATOR_RE.fullmatch(creator) is None for creator in creators):
         raise CatalogError("catalog creators are invalid")
     return creators
+
+
+def _allowed_hosts(value: object) -> list[str]:
+    hosts = _closed_strings(value, 32, 253)
+    if any(ALLOWED_HOST_RE.fullmatch(host) is None for host in hosts):
+        raise CatalogError("catalog allowed hosts are invalid")
+    return hosts
 
 
 def _integrations(value: object) -> list[dict[str, object]]:
@@ -219,7 +234,7 @@ def _assistant(value: object) -> dict[str, object]:
         "source_digest": digest,
         "icon_digest": icon_digest,
         "platforms": platforms,
-        "allowed_hosts": _closed_strings(value["allowed_hosts"], 32, 253),
+        "allowed_hosts": _allowed_hosts(value["allowed_hosts"]),
         "integrations": _integrations(value["integrations"]),
         "stored_inputs": stored_inputs,
         "actions": _actions(value["actions"], frozenset(item["id"] for item in stored_inputs)),
