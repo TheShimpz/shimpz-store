@@ -51,8 +51,8 @@ ACCESS_CLIENT_SECRET_PATH = Path("/run/shimpz-store-oauth/access-client-secret")
 LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key")
 PREVIOUS_LEASE_KEY_PATH = Path("/run/shimpz-store-oauth/lease-key-previous")
 LEASE_KEY_BYTES = 32
-# A broker secret file is private to its owner and readable at most by its group.
-_SECRET_MODES = frozenset({0o400, 0o440, 0o600, 0o640})
+# A broker secret file is Store's own and readable only by it, exactly as platform provisioning installs it.
+_SECRET_MODE = 0o400
 _LEASE_KEY_ID_LABEL = b"shimpz-oauth-broker-lease-kid"
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
@@ -193,9 +193,9 @@ def _read_secret(path: Path, *, maximum: int) -> bytes:
         metadata = os.fstat(descriptor)
         if (
             not stat.S_ISREG(metadata.st_mode)
-            or metadata.st_uid not in {0, os.geteuid()}
+            or metadata.st_uid != os.geteuid()
             or metadata.st_nlink != 1
-            or stat.S_IMODE(metadata.st_mode) not in _SECRET_MODES
+            or stat.S_IMODE(metadata.st_mode) != _SECRET_MODE
             or not 1 <= metadata.st_size <= maximum
         ):
             raise OAuthBrokerError("OAuth broker secret failed its file contract")
