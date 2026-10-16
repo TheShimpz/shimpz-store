@@ -122,7 +122,7 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(integrations="invalid"),
         lambda value: value["assistants"][0].update(integrations=[{"id": "github"}]),
         lambda value: value["assistants"][0].update(
-            integrations=[{"id": "github", "provider": "gitlab", "scopes": []}]
+            integrations=[{"id": "github", "provider": "gitlab", "scopes": ["api"]}]
         ),
         lambda value: value["assistants"][0]["integrations"][0].update(scopes=[]),
         lambda value: value["assistants"][0]["integrations"][0].update(scopes=["Repo:read"]),
