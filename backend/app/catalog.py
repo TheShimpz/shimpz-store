@@ -4,7 +4,6 @@ Developers localizes the display copy (summary, description, Action descriptions
 publication's own language pack; Creator links are unverified, presentation-only https URLs on their kind's host.
 """
 
-import re
 import unicodedata
 
 from app.protocol.http.v1 import payload as team_contract
@@ -12,10 +11,6 @@ from app.protocol.http.v1 import payload as team_contract
 MAX_ASSISTANTS = 1000
 # Developers' machine contract, and Team and Brain after it, admit up to 128 Actions per Assistant.
 MAX_ACTIONS = 128
-_GITHUB = re.compile(
-    r"^https://github\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/"
-    r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?$"
-)
 _HUMAN_REQUEST_KINDS = {
     "approval",
     "input:text",
@@ -192,7 +187,7 @@ def _assistant(value: object) -> dict[str, object]:
         raise CatalogError("catalog icon digest is invalid")
     if platforms != ["linux/amd64", "linux/arm64"]:
         raise CatalogError("catalog platforms are invalid")
-    if not isinstance(github, str) or _GITHUB.fullmatch(github) is None:
+    if not isinstance(github, str) or team_contract.GITHUB_REPOSITORY_RE.fullmatch(github) is None:
         raise CatalogError("catalog repository is invalid")
     stored_inputs = _stored_inputs(value["stored_inputs"])
     return {
