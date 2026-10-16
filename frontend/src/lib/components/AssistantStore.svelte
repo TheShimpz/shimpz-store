@@ -9,14 +9,14 @@
 
   let {
     lang,
-    assistants = [],
-    catalogState = "ready",
-    onRetry = () => {},
+    assistants,
+    catalogState,
+    onRetry,
   }: {
     lang: Locale;
-    assistants?: readonly CatalogAssistant[];
-    catalogState?: "loading" | "ready" | "error";
-    onRetry?: () => void;
+    assistants: readonly CatalogAssistant[];
+    catalogState: "loading" | "ready" | "error";
+    onRetry: () => void;
   } = $props();
 </script>
 
