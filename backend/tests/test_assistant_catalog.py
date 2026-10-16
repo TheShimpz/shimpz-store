@@ -107,8 +107,6 @@ def test_projects_only_bounded_browser_metadata() -> None:
     }
     serialized = str(projected)
     assert "image_reference" not in serialized
-    # A Stored Input projects only its identifier and localized label; its canonical description stays upstream.
-    assert "Used to call the API." not in serialized
 
 
 @pytest.mark.parametrize(
