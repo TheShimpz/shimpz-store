@@ -4,6 +4,7 @@ Developers localizes the display copy (summary, description, Action descriptions
 publication's own language pack; Creator links are unverified, presentation-only https URLs on their kind's host.
 """
 
+import re
 import unicodedata
 
 from app.protocol.http.v1 import payload as team_contract
@@ -24,6 +25,10 @@ _HUMAN_REQUEST_KINDS = {
     "auth:totp",
     "auth:passkey",
 }
+# Developers' CatalogAction admits at most one approval or authentication request per Action.
+_GATE_KINDS = frozenset({"approval", "auth:password", "auth:totp", "auth:passkey"})
+# Developers' IntegrationIntent scope grammar: 1 to 32 unique scopes of at most 128 characters.
+INTEGRATION_SCOPE_RE = re.compile(r"[a-z0-9][a-z0-9.:/_-]*")
 _ASSISTANT_FIELDS = {
     "assistant_id",
     "name",
@@ -104,9 +109,15 @@ def _integrations(value: object) -> list[dict[str, object]]:
         integration_id = item["id"]
         provider = item["provider"]
         scopes = _closed_strings(item["scopes"], 32, 128)
+        if not scopes or any(INTEGRATION_SCOPE_RE.fullmatch(scope) is None for scope in scopes):
+            raise CatalogError("catalog Integration scopes are invalid")
         if team_contract.canonical_identifier(integration_id) is None or integration_id != provider:
             raise CatalogError("catalog Integration identity is invalid")
         projected.append({"id": integration_id, "provider": provider, "scopes": scopes})
+    # Developers emits the manifest's Integrations from an ordered map: unique, in ascending identifier order.
+    identities = [item["id"] for item in projected]
+    if identities != sorted(set(identities)):
+        raise CatalogError("catalog Integration ordering is invalid")
     return projected
 
 
@@ -150,21 +161,27 @@ def _actions(value: object, stored_inputs: frozenset[str]) -> list[dict[str, obj
             or item["effect"] not in _ACTION_EFFECTS
         ):
             raise CatalogError("catalog Action is invalid")
-        human_requests = _closed_strings(item["human_requests"], 11, 25)
-        if any(kind not in _HUMAN_REQUEST_KINDS for kind in human_requests):
+        human_requests = _closed_strings(item["human_requests"], 8, 25)
+        if not _HUMAN_REQUEST_KINDS.issuperset(human_requests) or len(_GATE_KINDS.intersection(human_requests)) > 1:
             raise CatalogError("catalog Action human requests are invalid")
+        integrations = _closed_strings(item["integrations"], 4, 64)
+        if any(team_contract.canonical_identifier(integration) is None for integration in integrations):
+            raise CatalogError("catalog Action integrations are invalid")
         # An Action may use any of its Assistant's declared Stored Inputs, at most eight (ADR-0059).
         if not set(_closed_strings(item["stored_inputs"], 8, 64)) <= stored_inputs:
             raise CatalogError("catalog Action Stored Inputs are invalid")
         projected.append(
             {
                 "id": item["id"],
-                "integrations": _closed_strings(item["integrations"], 16, 64),
+                "integrations": integrations,
                 "human_requests": human_requests,
                 "effect": item["effect"],
                 "description": _display(item["description"], LINE_BOUND),
             }
         )
+    # Team refuses an Assistant whose Actions repeat an identifier; Developers keeps the machine contract's order.
+    if len({item["id"] for item in projected}) != len(projected):
+        raise CatalogError("catalog Actions are duplicated")
     return projected
 
 

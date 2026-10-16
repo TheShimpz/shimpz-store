@@ -124,6 +124,19 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0].update(
             integrations=[{"id": "github", "provider": "gitlab", "scopes": []}]
         ),
+        lambda value: value["assistants"][0]["integrations"][0].update(scopes=[]),
+        lambda value: value["assistants"][0]["integrations"][0].update(scopes=["Repo:read"]),
+        lambda value: value["assistants"][0]["integrations"][0].update(scopes=["repo read"]),
+        lambda value: value["assistants"][0]["integrations"][0].update(scopes=["repo:read\n"]),
+        lambda value: value["assistants"][0]["integrations"].append(dict(value["assistants"][0]["integrations"][0])),
+        lambda value: value["assistants"][0]["integrations"].insert(
+            0, {"id": "gitlab", "provider": "gitlab", "scopes": ["api"]}
+        ),
+        lambda value: value["assistants"][0]["actions"][0].update(integrations=["GitHub"]),
+        lambda value: value["assistants"][0]["actions"][0].update(integrations=["a", "b", "c", "d", "e"]),
+        lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "auth:totp"]),
+        lambda value: value["assistants"][0]["actions"][0].update(human_requests=["auth:password", "auth:passkey"]),
+        lambda value: value["assistants"][0]["actions"].append(dict(value["assistants"][0]["actions"][0])),
         lambda value: value["assistants"][0].update(actions=[]),
         lambda value: value["assistants"][0].update(extra="field"),
         lambda value: value["assistants"][0].update(assistant_id="Invalid"),
@@ -278,6 +291,25 @@ def test_an_assistant_with_the_producer_maximum_of_actions_is_projected() -> Non
     assert len(projected["assistants"][0]["actions"]) == 128
     with pytest.raises(catalog.CatalogError):
         catalog.project_catalog(_catalog(_with_actions(129)), "en")
+
+
+def test_every_integration_and_action_shape_developers_emits_is_projected() -> None:
+    integrations = [
+        {"id": f"provider-{index:02}", "provider": f"provider-{index:02}", "scopes": [f"scope:{n}" for n in range(32)]}
+        for index in range(16)
+    ]
+    inputs = [f"input:{kind}" for kind in ("text", "textarea", "password", "phone", "select", "choice", "choices")]
+    action = {**_assistant()["actions"][0], "integrations": [item["id"] for item in integrations[:4]]}
+    actions = [
+        {**action, "id": "zeta", "human_requests": [*inputs, "auth:passkey"]},
+        {**action, "id": "alpha", "human_requests": ["approval"]},
+    ]
+    projected = catalog.project_catalog(_catalog(_assistant(integrations=integrations, actions=actions)), "en")
+
+    assistant = projected["assistants"][0]
+    assert assistant["integrations"] == integrations
+    assert [item["id"] for item in assistant["actions"]] == ["zeta", "alpha"]
+    assert len(assistant["actions"][0]["human_requests"]) == 8
 
 
 def test_public_route_caches_only_a_valid_developers_catalog_per_locale(monkeypatch) -> None:
