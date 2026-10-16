@@ -13,6 +13,8 @@ test("uses only closed public Assistant Store destinations", () => {
   assert.equal(requestedAssistantFromSearch("?assistant=shimpz-cloudflare&install=true"), "");
   assert.equal(requestedAssistantFromSearch("?assistant=another-assistant"), "another-assistant");
   assert.equal(requestedAssistantFromSearch("?assistant=../unknown"), "");
+  assert.equal(requestedAssistantFromSearch(`?assistant=${"a".repeat(40)}`), "a".repeat(40));
+  assert.equal(requestedAssistantFromSearch(`?assistant=${"a".repeat(41)}`), "");
   assert.equal(closedAssistantStoreHref("en", "another-assistant"), "/en/assistants?assistant=another-assistant");
   for (const locale of ["en", "pt", "es", "zh", "fr", "de", "ja", "ar"]) {
     assert.equal(
@@ -22,4 +24,5 @@ test("uses only closed public Assistant Store destinations", () => {
   }
   assert.throws(() => closedAssistantStoreHref("xx", "shimpz-cloudflare"));
   assert.throws(() => closedAssistantStoreHref("en", "../unknown"));
+  assert.throws(() => closedAssistantStoreHref("en", "a".repeat(41)));
 });

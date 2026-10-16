@@ -101,7 +101,12 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].actions = "lookup"; },
     (value) => { value.assistants[0].allowed_hosts = ["api.example.com", "api.example.com"]; },
     (value) => { value.assistants[0].allowed_hosts = [42]; },
-    (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 65 }, (_, index) => `api-${index}.example.com`); },
+    (value) => { value.assistants[0].allowed_hosts = Array.from({ length: 33 }, (_, index) => `api-${index}.example.com`); },
+    (value) => { value.assistants[0].assistant_id = "a".repeat(41); },
+    (value) => { value.assistants[0].name = "n".repeat(81); },
+    (value) => { value.assistants[0].creators = ["creator"]; },
+    (value) => { value.assistants[0].creators = ["@-creator"]; },
+    (value) => { value.assistants[0].creators = [`@${"c".repeat(39)}`]; },
     (value) => { value.assistants[0].platforms = ["windows/amd64"]; },
     (value) => { value.assistants[0].integrations[0].scopes = ["read", "read"]; },
     (value) => { delete value.assistants[0].description; },
@@ -199,6 +204,16 @@ test("admits every Creator link kind on its host and the localized display copy 
   assert.equal(parseAssistantCatalog(value).length, 1);
   entry.links = {};
   assert.equal(parseAssistantCatalog(value).length, 1);
+});
+
+test("admits each identity field up to the producer's bound", () => {
+  const value = catalog();
+  const entry = value.assistants[0];
+  entry.assistant_id = "a".repeat(40);
+  entry.name = "n".repeat(80);
+  entry.creators = [`@${"c".repeat(38)}`, "@a", "@a-b"];
+  entry.allowed_hosts = Array.from({ length: 32 }, (_, index) => `api-${index}.example.com`);
+  assert.equal(parseAssistantCatalog(value)[0].id, "a".repeat(40));
 });
 
 test("admits the producer's 128 Actions per Assistant and refuses one more", () => {

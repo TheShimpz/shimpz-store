@@ -1,4 +1,10 @@
-const ASSISTANT_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+/** The Developers published-Assistant `identifier` grammar: an Assistant id and each Action or Stored Input id. */
+const IDENTIFIER_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+// The Store backend admits an Assistant id of at most 40 characters (Team HTTP `MAX_ASSISTANT_ID_CHARS`).
+const MAX_ASSISTANT_ID_CHARS = 40;
+// A Creator is one GitHub login after an @, at most 39 characters in all (Team HTTP `DETAILS_CREATOR_RE`).
+const CREATOR_RE = /^@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const MAX_CREATOR_CHARS = 39;
 const SOURCE_DIGEST_RE = /^sha256:[0-9a-f]{64}$/;
 // The Developers catalog contract and the Store backend both admit up to 1,000 public Assistants.
 const MAX_CATALOG_ASSISTANTS = 1000;
@@ -8,7 +14,6 @@ const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za
 const PLATFORM_RE = /^linux\/(?:amd64|arm64)$/;
 // The Assistant summary is a short description of at most 80 characters, in every interface language.
 const ASSISTANT_SUMMARY_CHARS = 80;
-const ACTION_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 // Localized display copy bounds: the Assistant description and one line (Action description, Stored Input label).
 const ASSISTANT_DESCRIPTION_CHARS = 500;
 const DISPLAY_LINE_CHARS = 120;
@@ -66,6 +71,11 @@ const EXPECTED_ASSISTANT_KEYS = Object.freeze([
   "stored_inputs",
 ]);
 
+/** @param {unknown} value @returns {value is string} */
+export function isAssistantId(value) {
+  return typeof value === "string" && value.length <= MAX_ASSISTANT_ID_CHARS && IDENTIFIER_RE.test(value);
+}
+
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -122,7 +132,7 @@ function validStoredInputs(value) {
     value.every((input) =>
       hasExactKeys(input, ["id", "label", "description", "help_url"]) &&
       boundedText(input.id, 64) &&
-      ACTION_ID_RE.test(input.id) &&
+      IDENTIFIER_RE.test(input.id) &&
       displayText(input.label, DISPLAY_LINE_CHARS) &&
       displayText(input.description, ASSISTANT_DESCRIPTION_CHARS) &&
       typeof input.help_url === "string" &&
@@ -165,7 +175,7 @@ function validActions(value) {
   return Array.isArray(value) && value.length >= 1 && value.length <= MAX_ASSISTANT_ACTIONS && value.every((action) =>
     hasExactKeys(action, ["human_requests", "integrations", "id", "effect", "description"]) &&
     boundedText(action.id, 64) &&
-    ACTION_ID_RE.test(action.id) &&
+    IDENTIFIER_RE.test(action.id) &&
     typeof action.effect === "string" &&
     ACTION_EFFECTS.has(action.effect) &&
     displayText(action.description, DISPLAY_LINE_CHARS) &&
@@ -181,9 +191,8 @@ function parseAssistant(value) {
   const record = value;
   if (
     !hasExactKeys(record, EXPECTED_ASSISTANT_KEYS) ||
-    !boundedText(record.assistant_id, 80) ||
-    !ASSISTANT_ID_RE.test(record.assistant_id) ||
-    !boundedText(record.name, 160) ||
+    !isAssistantId(record.assistant_id) ||
+    !boundedText(record.name, 80) ||
     !boundedText(record.summary, ASSISTANT_SUMMARY_CHARS) ||
     !displayText(record.description, ASSISTANT_DESCRIPTION_CHARS) ||
     !validLinks(record.links) ||
@@ -195,9 +204,9 @@ function parseAssistant(value) {
     !SOURCE_DIGEST_RE.test(record.source_digest) ||
     typeof record.icon_digest !== "string" ||
     !SOURCE_DIGEST_RE.test(record.icon_digest) ||
-    !boundedStrings(record.creators, 16, 80) ||
+    !boundedStrings(record.creators, 16, MAX_CREATOR_CHARS, CREATOR_RE) ||
     !boundedStrings(record.platforms, 2, 20, PLATFORM_RE) ||
-    !boundedStrings(record.allowed_hosts, 64, 253) ||
+    !boundedStrings(record.allowed_hosts, 32, 253) ||
     !validIntegrations(record.integrations) ||
     !validActions(record.actions)
   ) {
