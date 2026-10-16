@@ -132,6 +132,12 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value["assistants"][0]["integrations"].insert(
             0, {"id": "gitlab", "provider": "gitlab", "scopes": ["api"]}
         ),
+        lambda value: value["assistants"][0].update(
+            integrations=[
+                {"id": f"provider-{index:02}", "provider": f"provider-{index:02}", "scopes": ["read"]}
+                for index in range(17)
+            ]
+        ),
         lambda value: value["assistants"][0]["actions"][0].update(integrations=["GitHub"]),
         lambda value: value["assistants"][0]["actions"][0].update(integrations=["a", "b", "c", "d", "e"]),
         lambda value: value["assistants"][0]["actions"][0].update(human_requests=["approval", "auth:totp"]),

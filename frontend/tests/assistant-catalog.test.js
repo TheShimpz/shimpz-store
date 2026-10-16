@@ -121,7 +121,12 @@ test("fails closed on ambiguous or executable catalog data", () => {
     (value) => { value.assistants[0].integrations[0].scopes = ["read", "read"]; },
     (value) => { value.assistants[0].integrations[0].scopes = Array.from({ length: 33 }, (_, index) => `scope-${index}`); },
     (value) => { value.assistants[0].integrations[0].scopes = ["s".repeat(129)]; },
-    (value) => { value.assistants[0].integrations = Array.from({ length: 17 }, () => ({ id: "example", provider: "example", scopes: [] })); },
+    (value) => {
+      value.assistants[0].integrations = Array.from({ length: 17 }, (_, index) => {
+        const id = `integration-${String(index).padStart(2, "0")}`;
+        return { id, provider: id, scopes: ["read"] };
+      });
+    },
     (value) => { value.assistants[0].integrations[0] = { id: "example", provider: "other", scopes: ["read"] }; },
     (value) => { value.assistants[0].integrations[0] = { id: "Example", provider: "Example", scopes: ["read"] }; },
     (value) => { value.assistants[0].integrations[0] = { id: "e".repeat(65), provider: "e".repeat(65), scopes: ["read"] }; },
