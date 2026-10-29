@@ -12,7 +12,12 @@ router = APIRouter()
 
 
 def resolve(rel: str) -> Path | None:
-    """Map a request path to one regular file whose real path, symlinks resolved, stays inside BUILD."""
+    """Map a request path to one regular file whose real path, symlinks resolved, stays inside BUILD.
+
+    A path holding a NUL or any other C0 control names no file: no build file has one in its name.
+    """
+    if any(character < " " for character in rel):
+        return None
     rel = rel.strip("/")
     if ".." in rel.split("/"):
         return None

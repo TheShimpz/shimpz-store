@@ -12,18 +12,17 @@ from app.routers import oauth, public, static
 setup("shimpz-store")
 log = structlog.get_logger()
 
-app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
-app.add_middleware(TraceIdMiddleware)
+fastapi_app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
 
 
-@app.exception_handler(Exception)
+@fastapi_app.exception_handler(Exception)
 async def unhandled(request: Request, exc: Exception) -> JSONResponse:
     # Fail-loud: full structured trace in the logs, generic 500 to the caller. Never swallow.
     log.exception("unhandled_exception", path=request.url.path)
     return JSONResponse(status_code=500, content={"detail": "internal server error"})
 
 
-@app.exception_handler(_ExecutorSaturatedError)
+@fastapi_app.exception_handler(_ExecutorSaturatedError)
 async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> JSONResponse:
     log.warning("store_capacity_rejected", path=request.url.path)
     return JSONResponse(
@@ -33,6 +32,10 @@ async def executor_saturated(request: Request, exc: _ExecutorSaturatedError) -> 
     )
 
 
-app.include_router(oauth.router)
-app.include_router(public.router)
-app.include_router(static.router)
+fastapi_app.include_router(oauth.router)
+fastapi_app.include_router(public.router)
+fastapi_app.include_router(static.router)
+
+# The header layer is the outermost ASGI layer, outside the error middleware that answers an unhandled exception, so
+# every response, the 500 included, carries the security headers and the request id.
+app = TraceIdMiddleware(fastapi_app)

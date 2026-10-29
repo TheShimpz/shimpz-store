@@ -132,3 +132,19 @@ def test_files_resolving_outside_the_build_are_refused_while_a_linked_build_serv
     assert "secret sentinel" not in leaked.text
     assert home.status_code == 200
     assert home.text == "home"
+
+
+def test_a_path_holding_a_control_byte_names_no_file(monkeypatch, tmp_path):
+    _write(tmp_path, "en/404.html", "english-not-found")
+    _write(tmp_path, "index.html", "home")
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    assert static.resolve("index\x00.html") is None
+    assert static.resolve("\x1f") is None
+    with TestClient(store.app) as client:
+        plain = [client.get(path) for path in ("/%00", "/index.html%00", "/%1f/x", "/en%0a")]
+        navigation = client.get("/%00/x", headers={"Accept": "text/html"})
+
+    assert all(response.status_code == 404 and response.text == "not found" for response in plain)
+    assert navigation.status_code == 404
+    assert navigation.text == "english-not-found"
