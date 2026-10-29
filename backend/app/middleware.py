@@ -10,14 +10,11 @@ oversized value would bloat them). _clean() decodes safely (latin-1 never raises
 conservative token charset, and caps the length — an empty/oversized/hostile ID is replaced with a fresh one.
 
 The middleware is also the only author of the browser security headers. Its script policy admits this origin and the
-exact inline bootstrap scripts of the prerendered build, by hash, never 'unsafe-inline'; the OAuth completion page
-alone keeps the nonce policy its route sets.
+exact inline scripts each prerendered page's own build policy admits, by hash, never 'unsafe-inline'; the OAuth
+completion page alone keeps the nonce policy its route sets.
 """
 
-import base64
-import hashlib
 import re
-from html.parser import HTMLParser
 from pathlib import Path
 from uuid import uuid4
 
@@ -52,45 +49,44 @@ _MANAGED_SECURITY_HEADERS = {
 }
 
 
-class _InlineScriptCollector(HTMLParser):
-    """Collect the text of every inline script, the only scripts SvelteKit's prerendered pages carry inline."""
+_META_PREFIX = '<meta http-equiv="content-security-policy" content="'
+_PAGE_TRUSTED_TYPES = "require-trusted-types-for 'script'; trusted-types svelte-trusted-html"
+_SHA256_SOURCE = re.compile(r"'sha256-[A-Za-z0-9+/]{43}='")
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._collecting = False
-        self._chunks: list[str] = []
-        self.scripts: list[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self._collecting = tag == "script" and "src" not in dict(attrs)
-        if self._collecting:
-            self._chunks = []
+class BuildPolicyError(ValueError):
+    """A prerendered page has no build policy, several, or one outside the exact grammar the build writes."""
 
-    def handle_data(self, data: str) -> None:
-        if self._collecting:
-            self._chunks.append(data)
 
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "script" and self._collecting:
-            self.scripts.append("".join(self._chunks))
-            self._collecting = False
+def _page_sources(document: str) -> list[str]:
+    """The hash sources of the one policy the build wrote into a page, which may name none."""
+    policies = document.split(_META_PREFIX)[1:]
+    if len(policies) != 1:
+        raise BuildPolicyError("page script policy is invalid")
+    policy, closed, _rest = policies[0].partition('"')
+    scripts = policy.removesuffix("; " + _PAGE_TRUSTED_TYPES)
+    tokens = scripts.split(" ")
+    if (
+        not closed
+        or scripts == policy
+        or tokens[:2] != ["script-src", "'self'"]
+        or not all(_SHA256_SOURCE.fullmatch(token) for token in tokens[2:])
+    ):
+        raise BuildPolicyError("page script policy is invalid")
+    return tokens[2:]
 
 
 def build_script_sources(build: Path) -> tuple[bytes, ...]:
-    """The hash source of every distinct inline script of the prerendered build, in one stable order.
+    """The hash source of every inline script the prerendered pages' own policies admit, in one stable order.
 
-    Only the immutable build the image ships is hashed, never a response body, so no reflected script can ever be
-    admitted; a build without inline scripts, or no build, admits scripts from this origin only.
+    SvelteKit hashes each page's inline scripts into one meta policy of that page (`kit.csp` in hash mode). Only the
+    immutable build the image ships is read, never a response body, so no reflected script can ever be admitted; a page
+    without exactly one policy of the build's grammar refuses the whole build, and no build admits this origin only.
     """
     sources = set()
     for document in sorted(build.rglob("*.html")):
-        collector = _InlineScriptCollector()
-        collector.feed(document.read_text(encoding="utf-8"))
-        collector.close()
-        for script in collector.scripts:
-            digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest())
-            sources.add(b"'sha256-" + digest + b"'")
-    return tuple(sorted(sources))
+        sources.update(_page_sources(document.read_text(encoding="utf-8")))
+    return tuple(sorted(source.encode("ascii") for source in sources))
 
 
 def page_headers(build: Path) -> tuple[tuple[bytes, bytes], ...]:

@@ -13,14 +13,14 @@ def _write(root: Path, relative: str, content: str) -> None:
 
 
 def test_html_navigation_always_revalidates(monkeypatch, tmp_path):
-    _write(tmp_path, "index.html", "home")
+    _write(tmp_path, "en.html", "home")
     _write(tmp_path, "en/assistants.html", "store")
     _write(tmp_path, "_app/immutable/chunks/never-cache.html", "html")
     monkeypatch.setattr(static, "BUILD", tmp_path)
 
     with TestClient(store.app) as client:
         for url in (
-            "/",
+            "/en",
             "/en/assistants?assistant=hello-pulse",
             "/_app/immutable/chunks/never-cache.html",
         ):
@@ -116,7 +116,7 @@ def test_missing_not_found_document_and_foreign_path_fail_closed(monkeypatch, tm
 
 def test_files_resolving_outside_the_build_are_refused_while_a_linked_build_serves(monkeypatch, tmp_path):
     build = tmp_path / "build"
-    _write(build, "index.html", "home")
+    _write(build, "en.html", "home")
     _write(tmp_path, "secret.txt", "secret sentinel")
     (build / "leak.txt").symlink_to(tmp_path / "secret.txt")
     (tmp_path / "linked-build").symlink_to(build)
@@ -126,7 +126,7 @@ def test_files_resolving_outside_the_build_are_refused_while_a_linked_build_serv
     assert static.resolve("../secret.txt") is None
     with TestClient(store.app) as client:
         leaked = client.get("/leak.txt", headers={"Accept": "text/html"})
-        home = client.get("/")
+        home = client.get("/en")
 
     assert leaked.status_code == 404
     assert "secret sentinel" not in leaked.text
@@ -148,3 +148,22 @@ def test_a_path_holding_a_control_byte_names_no_file(monkeypatch, tmp_path):
     assert all(response.status_code == 404 and response.text == "not found" for response in plain)
     assert navigation.status_code == 404
     assert navigation.text == "english-not-found"
+
+
+def test_the_site_root_sends_every_visitor_to_the_english_home(monkeypatch, tmp_path):
+    _write(tmp_path, "en.html", "english-home")
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    with TestClient(store.app) as client:
+        redirects = [client.request(method, "/", follow_redirects=False) for method in ("GET", "HEAD")]
+        landed = client.get("/")
+        refused = client.post("/")
+
+    for response in redirects:
+        assert response.status_code == 308
+        assert response.headers["location"] == "/en"
+        assert response.headers["x-frame-options"] == "DENY"
+        assert response.headers["x-request-id"]
+    assert landed.text == "english-home"
+    assert refused.status_code == 405
+    assert refused.headers["allow"] == "GET"

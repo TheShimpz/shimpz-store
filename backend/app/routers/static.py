@@ -4,11 +4,23 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
 
 from app.config import BUILD, HTML_CACHE_CONTROL, IMMUTABLE_CACHE_CONTROL
 
 router = APIRouter()
+ROOT_LOCATION = "/en"
+
+
+def root_redirect() -> RedirectResponse:
+    """Send the site root to the default English locale; every locale's pages link each other from there."""
+    return RedirectResponse(ROOT_LOCATION, status_code=308, headers={"Cache-Control": HTML_CACHE_CONTROL})
+
+
+# GET and HEAD are two routes, GET first, so another method on the root answers the same `Allow: GET` as every other
+# page instead of a header listing a set in hash order.
+router.add_api_route("/", root_redirect, methods=["GET"])
+router.add_api_route("/", root_redirect, methods=["HEAD"])
 
 
 def resolve(rel: str) -> Path | None:

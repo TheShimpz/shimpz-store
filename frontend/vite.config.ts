@@ -17,6 +17,18 @@ export default defineConfig(({ mode }) => {
         preprocess: vitePreprocess(),
         adapter: adapter({ strict: false }),
         version: { name: process.env.SOURCE_DATE_EPOCH || "0", pollInterval: 0 },
+        // Each prerendered page carries a meta policy admitting only its own inline scripts by hash; the Store server
+        // builds its script-src header from these policies and refuses a page whose policy is not exactly this shape.
+        // Every DOM HTML or script-URL sink refuses a plain string, and Svelte's template policy is the only one a page
+        // may create.
+        csp: {
+          mode: "hash",
+          directives: {
+            "script-src": ["self"],
+            "require-trusted-types-for": ["script"],
+            "trusted-types": ["svelte-trusted-html"],
+          },
+        },
       }),
     ],
     server: {
