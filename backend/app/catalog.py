@@ -250,6 +250,7 @@ def project_catalog(value: object, locale: str) -> dict[str, object]:
     if (
         not isinstance(value, dict)
         or set(value) != {"version", "locale", "assistants"}
+        or type(value["version"]) is not int
         or value["version"] != 1
         or team_contract.canonical_locale(locale) is None
         or value["locale"] != locale

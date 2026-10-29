@@ -117,6 +117,8 @@ def test_projects_only_bounded_browser_metadata() -> None:
         lambda value: value.update(locale="pt"),
         lambda value: value.update(locale=None),
         lambda value: value.update(version=2),
+        lambda value: value.update(version=True),
+        lambda value: value.update(version=1.0),
         lambda value: value["assistants"][0].update(name="bad\nname"),
         lambda value: value["assistants"][0].update(name="Hello\x7fWorld"),
         lambda value: value["assistants"][0].update(name=" Hello World"),

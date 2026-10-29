@@ -78,6 +78,11 @@ def test_json_transport_closes_on_network_failure(monkeypatch):
         (_Response(headers={"Content-Type": "text/plain", "Content-Length": "1"}), (502, b"")),
         (_Response(headers={"Content-Type": "image/png", "Content-Length": "bad"}), (502, b"")),
         (_Response(headers={"Content-Type": "image/png", "Content-Length": "0"}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "+3"}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": " 3"}), (502, b"")),
+        (_Response(body=b"p" * 10, headers={"Content-Type": "image/png", "Content-Length": "1_0"}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "\u0663"}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": ""}), (502, b"")),
         (
             _Response(body=b"png", headers={"Content-Type": "image/png; charset=binary", "Content-Length": "3"}),
             (200, b"png"),
@@ -96,4 +101,24 @@ def test_asset_transport_closes_on_network_failure(monkeypatch):
     connection = _Connection(error=OSError("unreachable"))
     _install(monkeypatch, connection)
     assert upstream.call_asset("/icon.png") == (502, b"")
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"version":1,"version":1}',
+        b'{"version":NaN}',
+        b'{"version":1e999}',
+        b'\xef\xbb\xbf{"version":1}',
+        b'{"name":"\\ud800"}',
+        b'{"name":"\xff"}',
+        b"[" * 600 + b"]" * 600,
+        b"HTTP/1.1 PRIVATE_SENTINEL",
+    ],
+)
+def test_json_transport_refuses_what_strict_json_refuses(monkeypatch, body):
+    connection = _Connection(_Response(status=200, body=body))
+    _install(monkeypatch, connection)
+    assert upstream.call("/api/v1/assistants") == (502, {"detail": "the upstream is unreachable"})
     assert connection.closed

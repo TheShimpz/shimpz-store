@@ -1,12 +1,12 @@
 """Bounded one-hop JSON and asset transport to Developers."""
 
 import http.client
-import json
 from urllib.parse import urlparse
 
 import structlog
 
 from app import config
+from app.protocol.http.v1 import strict_json
 
 log = structlog.get_logger()
 
@@ -28,8 +28,9 @@ def call(path: str) -> tuple[int, dict]:
         raw = response.read(MAX_JSON_RESPONSE_BYTES + 1)
         if len(raw) > MAX_JSON_RESPONSE_BYTES:
             return 502, {"detail": "the upstream returned an oversized response"}
-        return response.status, (json.loads(raw) if raw else {})
-    except (OSError, UnicodeError, json.JSONDecodeError, http.client.HTTPException) as exc:
+        # Duplicate fields, non-finite numbers, a byte-order mark, lone surrogates, and excess depth are refused.
+        return response.status, (strict_json.loads(raw) if raw else {})
+    except (OSError, ValueError, http.client.HTTPException) as exc:
         log.warning("proxy_unreachable", path=path, error=str(exc))
         return 502, {"detail": "the upstream is unreachable"}
     finally:
@@ -47,12 +48,10 @@ def call_asset(path: str) -> tuple[int, bytes]:
             return response.status, b""
         media_type = (response.getheader("Content-Type") or "").partition(";")[0].strip().lower()
         length = response.getheader("Content-Length")
-        if media_type != "image/png" or length is None:
+        # Only ASCII digits: int() would also admit a sign, spaces, underscores, and other scripts' digits.
+        if media_type != "image/png" or length is None or not (length.isascii() and length.isdigit()):
             return 502, b""
-        try:
-            expected = int(length)
-        except ValueError:
-            return 502, b""
+        expected = int(length)
         if not 1 <= expected <= MAX_ASSET_RESPONSE_BYTES:
             return 502, b""
         contents = response.read(MAX_ASSET_RESPONSE_BYTES + 1)
