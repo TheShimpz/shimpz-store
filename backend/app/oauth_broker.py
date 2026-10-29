@@ -189,7 +189,8 @@ def _pkce_challenge(verifier: str) -> str:
 def _read_secret(path: Path, *, maximum: int) -> bytes:
     descriptor = -1
     try:
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        # Non-blocking, so a FIFO without a writer is opened at once and refused by fstat instead of pinning a worker.
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
         metadata = os.fstat(descriptor)
         if (
             not stat.S_ISREG(metadata.st_mode)
@@ -436,7 +437,9 @@ class NeuronOAuthClient:
         )
 
     def revoke(self, *, token: str) -> None:
-        if self._call("revoke", {"token": token}) != {"revoked": True}:
+        # Exactly the one member `revoked` holding the boolean true: 1 and 1.0 equal True but acknowledge nothing.
+        value = self._call("revoke", {"token": token})
+        if set(value) != {"revoked"} or value["revoked"] is not True:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
 
 

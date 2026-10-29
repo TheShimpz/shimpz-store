@@ -1,6 +1,8 @@
 """Failure and capacity coverage for the platform OAuth broker core."""
 
 import json
+import os
+import threading
 from urllib.parse import urlencode
 
 import pytest
@@ -108,6 +110,25 @@ def test_secret_reader_translates_open_and_short_read_failures(tmp_path, monkeyp
     monkeypatch.setattr(broker.os, "read", lambda *_args: next(chunks))
     with pytest.raises(broker.OAuthBrokerError, match="file contract"):
         broker._read_secret(path, maximum=32)
+
+
+def test_a_secret_fifo_without_a_writer_is_refused_without_blocking(tmp_path):
+    fifo = tmp_path / "lease-key"
+    os.mkfifo(fifo, 0o400)
+    outcome = []
+
+    def read() -> None:
+        try:
+            broker._read_secret(fifo, maximum=32)
+        except broker.OAuthBrokerError as exc:
+            outcome.append(str(exc))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    reader.join(timeout=2)
+
+    assert not reader.is_alive()
+    assert outcome == ["OAuth broker secret failed its file contract"]
 
 
 def test_proxy_reader_translates_socket_and_size_failures(monkeypatch):
@@ -266,11 +287,27 @@ def test_neuron_exchange_refresh_and_revoke_validate_results():
     assert client.exchange(code="code", verifier="verifier", scopes=broker.SCOPES).expires_in == 3600
     client = _Client(_Transport(_response(tokens)))
     assert client.refresh(refresh_token="b" * 16, scopes=broker.SCOPES).expires_in == 3600
-    client = _Client(_Transport(_response({"revoked": False})))
-    with pytest.raises(broker.OAuthBrokerError):
-        client.revoke(token="a" * 16)
     client = _Client(_Transport(_response({"revoked": True})))
     client.revoke(token="a" * 16)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"revoked":1}',
+        b'{"revoked":1.0}',
+        b'{"revoked":"true"}',
+        b'{"revoked":false}',
+        b'{"revoked":null}',
+        b'{"revoked":true,"x":1}',
+        b"{}",
+        b"[true]",
+    ],
+)
+def test_neuron_revoke_accepts_only_the_exact_acknowledgement(body):
+    client = _Client(_Transport(_response(body)))
+    with pytest.raises(broker.OAuthBrokerError):
+        client.revoke(token="a" * 16)
 
 
 def test_lease_signer_rejects_short_key_non_string_and_expired_lease():
