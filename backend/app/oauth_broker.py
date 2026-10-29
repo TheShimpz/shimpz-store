@@ -57,6 +57,10 @@ _LEASE_KEY_ID_LABEL = b"shimpz-oauth-broker-lease-kid"
 _BINDING = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 _CLAIM = re.compile(r"[0-9a-f]{64}\Z")
 _SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9_-]{16,128}\.access\Z")
+# The consent URL is admitted as raw characters a redirect carries unchanged (Starlette's RedirectResponse quotes with
+# safe=":/%#?=@[]!$&'()*+,;"), without a fragment, so the Location Store sends is the validated URL byte for byte.
+_AUTHORIZATION_PREFIX = "https://dash.cloudflare.com/oauth2/auth?"
+_AUTHORIZATION_URL = re.compile(r"[A-Za-z0-9_.~:/%?=@\[\]!$&'()*+,;-]{1,4096}")
 _LEASE = re.compile(
     r"l3\.([A-Za-z0-9_-]{11})\.([0-9]{10})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})"
     r"\.([A-Za-z0-9_-]{43})\Z"
@@ -371,12 +375,15 @@ class NeuronOAuthClient:
         if set(value) != {"authorization_url"}:
             raise OAuthBrokerError("Neuron OAuth response is invalid")
         url = value.get("authorization_url")
-        if not isinstance(url, str) or len(url) > 4096:
+        if (
+            not isinstance(url, str)
+            or _AUTHORIZATION_URL.fullmatch(url) is None
+            or not url.startswith(_AUTHORIZATION_PREFIX)
+        ):
             raise OAuthBrokerError("Neuron OAuth response is invalid")
-        parsed = urlsplit(url)
         try:
             query = parse_qsl(
-                parsed.query,
+                url.removeprefix(_AUTHORIZATION_PREFIX),
                 keep_blank_values=True,
                 strict_parsing=True,
                 max_num_fields=7,
@@ -385,14 +392,7 @@ class NeuronOAuthClient:
             raise OAuthBrokerError("Neuron OAuth response is invalid") from exc
         fields = dict(query)
         if (
-            parsed.scheme != "https"
-            or parsed.hostname != "dash.cloudflare.com"
-            or parsed.port is not None
-            or parsed.username is not None
-            or parsed.password is not None
-            or parsed.path != "/oauth2/auth"
-            or parsed.fragment
-            or len(query) != 7
+            len(query) != 7
             or len(fields) != 7
             or fields.get("response_type") != "code"
             or fields.get("redirect_uri") != PLATFORM_CALLBACK

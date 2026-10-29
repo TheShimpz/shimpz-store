@@ -244,6 +244,18 @@ def test_neuron_call_rejects_unknown_operation():
         {"authorization_url": 1},
         {"authorization_url": "https://dash.cloudflare.com/oauth2/auth?broken"},
         {"authorization_url": _authorization_url(response_type="token")},
+        {"authorization_url": _authorization_url().replace("https://", "HTTPS://")},
+        {"authorization_url": _authorization_url().replace("dash.cloudflare.com", "DASH.cloudflare.com")},
+        {"authorization_url": _authorization_url().replace("dash.cloudflare.com", "dash.cloudflare.com:443")},
+        {"authorization_url": _authorization_url().replace("https://", "https://user@")},
+        {"authorization_url": _authorization_url().replace("oauth2/auth", "oauth2/au\tth")},
+        {"authorization_url": _authorization_url().replace("oauth2/auth", "oauth2/./auth")},
+        {"authorization_url": " " + _authorization_url()},
+        {"authorization_url": _authorization_url() + "#consent"},
+        {"authorization_url": _authorization_url() + "&x=\u00e9"},
+        {"authorization_url": _authorization_url() + '&x="'},
+        {"authorization_url": _authorization_url() + "&x=" + "y" * 4096},
+        {"authorization_url": ""},
     ],
 )
 def test_neuron_authorization_rejects_invalid_response(value):
@@ -445,3 +457,10 @@ def test_broker_callback_retries_claim_collision_and_claim_rejects_shape(monkeyp
     assert completion.completion_code.endswith("b" * 64)
     with pytest.raises(broker.OAuthBrokerError, match="grant"):
         instance.claim(claim="bad", state="s" * 43, code_verifier="v" * 43)
+
+
+def test_neuron_authorization_admits_every_character_a_redirect_carries_unchanged():
+    url = _authorization_url(client_id="id_.~:/%41?=@[]!$'()*+,;-")
+    client = _Client(_Transport(_response({"authorization_url": url})))
+
+    assert client.authorization(state="a" * 43, code_challenge="b" * 43, scopes=broker.SCOPES) == url

@@ -407,3 +407,13 @@ def test_oauth_start_keys_a_trusted_tunnel_peer_by_its_one_asserted_client(monke
     assert second.status_code == 303
     assert missing.status_code == repeated.status_code == malformed.status_code == 400
     assert len(broker.calls) == 11
+
+
+def test_the_start_redirect_is_the_validated_consent_url_byte_for_byte(monkeypatch) -> None:
+    url = "https://dash.cloudflare.com/oauth2/auth?a=AZaz09_.~:/%2F?=@[]!$&b='()*+,;-"
+    monkeypatch.setattr(_Broker, "start", lambda _self, **_values: url)
+    with _broker(), TestClient(main.app) as client:
+        start = _start(client, callback="out-of-band")
+
+    assert start.status_code == 303
+    assert start.headers["location"] == url
