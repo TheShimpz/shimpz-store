@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app import main as store
@@ -167,3 +169,108 @@ def test_the_site_root_sends_every_visitor_to_the_english_home(monkeypatch, tmp_
     assert landed.text == "english-home"
     assert refused.status_code == 405
     assert refused.headers["allow"] == "GET"
+
+
+def test_a_range_request_receives_the_whole_file_without_advertising_ranges(monkeypatch, tmp_path):
+    _write(tmp_path, "_app/immutable/chunk.js", "0123456789")
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    with TestClient(store.app) as client:
+        responses = [
+            client.get("/_app/immutable/chunk.js", headers={"Range": "bytes=0-1"}),
+            client.get("/_app/immutable/chunk.js", headers={"Range": "bytes=0-1,4-5"}),
+            client.get("/_app/immutable/chunk.js", headers={"Range": "bytes=99-"}),
+            client.get("/_app/immutable/chunk.js", headers={"Range": "bytes=+5", "If-Range": '"x"'}),
+        ]
+
+    for response in responses:
+        assert response.status_code == 200
+        assert response.content == b"0123456789"
+        assert response.headers["content-length"] == "10"
+        assert "accept-ranges" not in response.headers
+        assert "content-range" not in response.headers
+
+
+@pytest.mark.parametrize(
+    ("name", "content_type"),
+    [
+        ("page.html", "text/html; charset=utf-8"),
+        ("style.css", "text/css; charset=utf-8"),
+        ("start.js", "text/javascript; charset=utf-8"),
+        ("UPPER.JS", "text/javascript; charset=utf-8"),
+        ("version.json", "application/json"),
+        ("icon.png", "image/png"),
+        ("mark.svg", "image/svg+xml"),
+        ("robots.txt", "text/plain; charset=utf-8"),
+        ("sitemap.xml", "text/xml; charset=utf-8"),
+        ("font.woff", "font/woff"),
+        ("font.woff2", "font/woff2"),
+        ("favicon.ico", "image/vnd.microsoft.icon"),
+        ("app.webmanifest", "application/manifest+json"),
+        ("chunk.js.map", "application/octet-stream"),
+        ("archive.js.gz", "application/octet-stream"),
+        ("legacy.htm", "application/octet-stream"),
+        ("trailing.", "application/octet-stream"),
+        (".js", "application/octet-stream"),
+    ],
+)
+def test_every_file_is_served_with_its_closed_media_type(monkeypatch, tmp_path, name, content_type):
+    _write(tmp_path, f"files/{name}", "x")
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    with TestClient(store.app) as client:
+        response = client.get(f"/files/{name}")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == content_type
+
+
+@pytest.mark.parametrize(
+    ("mtime_ns", "size", "tag"),
+    [
+        (0, 0, '"0-0"'),
+        (1, 1, '"1-1"'),
+        (1_700_000_000_000_000_000, 4096, '"17979cfe362a0000-1000"'),
+        (-1, 2**40, '"-1-10000000000"'),
+        (-1_000_000_001, 3, '"-3b9aca01-3"'),
+    ],
+)
+def test_the_entity_tag_names_the_integer_mtime_and_size(mtime_ns, size, tag):
+    assert static.entity_tag(mtime_ns, size) == tag
+
+
+@pytest.mark.parametrize(
+    ("mtime_ns", "modified"),
+    [
+        (1_700_000_000_000_000_000, "Tue, 14 Nov 2023 22:13:20 GMT"),
+        (1_700_000_000_999_999_000, "Tue, 14 Nov 2023 22:13:20 GMT"),
+        (1_700_000_000_999_999_500, "Tue, 14 Nov 2023 22:13:20 GMT"),
+        (1_700_000_000_999_999_999, "Tue, 14 Nov 2023 22:13:20 GMT"),
+        (1_700_000_001_000_000_000, "Tue, 14 Nov 2023 22:13:21 GMT"),
+        (0, "Thu, 01 Jan 1970 00:00:00 GMT"),
+        (253_402_300_799_000_000_000, "Fri, 31 Dec 9999 23:59:59 GMT"),
+        (253_402_300_799_999_999_999, "Fri, 31 Dec 9999 23:59:59 GMT"),
+        (-1, None),
+        (-1_000_000_000, None),
+        (253_402_300_800_000_000_000, None),
+    ],
+)
+def test_last_modified_floors_the_mtime_to_its_whole_second_within_four_digit_years(mtime_ns, modified):
+    assert static.last_modified(mtime_ns) == modified
+
+
+def test_a_served_file_carries_its_integer_validators(monkeypatch, tmp_path):
+    _write(tmp_path, "en.html", "home")
+    _write(tmp_path, "before-epoch.txt", "old")
+    os.utime(tmp_path / "en.html", ns=(0, 1_700_000_000_999_999_999))
+    os.utime(tmp_path / "before-epoch.txt", ns=(0, -1))
+    monkeypatch.setattr(static, "BUILD", tmp_path)
+
+    with TestClient(store.app) as client:
+        page = client.get("/en")
+        old = client.get("/before-epoch.txt")
+
+    assert page.headers["etag"] == '"17979cfe71c4c9ff-4"'
+    assert page.headers["last-modified"] == "Tue, 14 Nov 2023 22:13:20 GMT"
+    assert old.headers["etag"] == '"-1-3"'
+    assert "last-modified" not in old.headers
