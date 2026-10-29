@@ -34,3 +34,5 @@
   --branch --source=app --omit='app/protocol/*' -m pytest -q tests && coverage report --skip-empty
   --fail-under=100"` (the generated Team-protocol mirror is proven by its producer and byte-identity checks).
 - Run frontend tests/check/build from `frontend/` with the pnpm release `frontend/bootstrap-pnpm.sh` installs.
+- `egress/` is a Rust package built with the umbrella `.egress/transport` crate; from the umbrella root run
+  `.scripts/gate/rust crate store/egress` (100% line, branch, and function coverage).

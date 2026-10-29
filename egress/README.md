@@ -13,7 +13,8 @@ The implementation is packaged only by the root `ghcr.io/theshimpz/shimpz-egress
 lifecycle with another egress profile.
 
 The resolution, record, connect, ClientHello admission, and splice are the image's neutral CONNECT transport
-(`.egress/connect.py`, ADR-0104), shipped as this profile's own copy; this directory owns the exact request, the
+(the `egress-transport` crate in `.egress/transport`, ADR-0104), which this directory's Rust package is built with
+and which runs from this profile's own copy of the binary; this directory owns the exact request, the
 audit record, and the resource envelope. After the `200`, the tunnel relays nothing until Store's TLS ClientHello
 names exactly `neuron.shimpz.com` (one RFC 6066 host name, no ECH). A different, missing, or non-TLS first flight
 closes both sides and is recorded as a `denied` event with code `403` and a stable reason; that code classifies the

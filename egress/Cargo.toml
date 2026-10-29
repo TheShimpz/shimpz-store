@@ -1,0 +1,23 @@
+[package]
+name = "store-egress"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99.0"
+publish = false
+license = "Apache-2.0"
+description = "CONNECT-only outbound enforcement from the platform Store to private Neuron (shimpz-egress store)"
+
+[dependencies]
+egress-transport = { path = "../../.egress/transport" }
+
+[dev-dependencies]
+egress-transport = { path = "../../.egress/transport", features = ["fixtures"] }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+cognitive_complexity = "deny"
