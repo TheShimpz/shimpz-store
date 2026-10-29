@@ -31,7 +31,7 @@ def call(path: str) -> tuple[int, dict]:
         # Duplicate fields, non-finite numbers, a byte-order mark, lone surrogates, and excess depth are refused.
         return response.status, (strict_json.loads(raw) if raw else {})
     except (OSError, ValueError, http.client.HTTPException) as exc:
-        log.warning("proxy_unreachable", path=path, error=str(exc))
+        log.warning("proxy_unreachable", path=path, error=type(exc).__name__)
         return 502, {"detail": "the upstream is unreachable"}
     finally:
         connection.close()
@@ -57,7 +57,7 @@ def call_asset(path: str) -> tuple[int, bytes]:
         contents = response.read(MAX_ASSET_RESPONSE_BYTES + 1)
         return (200, contents) if len(contents) == expected else (502, b"")
     except (OSError, UnicodeError, http.client.HTTPException) as exc:
-        log.warning("asset_proxy_unreachable", path=path, error=str(exc))
+        log.warning("asset_proxy_unreachable", path=path, error=type(exc).__name__)
         return 502, b""
     finally:
         connection.close()

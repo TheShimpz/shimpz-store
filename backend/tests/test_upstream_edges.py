@@ -122,3 +122,15 @@ def test_json_transport_refuses_what_strict_json_refuses(monkeypatch, body):
     _install(monkeypatch, connection)
     assert upstream.call("/api/v1/assistants") == (502, {"detail": "the upstream is unreachable"})
     assert connection.closed
+
+
+def test_upstream_failures_log_only_closed_codes(monkeypatch, capsys):
+    """A Developers status line or socket error text never reaches a log line, only the failure's class."""
+    connection = _Connection(error=upstream.http.client.BadStatusLine("PRIVATE_SENTINEL"))
+    _install(monkeypatch, connection)
+    assert upstream.call("/api/v1/assistants?locale=en")[0] == 502
+    assert upstream.call_asset("/icon.png") == (502, b"")
+
+    rendered = capsys.readouterr().out
+    assert "PRIVATE_SENTINEL" not in rendered
+    assert rendered.count('"error": "BadStatusLine"') == 2

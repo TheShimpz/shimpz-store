@@ -58,7 +58,8 @@ RUN groupadd --gid 10008 shimpz-store \
 WORKDIR /app
 COPY --link backend/app/__init__.py backend/app/catalog.py backend/app/concurrency.py backend/app/config.py \
      backend/app/logconf.py backend/app/main.py backend/app/middleware.py \
-     backend/app/oauth_broker.py backend/app/payloads.py backend/app/ratelimit.py backend/app/upstream.py ./app/
+     backend/app/oauth_broker.py backend/app/payloads.py backend/app/ratelimit.py backend/app/upstream.py \
+     backend/app/logging.json ./app/
 COPY --link backend/app/protocol/http/v1/identifiers.py backend/app/protocol/http/v1/payload.py \
     backend/app/protocol/http/v1/purpose.py backend/app/protocol/http/v1/strict_json.py \
     backend/app/protocol/http/v1/turn.py ./app/protocol/http/v1/
@@ -75,6 +76,7 @@ RUN python -c "import app.main" && \
 USER 10008:10008
 EXPOSE 3200
 # The access log would record the OAuth callback query (`state`, `code`), so it stays off; request outcomes are logged
-# by the application without query values. No forwarded header rewrites the socket peer the start limit reads.
+# by the application without query values. No forwarded header rewrites the socket peer the start limit reads. The
+# server's own lines are JSON on stdout like the application's, without arguments or exception text.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3200", "--no-access-log", "--no-server-header", \
-     "--no-proxy-headers"]
+     "--no-proxy-headers", "--log-config", "/app/app/logging.json"]

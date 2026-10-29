@@ -5,11 +5,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.concurrency import ExecutorSaturatedError as _ExecutorSaturatedError
-from app.logconf import setup
+from app.logconf import SERVICE, setup
 from app.middleware import TraceIdMiddleware
 from app.routers import oauth, public, static
 
-setup("shimpz-store")
+setup(SERVICE)
 log = structlog.get_logger()
 
 fastapi_app = FastAPI(title="shimpz-store", docs_url=None, redoc_url=None, openapi_url=None)
