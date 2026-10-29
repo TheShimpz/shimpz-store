@@ -15,13 +15,45 @@ class _Clock:
 
 def test_trusted_proxies_are_explicit_networks_or_none() -> None:
     assert trusted_proxies(None) == ()
-    assert trusted_proxies("10.0.0.0/24, 2001:db8::/32") == (
+    assert trusted_proxies("10.0.0.0/24,2001:db8::/32,0.0.0.0/0,::ffff:10.0.0.0/120,255.255.255.255/32") == (
         ipaddress.ip_network("10.0.0.0/24"),
         ipaddress.ip_network("2001:db8::/32"),
+        ipaddress.ip_network("0.0.0.0/0"),
+        ipaddress.ip_network("::ffff:10.0.0.0/120"),
+        ipaddress.ip_network("255.255.255.255/32"),
     )
-    for invalid in ("", "10.0.0.0/24,", "10.0.0.1/24", "tunnel"):
-        with pytest.raises(ValueError):
-            trusted_proxies(invalid)
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        "",
+        "10.0.0.0/24,",
+        ",10.0.0.0/24",
+        "10.0.0.1/24",
+        "tunnel",
+        "10.0.0.0/24, 2001:db8::/32",
+        " 10.0.0.0/24",
+        "10.0.0.0/24\n",
+        "\u00a010.0.0.0/24",
+        "10.0.0.1",
+        "2001:db8::",
+        "10.0.0.0/255.255.255.0",
+        "10.0.0.0/0.0.0.255",
+        "010.0.0.0/24",
+        "10.0.0.0/024",
+        "10.0.0.0/33",
+        "2001:db8::/129",
+        "2001:db8::/032",
+        "fe80::%eth0/64",
+        "\u0661\u0660.0.0.0/24",
+        "10.0.0.0/\u0662\u0664",
+        "2001:db8::1/64",
+    ],
+)
+def test_trusted_proxies_refuse_every_other_network_form(invalid) -> None:
+    with pytest.raises(ValueError):
+        trusted_proxies(invalid)
 
 
 def test_client_key_trusts_a_forwarded_address_only_from_a_trusted_peer() -> None:
@@ -34,7 +66,15 @@ def test_client_key_trusts_a_forwarded_address_only_from_a_trusted_peer() -> Non
     assert client_key("2001:db8:1:2::9", [], ()) == "2001:db8:1:2::/64"
     assert client_key("testclient", ["203.0.113.5"], proxies) == "testclient"
     assert client_key(None, [], proxies) == ""
-    for forwarded in ([], ["203.0.113.5", "203.0.113.6"], ["203.0.113.5, 198.51.100.1"]):
+    for forwarded in (
+        [],
+        ["203.0.113.5", "203.0.113.6"],
+        ["203.0.113.5, 198.51.100.1"],
+        ["fe80::1%eth0"],
+        ["2001:db8::1%1"],
+        [" 203.0.113.5"],
+        ["203.0.113.05"],
+    ):
         with pytest.raises(ClientAddressError):
             client_key("10.0.0.9", forwarded, proxies)
 

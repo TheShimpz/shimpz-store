@@ -8,6 +8,7 @@ peer is keyed by its own socket address, so no header lets a direct peer choose 
 
 import ipaddress
 import math
+import re
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Sequence
@@ -19,14 +20,29 @@ class ClientAddressError(ValueError):
     """A trusted proxy omitted, repeated, or malformed the client address."""
 
 
+_IPV4 = r"(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}"
+_IPV4_NETWORK = re.compile(rf"{_IPV4}/(?:3[0-2]|[12][0-9]|[0-9])")
+_IPV6_NETWORK = re.compile(r"[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*/(?:12[0-8]|1[01][0-9]|[1-9][0-9]|[0-9])")
+
+
+def _network(item: str) -> Network:
+    """One network written `address/length` with its host bits zero: a dotted quad without leading zeros, or IPv6."""
+    if _IPV4_NETWORK.fullmatch(item) is not None:
+        return ipaddress.IPv4Network(item)
+    if _IPV6_NETWORK.fullmatch(item) is not None:
+        return ipaddress.IPv6Network(item)
+    raise ValueError("trusted proxy configuration is invalid")
+
+
 def trusted_proxies(value: str | None) -> tuple[Network, ...]:
-    """Parse the comma-separated trusted proxy networks; absent means none, and an empty item is refused."""
+    """Parse the comma-separated trusted proxy networks; absent means none.
+
+    Every item is exactly one network with its prefix length and no surrounding space: an empty value or item, a bare
+    address, a netmask or hostmask, set host bits, or an IPv6 zone refuses the whole configuration.
+    """
     if value is None:
         return ()
-    items = [item.strip() for item in value.split(",")]
-    if not all(items):
-        raise ValueError("trusted proxy configuration is invalid")
-    return tuple(ipaddress.ip_network(item) for item in items)
+    return tuple(_network(item) for item in value.split(","))
 
 
 def _canonical(address: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
@@ -34,6 +50,13 @@ def _canonical(address: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
     if isinstance(parsed, ipaddress.IPv6Address) and parsed.ipv4_mapped is not None:
         return parsed.ipv4_mapped
     return parsed
+
+
+def _client(address: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    """A proxy-asserted client: a plain address, never an IPv6 address with a zone."""
+    if "%" in address:
+        raise ValueError("a client address has no zone")
+    return _canonical(address)
 
 
 def _key(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
@@ -54,7 +77,7 @@ def client_key(peer: str | None, forwarded: Sequence[str], proxies: Sequence[Net
     if len(forwarded) != 1:
         raise ClientAddressError("trusted proxy client address is missing or ambiguous")
     try:
-        return _key(_canonical(forwarded[0]))
+        return _key(_client(forwarded[0]))
     except ValueError as exc:
         raise ClientAddressError("trusted proxy client address is invalid") from exc
 
