@@ -48,8 +48,14 @@ def call_asset(path: str) -> tuple[int, bytes]:
             return response.status, b""
         media_type = (response.getheader("Content-Type") or "").partition(";")[0].strip().lower()
         length = response.getheader("Content-Length")
-        # Only ASCII digits: int() would also admit a sign, spaces, underscores, and other scripts' digits.
-        if media_type != "image/png" or length is None or not (length.isascii() and length.isdigit()):
+        # Only ASCII digits, and no more of them than the largest admitted length has: int() would also admit a sign,
+        # spaces, underscores, and other scripts' digits, and refuses a numeral past its digit limit by raising.
+        if (
+            media_type != "image/png"
+            or length is None
+            or not (length.isascii() and length.isdigit())
+            or len(length) > len(str(MAX_ASSET_RESPONSE_BYTES))
+        ):
             return 502, b""
         expected = int(length)
         if not 1 <= expected <= MAX_ASSET_RESPONSE_BYTES:

@@ -83,6 +83,9 @@ def test_json_transport_closes_on_network_failure(monkeypatch):
         (_Response(body=b"p" * 10, headers={"Content-Type": "image/png", "Content-Length": "1_0"}), (502, b"")),
         (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "\u0663"}), (502, b"")),
         (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": ""}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "9" * 5000}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "00000003"}), (502, b"")),
+        (_Response(body=b"png", headers={"Content-Type": "image/png", "Content-Length": "0000003"}), (200, b"png")),
         (
             _Response(body=b"png", headers={"Content-Type": "image/png; charset=binary", "Content-Length": "3"}),
             (200, b"png"),
