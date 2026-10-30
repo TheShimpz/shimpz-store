@@ -21,7 +21,10 @@ RUN cd /w \
 WORKDIR /w
 COPY frontend/ ./
 ARG SOURCE_DATE_EPOCH=0
+# The build's modes are normalized: whatever the checkout's umask gave a static asset, no one but its owner (root in the
+# runtime) may write any file of it.
 RUN pnpm run build \
+ && chmod -R u=rwX,go=rX /w/build \
  && find /w/build -depth -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} + \
  && rm -rf /root/.cache/pnpm /root/.local/share/pnpm /root/.npm
 
