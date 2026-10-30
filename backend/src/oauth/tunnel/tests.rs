@@ -128,3 +128,44 @@ fn production_reaches_the_store_egress() {
     assert_eq!((EGRESS_HOST, EGRESS_PORT), ("shimpz-store-egress", 8889));
     assert_eq!(tunnel.timeout, Duration::from_secs(10));
 }
+
+#[tokio::test]
+async fn a_tls_handshake_that_drips_one_byte_at_a_time_fails_at_its_deadline() {
+    use tokio::io::AsyncReadExt;
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let dripping = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut head = [0; 256];
+        let _ = stream.read(&mut head).await.unwrap();
+        stream
+            .write_all(b"HTTP/1.1 200 Connection established\r\n\r\n")
+            .await
+            .unwrap();
+        // A handshake record that promises 16 KiB, then one byte every 50 ms: each read makes progress.
+        stream
+            .write_all(&[0x16, 0x03, 0x03, 0x40, 0x00])
+            .await
+            .unwrap();
+        loop {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            if stream.write_all(&[0]).await.is_err() {
+                return;
+            }
+        }
+    });
+    let tunnel = Tunnel::new(
+        "127.0.0.1".to_owned(),
+        port,
+        Duration::from_millis(300),
+        RootCertStore::empty(),
+    );
+    let started = std::time::Instant::now();
+    assert_eq!(tunnel.open().await.err(), Some(BrokerError));
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+    dripping.abort();
+}

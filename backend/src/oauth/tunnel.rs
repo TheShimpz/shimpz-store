@@ -2,8 +2,8 @@
 //!
 //! The egress must answer the CONNECT with exactly `HTTP/1.1 200 Connection established` and an empty line, read in
 //! chunks of at most 256 bytes and refused past 1,024 or at EOF. TLS 1.2 or newer verifies Neuron's certificate
-//! against the system roots (which honour `SSL_CERT_FILE`, as OpenSSL does for the Python Store). Connecting and every
-//! socket operation are bounded by the same timeout.
+//! against the system roots (which honour `SSL_CERT_FILE`, as OpenSSL does for the Python Store). Connecting, every
+//! socket operation, and the whole TLS handshake are each bounded by the same timeout.
 
 use std::{sync::Arc, time::Duration};
 
@@ -91,9 +91,13 @@ impl Tunnel {
         if proxy_response(&mut stream).await? != ESTABLISHED {
             return Err(BrokerError);
         }
-        TlsConnector::from(Arc::clone(&self.tls))
-            .connect(self.name.clone(), stream)
+        // The whole handshake shares one deadline: per-operation bounds alone would let a peer that drips one byte
+        // at a time hold an execution slot indefinitely.
+        let handshake =
+            TlsConnector::from(Arc::clone(&self.tls)).connect(self.name.clone(), stream);
+        tokio::time::timeout(self.timeout, handshake)
             .await
+            .or(Err(BrokerError))?
             .or(Err(BrokerError))
     }
 }
