@@ -75,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn every_build_file_kind_has_its_closed_media_type() {
+    fn every_file_is_served_with_its_closed_media_type() {
         let cases = [
             ("page.html", "text/html; charset=utf-8"),
             ("UPPER.JS", "text/javascript; charset=utf-8"),

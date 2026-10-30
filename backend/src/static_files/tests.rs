@@ -65,37 +65,51 @@ fn pages_and_files_resolve_with_their_html_and_index_forms() {
 }
 
 #[test]
-fn every_file_carries_its_media_type_length_and_cache_policy() {
+fn html_navigation_always_revalidates() {
     let build = build();
     let site = Site::new(build.path().to_path_buf());
-    let page = site.reply("en", false);
+    let page = site.reply("en", true);
     assert_eq!(
         header(&page, &header::CONTENT_TYPE),
         "text/html; charset=utf-8"
     );
     assert_eq!(header(&page, &header::CONTENT_LENGTH), "12");
     assert_eq!(header(&page, &header::CACHE_CONTROL), HTML_CACHE);
+    let never = site.reply("_app/immutable/never-cache.html", true);
+    assert_eq!(header(&never, &header::CACHE_CONTROL), HTML_CACHE);
+}
+
+#[test]
+fn sveltekit_immutable_assets_keep_long_content_addressed_cache() {
+    let build = build();
+    let site = Site::new(build.path().to_path_buf());
     let asset = site.reply("/_app/immutable/chunk.js", false);
     assert_eq!(header(&asset, &header::CACHE_CONTROL), IMMUTABLE_CACHE);
     assert_eq!(
         header(&asset, &header::CONTENT_TYPE),
         "text/javascript; charset=utf-8"
     );
-    for path in [
-        "_app/immutable/never-cache.html",
-        "_app/immutable-lookalike/chunk.js",
-        "brand/mark.svg",
-    ] {
+}
+
+#[test]
+fn mutable_assets_and_missing_navigation_do_not_heuristically_cache() {
+    let build = build();
+    let site = Site::new(build.path().to_path_buf());
+    for path in ["_app/immutable-lookalike/chunk.js", "brand/mark.svg"] {
         assert_eq!(
             header(&site.reply(path, false), &header::CACHE_CONTROL),
             HTML_CACHE,
             "{path}"
         );
     }
+    for navigation in [true, false] {
+        let missing = site.reply("missing", navigation);
+        assert_eq!(header(&missing, &header::CACHE_CONTROL), HTML_CACHE);
+    }
 }
 
 #[test]
-fn a_file_carries_its_integer_validators_and_no_date_outside_four_digit_years() {
+fn a_served_file_carries_its_integer_validators() {
     let build = build();
     let page = build.path().join("en.html");
     File::options()
@@ -124,7 +138,7 @@ fn a_file_carries_its_integer_validators_and_no_date_outside_four_digit_years() 
 }
 
 #[test]
-fn html_navigation_misses_serve_the_localized_not_found_page() {
+fn html_misses_serve_localized_not_found_document() {
     let build = build();
     let site = Site::new(build.path().to_path_buf());
     for (path, expected) in [
@@ -145,31 +159,50 @@ fn html_navigation_misses_serve_the_localized_not_found_page() {
     }
 }
 
+fn plain_not_found(site: &Site, path: &str) {
+    let reply = site.reply(path, false);
+    assert_eq!(
+        (reply.status, body(&reply)),
+        (StatusCode::NOT_FOUND, "not found"),
+        "{path}"
+    );
+    assert_eq!(
+        header(&reply, &header::CONTENT_TYPE),
+        "text/plain; charset=utf-8"
+    );
+}
+
 #[test]
-fn other_misses_and_unsafe_paths_answer_plain_not_found() {
+fn not_found_document_is_never_exposed_as_a_successful_page() {
+    let build = build();
+    let site = Site::new(build.path().to_path_buf());
+    plain_not_found(&site, "en/404");
+    let navigation = site.reply("en/404.html", true);
+    assert_eq!(
+        (navigation.status, body(&navigation)),
+        (StatusCode::NOT_FOUND, "english-not-found")
+    );
+}
+
+#[test]
+fn non_html_miss_keeps_plain_text_response() {
     let build = build();
     let site = Site::new(build.path().to_path_buf());
     for path in [
-        "en/404",
         "missing.js",
-        "en\0",
         "en%",
         "../en",
         "en/../en",
         "_app",
         &"x".repeat(5000),
     ] {
-        let reply = site.reply(path, false);
-        assert_eq!(
-            (reply.status, body(&reply)),
-            (StatusCode::NOT_FOUND, "not found"),
-            "{path}"
-        );
-        assert_eq!(
-            header(&reply, &header::CONTENT_TYPE),
-            "text/plain; charset=utf-8"
-        );
+        plain_not_found(&site, path);
     }
+}
+
+#[test]
+fn missing_not_found_document_and_foreign_path_fail_closed() {
+    let build = build();
     let absent = Site::new(build.path().join("absent"));
     assert_eq!(body(&absent.reply("en", true)), "not found");
     let bare = tempfile::tempdir().unwrap();
@@ -178,6 +211,27 @@ fn other_misses_and_unsafe_paths_answer_plain_not_found() {
         body(&Site::new(bare.path().to_path_buf()).reply("pt/missing", true)),
         "not found"
     );
+}
+
+#[test]
+fn a_path_holding_a_control_byte_names_no_file() {
+    let build = build();
+    let site = Site::new(build.path().to_path_buf());
+    for path in ["en\0", "en\n", "\u{1f}en"] {
+        plain_not_found(&site, path);
+    }
+    let navigation = site.reply("\0/x", true);
+    assert_eq!(body(&navigation), "english-not-found");
+}
+
+#[test]
+fn a_range_request_receives_the_whole_file_without_advertising_ranges() {
+    let build = build();
+    let site = Site::new(build.path().to_path_buf());
+    let page = site.reply("en", false);
+    assert_eq!(body(&page), "english-home");
+    assert_eq!(page.header(&header::ACCEPT_RANGES), None);
+    assert_eq!(page.header(&header::CONTENT_RANGE), None);
 }
 
 #[test]
@@ -194,7 +248,7 @@ fn files_resolving_outside_the_build_are_refused_while_a_linked_build_serves() {
 }
 
 #[test]
-fn the_site_root_redirects_to_the_english_home() {
+fn the_site_root_sends_every_visitor_to_the_english_home() {
     let reply = root_redirect();
     assert_eq!(reply.status, StatusCode::PERMANENT_REDIRECT);
     assert_eq!(

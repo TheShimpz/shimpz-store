@@ -202,6 +202,11 @@ async fn head(stream: &mut (impl AsyncRead + Unpin)) -> String {
 /// Neuron's answer to a well-formed call: the consent URL echoing its state and challenge, tokens for its scopes
 /// (`access-token-0001`, `refresh-token-001`, an hour), or the revoke acknowledgement.
 pub fn neuron_answer(recorded: &Recorded) -> Vec<u8> {
+    neuron_answer_for(recorded, "client-1")
+}
+
+/// [`neuron_answer`] with this consent URL `client_id`.
+pub fn neuron_answer_for(recorded: &Recorded, client_id: &str) -> Vec<u8> {
     let body = strict_json::parse(recorded.body.as_bytes()).unwrap();
     let text = |name: &str| match body.get(name) {
         Some(strict_json::Value::String(text)) => text.clone(),
@@ -220,7 +225,7 @@ pub fn neuron_answer(recorded: &Recorded) -> Vec<u8> {
     let path = recorded.head.split(' ').nth(1).unwrap_or_default();
     let json = match path.rsplit('/').next().unwrap_or_default() {
         "authorization" => format!(
-            "{{\"authorization_url\":\"https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=client-1\
+            "{{\"authorization_url\":\"https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id={client_id}\
              &redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state={}&code_challenge={}\
              &code_challenge_method=S256&scope={}\"}}",
             text("state"),

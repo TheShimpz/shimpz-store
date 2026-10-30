@@ -1,0 +1,691 @@
+[
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"zone.read"
+],
+"now": 6162231145,
+"lease": "l3.6vqhNsWAqdA.6162231146.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.CsnB8En3g8eiBlCtX4OnSyYmI8tSeFVXqvkmCkUTUH0"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.read",
+"dns.write",
+"zone.read"
+],
+"now": 7012529474,
+"lease": "l3.iGHzLyOHgok.7044151879.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.mNsPtwD20wAvQmrciz6qKrusLo0BbBKvfMR1v-6Ix5w"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"account.read"
+],
+"now": 8427981952,
+"lease": "l3.iGHzLyOHgok.8397210271.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.pPWfM97stKOe8T8Y.HM8VQtdkw1042_V8CUQvtDEIoQ.Kqzf7UiDMMqMfPksHGr6q2_ZmzF0NctokooGDtMXH6s"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"zone.read"
+],
+"now": 6375734609,
+"lease": "l3.6vqhNsWAqdA.6375734610.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.zdn7r5zRPoB_J9KMk_-6_59HdIgKQqlOjb7P7vMJSPY.PwF1PwPDGRDL9Lh3qfccZ0ER4aa6R9nYCBUWWN-KhHs"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.read",
+"dns.write",
+"dns.read"
+],
+"now": 8156351641,
+"lease": "l3.6vqhNsWAqdA.8187974040.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.uOPLVZR9Ei3eZLsZP1A3_wMwxIs8MYXsngoBOu1Vcl4.4En3a-DU3ecvXxQFdn9whTTuxkBhXh7LkXBHAK8dj-E"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write",
+"dns.read"
+],
+"now": 8636267808,
+"lease": "l3.6vqhNsWAqdA.8638628124.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.Ig7zohyEgujSb86MlJPtFlCHY5XdVEZVeuRDay8ROCY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": null,
+"now": 2123953336,
+"lease": "l3.6vqhNsWAqdA.2155575741.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.t7v9yMd9-qjxH1GcuRvDzdJqol_F7lvOQtOZq6Ah880.ka_e3cM8SBa8_Q4k4u6a4UmdHZK99cSAmDuZV8zyc7A"
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.write"
+],
+"now": 6608382846,
+"lease": "l3.iGHzLyOHgok.6640005245.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.t7v9yMd9-qjxH1GcuRvDzdJqol_F7lvOQtOZq6Ah880.ip9WEZo7JblOdOuTVJdVHIZSn_i7A6YUVlI5zLGPkM8"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 4792320250,
+"lease": "l3.6vqhNsWAqdA.4823942650.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrZdbys.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.gnkNqXZpakgVMOpzJ5JbU_o_CcXQ1GNI3XH85ZAdYP4"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"offline_access"
+],
+"now": 3422789593,
+"lease": "l3.6vqhNsWAqdA.3418431241.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.HPK12aEaJMfC١rIT95GU164fDddOQUNlExs3Ps22Pa8.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.ZZsuQM4TAHUIc7Dzy-f7A4gjhdtXjLm_tQ2nz7kcdbI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 6283759667,
+"lease": "l3.6vqhNsWAqdA.6295147141.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.FqUhDENvg4HeuqKF45x2B0df0N0m6z3b0sEL3HDAbKY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"dns.read",
+"dns.write",
+"account.read"
+],
+"now": 3419628153,
+"lease": "l3.6vqhNsWAqdA.3451250552.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.KVdw96vOkFneinP_r25dCnsWLqDOYcbYVRnbTw0pXa4.sJ5w8tm-ld9ztyTUpfs3ScIa4Kjo-oH1fTCD70cWM5E"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write"
+],
+"now": 1710348962,
+"lease": "l3.6vqhNsWAqdA.1741971361.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.KVdw96vOkFneinP_r25dCnsWLqDOYcbYVRnbTw0pXa4.4M6sZ2uVPT-lRrC5whzCKFoZld7vInZYi66I-y3rjbo"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"offline_access",
+"dns.write"
+],
+"now": 2819484986,
+"lease": "l3.6vqhNsWAqdA.2819484986.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdby١.B5dzc9CsfZfjw4cSNtMflwcc4cYHMpqVZ1UN81eqdok.GLIHCDbFUoGil_-aFtBU7iKEe9QbvxLfRRaAT5SQxgg"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read"
+],
+"now": 1818760528,
+"lease": "l3.6vqhNsWAqdA.1850382933.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBEZT4fZP1onQ.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.PQTxc0UseRrBDlzPyrHbd40Z6mzKnmA3RDt8HNLq6WI.Lls6b-4IX9vVjyqNd3cT4ijieG1uc0p3tsId5SsOCJY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write"
+],
+"now": 4553544564,
+"lease": "l3.6vqhNsWAqdA.4585166963.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.pPWfM97stKOe8T8YfHM8VQtdkw1042_V8CUQvtDEIoQ.Zbra0ckXuQhYJ4DNRifAv9pbzDM97SFpDH6bKeNc9VY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"dns.read",
+"dns.write"
+],
+"now": 6037116689,
+"lease": "l3.iGHzLyOHgok.6037116688.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.PQTxc0UseRrBDlzPyrHbd40Z6mzKnmA3RDt8HNLq6WI.gM2-mvQePhsnDkzKznZ-n0uD2FJv3doLxkbeCk6msYE"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.write",
+"dns.read"
+],
+"now": 5296296464,
+"lease": "l3.6vqhNsWAqdA.5327918869.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.eGnyLcc9j9SPfxy_0RaoN-BCKhZwB-SvaJej0DVHiis.GeKg-9so_JTc2kS9XQ6zPoYwTJ5YMPiosMbbMD_CXVU"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"account.read"
+],
+"now": 8349066550,
+"lease": "l3.6vqhNsWAqdA.8349066551.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.oPuX9E-HLirPjSnM8M0k9fMlhzLyFjSqcKXkPuFCI-w"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write"
+],
+"now": 6677441204,
+"lease": "l3.6vqhNsWAqdA.6706394242.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.9Fw_3ST_OVXdIrqn9YQ_VSGtUsgIqc2_ivO6AWjVHrk"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.read",
+"offline_access"
+],
+"now": 1278872954,
+"lease": "l3.6vqhNsWAqdA.1310495354.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.pPWfM97stKOe8T8YfHM8VQtdkw1042_V8CUQvtDEIoQ.ubCTI27sY8L-9tQ_b3APCcUSEmLJ-310EMJSZakOlks"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": null,
+"now": 1055798700,
+"lease": "l3.6vqhNsWAqdA.1087421099.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL5.YG2l-oQ9OowBElT4fZP1onQ.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.xtSbYu5ty1904OeNUuRJ2NJQMooMXsk5gikL6T5SgLI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": null,
+"now": 7318530650,
+"lease": "l3.iGHzLyOHgok.7318530649.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.H2PvniSRdI5L7ji8Yn5jwPoRyjuf7Yojm-3XNgerRS0.hCOvIJEGi6J8dPcGCRtCTAunk7H7Ihb9GUzGtbmhlhA"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write"
+],
+"now": 1120762901,
+"lease": "l3.6vqhNsWAqdA.1120762902.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.KVdw96vOkFneinP_r25dCnsWLqDOYcbYVRnbTw0pXa4.uQtFXjGSJ4fSbNUJiE6Jx6Jh-cqom3KuMcEbnIE09d8"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read",
+"account.read"
+],
+"now": 4739691425,
+"lease": "l3.6vqhNsWAqdA.4771313824.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.pPWfM97stKOe8T8YfHM8VQtdkw1042_V8CUQvtDEIoQ.NgnRduhHSmWVLcl4cgKbcEkJ208kKwFfcgndy9dqqlo"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": null,
+"now": 6844286862,
+"lease": "l3.iGHzLyOHgok.6844286862.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.pPWfM97stKOe8T8YfHM8VQtdkw1042_V8CUQvtDEIoQ.jtIrs7PdIOj-Rs6OuTgHWDlZfXFMFKemVRbX0ex0PXg"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": null,
+"now": 8933577090,
+"lease": "l3.6vqhNsWAqdA.8954526655.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.2Ul_eNWOlPc46SswmPoWpjozaMJKligor3nFmgKj63w"
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": null,
+"now": 2463026449,
+"lease": "l3.6vqhNsWAqdA.a463026448.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.Bc3ejuIl0ii2PSJ07-lyYWQcbsK2S--dgyXNQVEDMyo"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 8355610951,
+"lease": "l3.6vqhNsWAqdA.8315506219.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.B5dzc9CsfZfjw4cSNtMflwcc4cYHMpqVZ1UN81eqdok.pzT9KuiHVTSpFu719VgxZt4gDsKpJzgZu98Rc0JUpVI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access"
+],
+"now": 3150893342,
+"lease": "l3.6vqhNsWAqdA.3182515742.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.NJDx1bDjeG7y7YwBRsFoaZovi3ZjTrr1hXuD6BAYV9M.ILr0cdKfqwKKof9dRctL891PBYOalGDeNic4EOaxYKM"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read",
+"account.read"
+],
+"now": 6767486885,
+"lease": "l3.6vqhNsWAqdA.6799109284.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.uOPLVZR9Ei3eZLsZP1A3_wMwxIs8MYXsngoBOu1Vcl4.Sxuk1RhLIDtLMjV20cnz2pBtvK_wgGtsSJgntcp8Ti4"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"zone.read",
+"offline_access"
+],
+"now": 3031398558,
+"lease": "l3.6vqhNsWAqdA.3063020958.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.pPWfM97stKOe8T8YfHM8VQtdkw1042_V8CUQvtDEIoQ.7gTF5oEU5mVfR30FmZwsjxyP71LakgKb5Tn6_mkWlUE"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": null,
+"now": 5024617918,
+"lease": "l3.6vqhNsWAqdA.5024617918.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5m١.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.-MxKLGetxomx1Cfv5I5su6jm6nHEdh-hOUFxrglEGBs.0O05TKDZd8QYHwYb_nhvmGIe5EJWLiaF8i1JLilxgZY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 2461972998,
+"lease": "l3.iGHzLyOHgok.2461972997.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.t7v9yMd9-qjxH1GcuRvDzdJqol_F7lvOQtOZq6Ah880.qGjM3mCtu5HZXCDWlxh_4CJzKkOjpy3OU3xQ6xK3sKM"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 2495451005,
+"lease": "l3.6vqhNsWAqdA.2474688718.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.zdn7r5zRPoB_J9KMk_-6_59HdIgKQqlOjb7P7vMJSPY.pNASNyvmawm0WQ6yPG_YAe1fs1_oB8U9QlZ5B3b5U34"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": null,
+"now": 3316705457,
+"lease": "l3.6vqhNsWAqdA.3348327856.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.JqLBtWWL0aO-XwX-aMRGxEmgAnpkuLvLb8_APIblBtc"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": null,
+"now": 4692705369,
+"lease": "l3.6vqhNsWAqdA.4724327768.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.KVdw96vOkFneinP_r25dCnsWLqDOYcbYVRnbTw0pXa4.gtyg29yG7LKsKSAQe1C-VY-fAHJ3kIJDzTHLLxdtFlU"
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"dns.write"
+],
+"now": 1256047610,
+"lease": "l3.6vqhNsWAqdA.1287670015.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.H2PvniSRdI5L7ji8Yn5jwPoRyjuf7Yojm-3XNgerRS0._G9SvtjskZwEQ9qFCj2S0XV-guqHx2qXP0dkv_K6Ya4"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read",
+"dns.read"
+],
+"now": 6725668585,
+"lease": "l3.6vqhNsWAqdA.6757290984.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.eGnyLcc9j9SPfxy_0RaoN-BCKhZwB-SvaJej0DVHiis.NIvU3SElKziq4WN1pi0wr0nApEQ0NfQRyuTa9KSpWDI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"offline_access",
+"dns.write",
+"dns.read"
+],
+"now": 7152331946,
+"lease": "l3.6vqhNsWAqdA.7183954345.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.il0_ZxUnsYdc1tk5Rx24HiIsbi5rzDq7jgF8gG9KyBQ"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0001",
+"scopes": null,
+"now": 1469691126,
+"lease": "l3.iGHzLyOHgok.1501313531.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.j16KnYvYlcq_33SluIJ-L2864bYys=wWerNfH7aO5mo.zdn7r5zRPoB_J9KMk_-6_59HdIgKQqlOjb7P7vMJSPY.VuQMqXAI_teHxFq2agj7rqS4Gzf9ZqpkjCvVYa16aBA"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"offline_access"
+],
+"now": 4004287102,
+"lease": "l3.6vqhNsWAqdA.4035909502.HPK12aEaJAfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.bBlymBNLMPX6ha8F_xqQ4uwjwcC5koVCngvmfEApebk"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"zone.read"
+],
+"now": 3630079639,
+"lease": "l3.iGHzLyOHgok.3630079640.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22P-8.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.N8DWk7H_Uk5evbHj_tHa951yex6IdvHkOczecUUJIHQ"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"offline_access"
+],
+"now": 3971821506,
+"lease": "l3.6vqhNsWAqdA.4003443911.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.B5dzc9CsfZfjw4cSNtMflwcc4cYHMpqVZ1UN81eqdok.ggZ86OSBwXb0at0uKOn3VOfgGp0lexPQ03laD86y-9A"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write",
+"dns.read"
+],
+"now": 5443102886,
+"lease": "l3.6vqhNsWAqdA.5443102887.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.eGnyLcc9j9SPfxy_0RaoN-BCKhZwB-SvaJej0DVHiis.1VWjEFh1PSMmn9dqgN3FVTbBwQt34K3QzKRGrHA6HmY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read",
+"dns.read"
+],
+"now": 8443042775,
+"lease": "l3.6vqhNsWAqdA.8474665180.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.74TTZ-gVZTYk3oyfDz8N15PD2PD23EwB1v_4w985ehg"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": null,
+"now": 2032938929,
+"lease": "l3.6vqhNsWAqdA.2032938929.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.hiKf8eipibJ_HNQGH_0WVxon76fSI-_PY-8pj_ckwQI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.write"
+],
+"now": 7714138094,
+"lease": "l3.6vqhNsWAqdA.7745760494.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.-Mx.LGetxomx1Cfv5I5su6jm6nHEdh-hOUFxrglEGBs._E_Kiye0agufDR4HLIg7izTtIcxPbbo4mHfzsex_BnE"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "another-token-01",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+],
+"now": 2205773198,
+"lease": "l3.iGHzLyOHgok.2143314781.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.jUqR0b5VsS7kz71lhc_9Qfd9R5-G74GDA1LJQNfk8W8.8kLTteJdot-y_Tb7khhxAfLw5OHKgCsr6-TYwrn_QeY"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": null,
+"now": 5927802015,
+"lease": "l3.6vqhNsWAqdA.5959424420.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.8SXprHhwO0nM35QajFy7Dew-Uy-D-p_HmcLUoSawThg"
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+],
+"now": 5523004495,
+"lease": "l3.6vqhNsWAqdA.5554626894.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.0rICXcrofJSCJFwxqWO9yLqWKNQEjCG9sLWXCdQ5b3w.1kUBbGqdV0x-udX25gsWXpO0Z-8KZSdRgNTMXePUrTI"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "refresh-token-001",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.read"
+],
+"now": 8014662234,
+"lease": "l3.6vqhNsWAqdA.8046284634.DlljrBP4Pmya82EKsPjc8zA-jkMs27TqjcNmfrPdbys.4WRbABMU62zbrHeGwL59YG2l-oQ9OowBElT4fZP1onQ.uOPLVZR9Ei3eZLsZP1A3_wMwxIs8MYXsngoBOu1Vcl4._o9V_shfStFT3qWgpkvO9rlpIRnLvUrcnrGP141Xczw"
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "lease",
+"token": "access-token-0002",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read",
+"account.read"
+],
+"now": 5769813645,
+"lease": "l3.6vqhNsWAqdA.5801436050.HPK12aEaJMfCtrIT95GU164fDddOQUNlExs3Ps22Pa8.j16KnYvYlcq_33SluIJ-L2864bYyskwWerNfH7aO5mo.m7lH-Bj2XAxt-o4-RnR3maOCqFdL6FTvj-4q2szZwrI.qNj_YhMcyfzml20buS3sHMg-VdpsAdpaGNBa-n8QJcY"
+},
+"python": "refuse"
+}
+]

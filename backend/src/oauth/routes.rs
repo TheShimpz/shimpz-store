@@ -201,7 +201,8 @@ impl Oauth {
 }
 
 /// The query's values for exactly these names, each once, in this order.
-fn exact_query(query: Option<&str>, names: &[&str]) -> Option<Vec<String>> {
+#[must_use]
+pub fn exact_query(query: Option<&str>, names: &[&str]) -> Option<Vec<String>> {
     let pairs = parse_qsl(query.unwrap_or_default(), false, None).ok()?;
     let mut values = Vec::with_capacity(names.len());
     for name in names {

@@ -1,0 +1,695 @@
+[
+{
+"case": {
+"domain": "client_key",
+"peer": "::1",
+"forwarded": [],
+"proxies": null
+},
+"python": "[[],\"::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "fe80::1",
+"forwarded": [
+"::ffff:10.0.0.9",
+"192.0.2.7"
+],
+"proxies": "192.0.2.7/32,0.0.0.0/0"
+},
+"python": "[[\"192.0.2.7/32\",\"0.0.0.0/0\"],\"fe80::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "fe80::1",
+"forwarded": [
+"::1.2.3.4"
+],
+"proxies": "10.0.0.0/024"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+"2001:DB8:0:0:8:800:200C:417A"
+],
+"proxies": "::1.2.3.4/128,192.0.2.7/32"
+},
+"python": "[[\"::102:304/128\",\"192.0.2.7/32\"],\"10.0.0.255\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"192.0.2.7"
+],
+"proxies": "::/0"
+},
+"python": "[[\"::/0\"],\"10.0.0.9\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [],
+"proxies": "0.0.0.0/0,1::2:3:4:5:6:7/128"
+},
+"python": "[[\"0.0.0.0/0\",\"1:0:2:3:4:5:6:7/128\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "203.0.113.5",
+"forwarded": [
+"10.0.0.2"
+],
+"proxies": "2001:db8::/32,0.0.0.0/0"
+},
+"python": "[[\"2001:db8::/32\",\"0.0.0.0/0\"],\"10.0.0.2\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"é"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+"2001:db8::1%1"
+],
+"proxies": "10.0.0.0/24"
+},
+"python": "[[\"10.0.0.0/24\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8::1",
+"forwarded": [
+"0.0.0.0",
+"2001:db8::g"
+],
+"proxies": "2001:db8::/32"
+},
+"python": "[[\"2001:db8::/32\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [
+"10.0.0.2",
+"1::2:3:4:5:6:7"
+],
+"proxies": "10.0.0.0/33"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "0.0.0.0",
+"forwarded": [
+"::ffff:203.0.113.5"
+],
+"proxies": "::1.2.3.4/128"
+},
+"python": "[[\"::102:304/128\"],\"0.0.0.0\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+"10.0.0.255"
+],
+"proxies": null
+},
+"python": "[[],\"203.0.113.5\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::1",
+"forwarded": [
+"::1"
+],
+"proxies": null
+},
+"python": "[[],\"::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "255.255.255.255",
+"forwarded": [],
+"proxies": "10.0.0.0/24,192.0.2.7/32"
+},
+"python": "[[\"10.0.0.0/24\",\"192.0.2.7/32\"],\"255.255.255.255\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "0.0.0.0",
+"forwarded": [
+"1.2.3.4 "
+],
+"proxies": "0.0.0.0/0,10.0.0.0/8"
+},
+"python": "[[\"0.0.0.0/0\",\"10.0.0.0/8\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+"fe80::1%eth0"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+"::1:2:3:4:5:6:7:8"
+],
+"proxies": null
+},
+"python": "[[],\"10.0.0.255\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "203.0.113.5",
+"forwarded": [
+"203.0.113.5, 198.51.100.1"
+],
+"proxies": "tunnel"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8::1",
+"forwarded": [
+"2001:DB8:0:0:8:800:200C:417A",
+"192.0.2.7"
+],
+"proxies": "1::2:3:4:5:6:7/128,10.0.0.0/24"
+},
+"python": "[[\"1:0:2:3:4:5:6:7/128\",\"10.0.0.0/24\"],\"2001:db8::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.2",
+"forwarded": [
+"1:2:3:4:5:6:7::"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"1:2:3:4::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1:2:3:4:5:6:7::",
+"forwarded": [
+"203.0.113.5, 198.51.100.1"
+],
+"proxies": "::/0"
+},
+"python": "[[\"::/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+"fe80::1%eth0"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "0.0.0.0",
+"forwarded": [
+"10.0.0.255"
+],
+"proxies": "010.0.0.0/8,10.0.0.1/24"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "192.0.2.7",
+"forwarded": [
+"2001:db8::g",
+"10.0.0.255"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::1.2.3.4",
+"forwarded": [],
+"proxies": "::/0"
+},
+"python": "[[\"::/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:DB8:0:0:8:800:200C:417A",
+"forwarded": [
+"fe80::1"
+],
+"proxies": "192.0.2.7/32"
+},
+"python": "[[\"192.0.2.7/32\"],\"2001:db8::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::1.2.3.4",
+"forwarded": [
+"0x7f.0.0.1"
+],
+"proxies": "::1.2.3.4/128,10.0.0.0/24"
+},
+"python": "[[\"::102:304/128\",\"10.0.0.0/24\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"2001:db8::1"
+],
+"proxies": null
+},
+"python": "[[],\"10.0.0.9\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "192.0.2.7",
+"forwarded": [
+"fe80::1%eth0"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+"é"
+],
+"proxies": "::ffff:10.0.0.0/120"
+},
+"python": "[[\"::ffff:10.0.0.0/120\"],\"203.0.113.5\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "203.0.113.5",
+"forwarded": [
+"1.2.3.4 "
+],
+"proxies": null
+},
+"python": "[[],\"203.0.113.5\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::",
+"forwarded": [
+"::1.2.3.4"
+],
+"proxies": null
+},
+"python": "[[],\"::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+"2001:db8:1:2:3:4:5:6"
+],
+"proxies": "fe80::%eth0/64,2001:db8::/32"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::",
+"forwarded": [
+"fe80::1%eth0",
+"2001:DB8:0:0:8:800:200C:417A"
+],
+"proxies": "10.0.0.0/8,10.0.0.1/24"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [
+"10.0.0.2",
+"é"
+],
+"proxies": "1::2:3:4:5:6:7/128,::/0"
+},
+"python": "[[\"1:0:2:3:4:5:6:7/128\",\"::/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [
+"10.0.0.2"
+],
+"proxies": "1::2:3:4:5:6:7/128"
+},
+"python": "[[\"1:0:2:3:4:5:6:7/128\"],\"10.0.0.2\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "0.0.0.0",
+"forwarded": [
+" 203.0.113.5"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "203.0.113.5",
+"forwarded": [
+"2001:db8::1%1"
+],
+"proxies": "2001:db8::/32,0.0.0.0/0"
+},
+"python": "[[\"2001:db8::/32\",\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8::1",
+"forwarded": [
+"203.0.113.05",
+"2001:db8:1:2:3:4:5:6"
+],
+"proxies": null
+},
+"python": "[[],\"2001:db8::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::1.2.3.4",
+"forwarded": [
+"2001:db8::1%1",
+"::ffff:10.0.0.9"
+],
+"proxies": "010.0.0.0/8,::/0"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [],
+"proxies": "::ffff:10.0.0.0/120"
+},
+"python": "[[\"::ffff:10.0.0.0/120\"],\"1:0:2:3::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.255",
+"forwarded": [
+""
+],
+"proxies": null
+},
+"python": "[[],\"10.0.0.255\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::",
+"forwarded": [],
+"proxies": "10.0.0.0/24,192.0.2.7/32"
+},
+"python": "[[\"10.0.0.0/24\",\"192.0.2.7/32\"],\"::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:DB8:0:0:8:800:200C:417A",
+"forwarded": [
+"fe80::1"
+],
+"proxies": "::/0,2001:DB8::/32"
+},
+"python": "[[\"::/0\",\"2001:db8::/32\"],\"fe80::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"203.0.113.5",
+"255.255.255.255"
+],
+"proxies": "10.0.0.0/8,0.0.0.0/0"
+},
+"python": "[[\"10.0.0.0/8\",\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8::1",
+"forwarded": [
+"1.2.3.4.5"
+],
+"proxies": "1:2:3:4:5:6:7::/128,2001:db8::/32"
+},
+"python": "[[\"1:2:3:4:5:6:7:0/128\",\"2001:db8::/32\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+"fe80::1%eth0"
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [],
+"proxies": "2001:db8::/32,fe80::%eth0/64"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1::2:3:4:5:6:7",
+"forwarded": [],
+"proxies": "::/0"
+},
+"python": "[[\"::/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "192.0.2.7",
+"forwarded": [
+"::1"
+],
+"proxies": null
+},
+"python": "[[],\"192.0.2.7\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"::ffff:10.0.0.9"
+],
+"proxies": "10.0.0.1/24"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "1:2:3:4:5:6:7::",
+"forwarded": [],
+"proxies": null
+},
+"python": "[[],\"1:2:3:4::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:10.0.0.9",
+"forwarded": [
+"192.0.2.7"
+],
+"proxies": null
+},
+"python": "[[],\"10.0.0.9\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "192.0.2.7",
+"forwarded": [
+"fe80::1%eth0"
+],
+"proxies": "::1.2.3.4/128,0.0.0.0/0"
+},
+"python": "[[\"::102:304/128\",\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::",
+"forwarded": [
+"1:2:3:4:5:6:7::"
+],
+"proxies": "::/0"
+},
+"python": "[[\"::/0\"],\"1:2:3:4::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "fe80::1",
+"forwarded": [
+"1::2:3:4:5:6:7"
+],
+"proxies": "10.0.0.0/33"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8:1:2:3:4:5:6",
+"forwarded": [
+"1.2.3.4 "
+],
+"proxies": null
+},
+"python": "[[],\"2001:db8:1:2::/64\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "2001:db8::1",
+"forwarded": [
+"1::2:3:4:5:6:7"
+],
+"proxies": "10.0.0.1/24"
+},
+"python": "[\"refuse\",null]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+"1:2:3:4:5:6:7::",
+"203.0.113.5 "
+],
+"proxies": "::/0,1:2:3:4:5:6:7::/128"
+},
+"python": "[[\"::/0\",\"1:2:3:4:5:6:7:0/128\"],\"203.0.113.5\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "10.0.0.2",
+"forwarded": [],
+"proxies": "10.0.0.0/24"
+},
+"python": "[[\"10.0.0.0/24\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "::ffff:203.0.113.5",
+"forwarded": [
+""
+],
+"proxies": "0.0.0.0/0"
+},
+"python": "[[\"0.0.0.0/0\"],\"refuse\"]"
+},
+{
+"case": {
+"domain": "client_key",
+"peer": "192.0.2.7",
+"forwarded": [
+"2001:db8::1%1"
+],
+"proxies": "0.0.0.0/0,::1.2.3.4/128"
+},
+"python": "[[\"0.0.0.0/0\",\"::102:304/128\"],\"refuse\"]"
+}
+]

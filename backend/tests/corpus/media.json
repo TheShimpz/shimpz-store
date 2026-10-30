@@ -1,0 +1,74 @@
+[
+{
+"case": {
+"domain": "media",
+"name": "h.xml",
+"mtime_ns": -4377993140518183627,
+"size": 0
+},
+"python": "[\"text/xml; charset=utf-8\",\"\\\"-3cc1c190d1aee2cb-0\\\"\",null]"
+},
+{
+"case": {
+"domain": "media",
+"name": "noext.",
+"mtime_ns": 0,
+"size": 15
+},
+"python": "[\"application/octet-stream\",\"\\\"0-f\\\"\",\"Thu, 01 Jan 1970 00:00:00 GMT\"]"
+},
+{
+"case": {
+"domain": "media",
+"name": "a.",
+"mtime_ns": 1700000000999999999,
+"size": 1
+},
+"python": "[\"application/octet-stream\",\"\\\"17979cfe71c4c9ff-1\\\"\",\"Tue, 14 Nov 2023 22:13:20 GMT\"]"
+},
+{
+"case": {
+"domain": "media",
+"name": "a.Js",
+"mtime_ns": 1700000000999999999,
+"size": 1
+},
+"python": "[\"text/javascript; charset=utf-8\",\"\\\"17979cfe71c4c9ff-1\\\"\",\"Tue, 14 Nov 2023 22:13:20 GMT\"]"
+},
+{
+"case": {
+"domain": "media",
+"name": "g.txt",
+"mtime_ns": -2404775703943974084,
+"size": 1
+},
+"python": "[\"text/plain; charset=utf-8\",\"\\\"-215f7ac2fe120cc4-1\\\"\",null]"
+},
+{
+"case": {
+"domain": "media",
+"name": "h.xml",
+"mtime_ns": 1700000000999999999,
+"size": 1
+},
+"python": "[\"text/xml; charset=utf-8\",\"\\\"17979cfe71c4c9ff-1\\\"\",\"Tue, 14 Nov 2023 22:13:20 GMT\"]"
+},
+{
+"case": {
+"domain": "media",
+"name": "..",
+"mtime_ns": -1000000000,
+"size": 0
+},
+"python": "[\"application/octet-stream\",\"\\\"-3b9aca00-0\\\"\",null]"
+},
+{
+"case": {
+"domain": "media",
+"name": "c.js",
+"mtime_ns": -1,
+"size": 15
+},
+"python": "[\"text/javascript; charset=utf-8\",\"\\\"-1-f\\\"\",null]"
+}
+]

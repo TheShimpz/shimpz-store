@@ -1,0 +1,1092 @@
+[
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=3UB_64DYlV3MkfNuFQsTDxPNgEMHp8-CBHW4TV 2MTSq&response_type=code&client_id=13698aae&code_challenge_method=S256&code_challenge=GU-Nud8hpav1XQfzjfwgCvUwZxQ_nh2U5QjZ972WkW2&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.write",
+"state": "3UB_64DYlV3MkfNuFQsTDxPNgEMHp8-CBHW4TV2MTSq",
+"challenge": "GU-Nud8hpav1XQfzjfwgCvUwZxQ_nh2U5QjZ972WkW2",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=ZG0e9Zih7-Nes3C97csZNZ2LtFrUfMMQVIMve45cwfU&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=offline_access&code_challenge=j4Irc0q8Z_wVyjteaviQ9WN5faALQqKMg78jBvOBwIv&code_challenge_method=S256&client_id=abc381",
+"state": "ZG0e9Zih7-Nes3C97csZNZ2LtFrUfMMQVIMve45cwfU",
+"challenge": "j4Irc0q8Z_wVyjteaviQ9WN5faALQqKMg78jBvOBwIv",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/o9uth2/auth?_lient_id=73-5-bdc8614&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+dns.write+offline_access+zone.read&code_challenge=uUgISzRiAxiOjYfH9NG2MbG,qrSTyKxBXVeBtmmvybpZ&response_type=code&state=aaT-yA3Ff036YQt2LobufPHBKFnydBzShML3wfwl-u4",
+"state": "aaT-yA3Ff036YQt2LobufPHBKFnydBzShML3wfwl-u4",
+"challenge": "uUgISzRiAxiOjYfH9NG2MbGqrSTyKxBXVeBtmmvybpZ",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=4f026880ffec&scope=dns.read+offline_access+zone.read&code_challenge_method=S256&state=LiEnlJBWFJTJkXJthud6EB_Kc6Dtwbi93UtHG7JeO85&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=fOZsnW0lUnPV4bFDDVC28xIxopZWlodXPQ9qtKcCEZL",
+"state": "LiEnlJBWFJTJkXJthud6EB_Kc6Dtwbi93UtHG7JeO85",
+"challenge": "fOZsnW0lUnPV4bFDDVC28xIxopZWlodXPQ9qtKcCEZL",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read+zone.read&code_challenge=NCYFw2A2x4d0oGAvajKhiAXTpVmpq8v9sLpmzYM9JL5&client_id=d&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&code_challenge_method=S256&state=NOSval@g4mK-S1UEiWgp9F3F3R0jBKEIq41zFKxjvfoy",
+"state": "NOSvalg4mK-S1UEiWgp9F3F3R0jBKEIq41zFKxjvfoy",
+"challenge": "NCYFw2A2x4d0oGAvajKhiAXTpVmpq8v9sLpmzYM9JL5",
+"scopes": [
+"dns.read",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=zyuiVJrTVy-9zrnMQX6z4qetWeFe6CDsndi6Le7GR_&client_id=59c9a85--4d&code_challenge=VdVKhBvbLxCetnjcKYoHoNSS-i1rPhgBrMN6uzxyWZX&code_challenge_method=S256&response_type=code&scope=dns.read+dns.write+offline_access+zone.read",
+"state": "zyuiVJrTVy-9zrnMQX6z4qetWeFe6CDsndi6Le7GR_v",
+"challenge": "VdVKhBvbLxCetnjcKYoHoNSS-i1rPhgBrMN6uzxyWZX",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write",
+"dns.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=9&scope=dns.read+dns.write+offline_access+zone.read&state=TjUMAKkmYsAcgRo4eZDcKIVewtcDSXsJMcaTP--KZ9d&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge_method=S256&code_challenge=H2RArF2URUExRTDNmSNWJAJU0O4XqVRluQgXgUZAn&response_type=code&client_id=9",
+"state": "TjUMAKkmYsAcgRo4eZDcKIVewtcDSXsJMcaTP--KZMd",
+"challenge": "H2RArF2URUExRTDNmSNWJAJU0O4XqVRlUuQgXgUZAny",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&code_challenge=HzsmUbHYQne1kuHTOUXKLbbwoKRe5QuuhE70jNuBzSQ&state=87tKP548JULBYkObp8YscIu7xSbgkwUWgm7BqvwwpB1&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge_method=S256&scope=dns.read+dns.write+offline_access+zone.read&client(_id=700191be0c",
+"state": "87tKP548JULBYkObp8YscIu7xSbgkwUWgm7BqvwwpB1",
+"challenge": "HzsmUbHYQne1kuHTOUXKLbbwoKRe5QuuhE70jNuBzSQ",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&state=E7fEThrmW3lv7aOuJnPsBWUmhQV9D7GktaJrKkPgC7z&code_challenge=Tp6aZ7SsgiI0BpLYrKI7pCv9J7K5wKlNFlr-YjRY6CP&client_id=07-3c5d9-e7bc14&code_challenge_method=S256&scope=offline_access&redirect_uri=https://s,himpz.com/api/oauth/cloudflare/callback",
+"state": "E7fEThrmW3lv7aOuJnPsBWUmhQV9D7GktaJrKkPgC7z",
+"challenge": "Tp6aZ7SsgiI0BpLYrKI7pCv9J7K5wKlNFlr-YjRY6CP",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+dns.write+offline_access+zone.read&state=HcPOEslKN-P9BbzD5Sc5jxED5pxQmYIiDEyCkinVaS6&code_challenge=TJrN3Pao_fqZipsY6boyRkR3Mftj4UOxBSbDjDwQNIt&client_id=b6b05a3fd3ea&code_challenge_method=S256",
+"state": "HcPOEslKN-P9BbzD5Sc5jxED5pxQmYIiDEyCkinVaS6",
+"challenge": "TJrN3Pao_fqZipsY6boyRkR3Mftj4UOxBSbDjDwQNIt",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=_WpYao3D_eNxsH7yhjV69YNAh4lfA94DYJzD00cLMRE&client_id=695d6c&scope=dns.read+dns.write+zone.read&response_type=code&state=xpYVF75CjrG0okHbLsANfSJRt_ygg7QAOQT0KBXKbbR&code_challenge_method=S256",
+"state": "xpYVF75CjrG0okHbLsANfSJRt_ygg7QAOQT0KBXKbbR",
+"challenge": "_WpYao3D_eNxsH7yhjV69YNAh4lfA94DYJzD00cLMRE",
+"scopes": [
+"dns.read",
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2,/authcode_challenge=aaVuzkMIR-23Pwk5yggpj3UDWpDPjPgDVuHwiTigUw1&code_challenge_method=S256&client_id=44ae-6a&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&state=vFFwE4fMb-wQZnIJXJgyVaLj46rLYPvXQxxS1esjs1M",
+"state": "vFFwE4fMb-wQZnIJXJgyVaLj46rLYPvXQxxS1esjs1M",
+"challenge": "aaVuzkMIR-23Pwk5yggpj3UDWpDPjPgDVuHwiTigUw1",
+"scopes": [
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=OZZ5IM9SuyO4xZurcvOx_L1zSls8RIv_PvFJ9kWZmFS&client_id=client-1&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=L1pKEtuLizplayMhDOS9UqwIlHbkaQg0MhJ9siakESu&response_type=code&scope=dns.write&response_type=code",
+"state": "L1pKEtuLizplayMhDOS9UqwIlHbkaQg0MhJ9siakESu",
+"challenge": "OZZ5IM9SuyO4xZurcvOx_L1zSls8RIv_PvFJ9kWZmFS",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&code_challenge_method=S256&scope=dns.read+zone.read&state=TSmessjWWey_J630415TvyGbaNYDUegjwR3khB10if1&code_challenge=GQmpxLq5yT5vz6ecBWZsLaAv-OawNy7VG3nteYH2RUO&client_id=1db",
+"state": "TSmessjWWey_J630415TvyGbaNYDUegjwR3khB13if1",
+"challenge": "GQmpxLq5yT5vz6ecBWZsLaAv-OawNy7VG3nteYH2RUO",
+"scopes": [
+"zone.read",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=zone.read&code_challenge=xrS4c5xsRUR39Imdb8Gst3rNPa0armWm_LfEbNW1-Vf&response_type=code&state=ppUwaVzhwPexL-ZxK4HKPRwDVL9UqGPvXdpJYwLHm2G&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=6495c696fc&code_challenge_method=S256",
+"state": "ppUwaVzhwPexL-ZxK4HKPRwDVL9UqGPvXdpJYwLHm2G",
+"challenge": "xrS4c5xsRUR39Imdb8Gst3rNPa0armWm_LfEbNW1-Vf",
+"scopes": [
+"zone.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&clientid=3e74a0a4d0ef4a&code_challenge=0yvIpZ22cQwxGcw5ezyqwbD00J_lneGMW35XvlUze-T&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=offline_access&code_challenge_method=S256&state=Ng4muRVIiY8_JSPfB-32jtsOE18p1PU-OMXbwsEDQU-",
+"state": "Ng4muRVIiY8_JSPfB-32jtsOE18p1PU-OMXbwsEDQU-",
+"challenge": "0yvIpZ22cQwxGcw5ezyqwbD00J_lneGMW35XvlUze-T",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cl\\udflare.com/oauth2/auth?client_id=d54a3623e8979&state=6pmgkdb7jBVWG3R7481r36TP0GXsO-R-Cv7mT8bwrpL&scope=dns.write+offline_access&redirect_uri=https://shimpz.com/api/oauth/cloudflare callback&code_challenge_method=S256&code_hallenge=wFOHaV9hWF_oDq2wpLSzug0Zc6PV8wf2_shcYe0KOCw&response_type=code",
+"state": "6pmgkdb7jBVWG3R7481r36TP0GXsO-R-Cv7mT8bwrpL",
+"challenge": "wFOHaV9hWF_oDq2wpLSzug0Zc6PV8wf2_shcYe0KOCw",
+"scopes": [
+"dns.write",
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&scope=dns.write&code_challenge_method=S256&cod_challenge=gDT0bBTwH03cc5JusOFEAP77kzbi.OfT1qfokzogtY7&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=3b0bf913&state=T3KBfKhghePukazC3yCTuCVm-04Yjw_lTQWezNr.XdC",
+"state": "T3KBfKhghePukazC3yCTuCVm-04Yjw_lTQWezNrEXdC",
+"challenge": "gDT0bBTwH03cc5JusOFEAP77kzbiKOfT1qfokzogtY7",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash\".cloudflare.com/oauth2/auth?scope=offline_access+zone.read&client_id=-b9-&code_challenge=d6XmWv7ycBXhy_lTrFCd1wWIUuB4j-3GMeOW6e0gvGj&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge_method=S256&state=mAPv0P4bYUJqIwSqSfa04HTqRgGTg4YXsX0vgwnBwBH",
+"state": "mAPv0P4bYUJqIwSqSfa04HTqRgGTg4YXsX0vgwnBwBH",
+"challenge": "d6XmWv7ycBXhy_lTrFCd1wWIUuB4j-3GMeOW6e0gvGj",
+"scopes": [
+"zone.read",
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=mT6OwHKAk5ZMmoGrTGJMk7lFY5Xp_u21zaI33kbeEk7&code_challenge=r_urMTzUvjqL3Ru2aQZZ9JQLyZp6Opcz_JOda9TTxs7&scope=dns.write+offline_access+zone.read&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=2a3d-&response_type=code&code_challenge_method=S256",
+"state": "mT6OwHKAk5ZMmoGrTGJMk7lFY5Xp_u21zaI33kbeEk7",
+"challenge": "r_urMTzUvjqL3Ru2aQZZ9JQLyZp6Opcz_JOda9TTxs7",
+"scopes": [
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.wrte+ffline_access+zone.read&state=wYDbMaQhTRXCRctlvpOOoPiqlJI5ObUXqqmIxp8Wuzb&client_id=d035-0a89dbd028a&response_type=code&code_challenge=3ORhOvJnmue4K0X0Ozs6-2qWvaKG_CnwCO2ii5Hv48A&code_challenge_methodS256",
+"state": "wYDbMaQhTRXCRctlvpOOoPiqlJI5ObUXqqmIxp8Wuzb",
+"challenge": "3ORhOvJnmue4K0X0Ozs6-2qWvaKG_CnwCO2ii5Hv48A",
+"scopes": [
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=gnPK8gdiGHmfyBbrWf9UkoYVM__LAlmjryxLxEn3m-G&client_id=322480-02e8&response_type=code&scope=dns.read+offline_access+zone.read&code_challenge=g8XwLdnCyrDBuJ9GkbF2mGrpk6MlXH_rw4ON2ERqEA1",
+"state": "gnPK8gdiGHmfyBbrWf9UkoYVM__LAlmjryxLxEn3m-G",
+"challenge": "g8XwLdnCyrDBuJ9GkbF2mGrpk6MlXH_rw4ON2ERqEA1",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=csEWQUDxjtDUfx-Wo9zY1ILze6MYYOoZrBVcq2_xTKw&code_challenge`method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=lhGAyToicGAGbZvjmqXAJcNxjAl7fFB4Zn4RNWRbgko&response_type=code&scope=dns.write&client_id=786--ad62bac40ddbbb",
+"state": "lhGAyToicGAGbZvjmqXAJcNxjAl7fFB4Zn4RNWRbgko",
+"challenge": "csEWQUDxjtDUfx-Wo9zY1ILze6MYYOoZrBVcq2_xTKw",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read+offline_access&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&state=VM0a3fG3EVPASHa4KkU0dPpOaz10zzmh-gqZ3uIDvKf&code_challenge_method=S256&client_id=005fcdf&code_challenge=7_oJjYMy2ySvubG_RHwpC51AS8e2d7J2EPsopVYJJz2",
+"state": "VM0a3fG3EVPASHa4KkU0dPpOaz10zzmh-gqZ3uIDvKf",
+"challenge": "7_oJjYMy2ySvubG_RHwpC51AS8e2d7J2EPsopVYJJz2",
+"scopes": [
+"dns.read",
+"offline_access",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=4rrYjhGss7fF7ev-feC5Krra6B5jlExNKvPpXaUGDO_&client_id(=6fd723e-0e952&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=BsHn32pnwx519dZhUKHyAzuEdqKKab37_Lx3hyv_LzK&scope=dns.read+zone.read&code_challenge_method=S256&response_type=code",
+"state": "4rrYjhGss7fF7ev-feC5Krra6B5jlExNKvPpXaUGDO_",
+"challenge": "BsHn32pnwx519dZhUKHyAzuEdqKKab37_Lx3hyv_LzK",
+"scopes": [
+"dns.read",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cl\\udflare.com/oauth2/auth?code_challenge=sYP5OfZZJZEeK8pHl7NZvEoE-IPiQLAzYfnOgEejyml&code_challenge_method=S256&client_id=f903766-11efec&state=FWaMcF5yGd5HJHD8O0Swl83YePFkN_LlWPj_BDl5\tso&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&clint_id=f903766-11efec",
+"state": "FWaMcF5yGd5HJHD8O0Swl83YePFkN_LlWPj_BDl5bso",
+"challenge": "sYP5OfZZJZEeK8pHl7NZvEoE-IPiQLAzYfnOgEejyml",
+"scopes": [
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=87hAO4NVk7cW-JNEzlaGjkdwRMiUJ24ZxARKOcGddw0&code_challenge=ajdKzwJ7lNnmUEeykmiEe6GRVCZ7uBtroHTEUmcZ1wj&code_challenge_method=S256&scope=offline_access&response_type=code&client_id=5%fd-ce0c",
+"state": "87hAO4NVk7cW-JNEzlaGjkdwRMiUJ24ZxARKOcGddw0",
+"challenge": "ajdKzwJ7lNnmUEeykmiEe6GRVCZ7uBtroHTEUmcZ1wj",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=-0a7b-3bf57&code_challenge=VbbDjyWuuq0hSdgrDj1vmQ8RiEfGkE_z7aTpeGZHoZD&state=dDhxQap6GWUOkDDssWdwe8Wy8Z6A16FkxLWS-SgUsOG&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+dns.write+offline_access+zone.read&code_challenge_method=S256&response_type=code",
+"state": "dDhxQap6GWUOkDDssWdwe8Wy8Z6A16FkxLWS-SgUsOG",
+"challenge": "VbbDjyWuuq0hSdgrDj1vmQ8RiEfGkE_z7aTpeGZHoZD",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=dYIK_f72bjc-5W_ewxWSqvoEmL8p95Q4t2P04He7oDzA&response_type=code&code_challenge_method=S256&scope=dns.read+dns.write+offline_access+zone.read&client_id=5964491d0-2b49dd1&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "dYIK_f72bjc-5W_ewxWSqvoEmL8p95Q4t2P04He7oDz",
+"challenge": "l-hYsV77XN_UUyacl8VP8pHjOebcHo41NBrTMqe-tqh",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&code_ch^llenge=v63RnfZsG7RmBuULmW477rODpgqHbtzJSCOwieoRsHJ&client_idclient-1&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=2nZj56_Usgr4lwlSa9w8Fp-FsP1RVhMUmZhnO-PF3yu&scope=dns.write+zone.read",
+"state": "2nZj56_Usgr4lwlSa9w8Fp-FsP1RVhMUmZhnO-PF3yu",
+"challenge": "v63RnfZsG7RmBuULmW477rODpgqHbtzJSCOwieoRsHJ",
+"scopes": [
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=Ow-bvTqTtU7QN11bIdkGVVaW548kpKPFk7s0PuHcWwG&client_id=22e2-8a&state=DPucn-mQd-9_1oDSECOlMXXRnMDlSC3OIpuimTH_mXv&code_challenge_method=S256&scope=dns.write+zone.read",
+"state": "DPucn-mQd-9_1oDSECOlMXXRnMDlSC3OIpuimTH_mXv",
+"challenge": "Ow-bvTqTtU7QN11bIdkGVVaW548kpKPFk7s0PuHcWwG",
+"scopes": [
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=adtJhql1QW-lB5l7ETEloEwXlYMmExTAFELr_gb1Ofp&scope=dns.read+offline_access+zone.read&code_challenge_method=S256&response_type=code&client_id=b&code_challenge=ARDrAqCN9gKU5O1qVq7mY98QXOJOAL5QTgosqkjvhAr&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code",
+"state": "adtJhql1QW-lB5l7ETEloEwXlYMmExTAFELr_gb1Ofp",
+"challenge": "ARDrAqCN9gKU5O1qVq7mY98QXOJOAL5QTgosqkjvhAr",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflarecallback&response_type=code&code_challenge_method=S256&state=Hrb-éCNy6fH4pl3p6l-irCH7Fc1KPF3cTe_shlIoXr7O&client_id=c0&scope=offline_access+zone.read&code_challenge=ZDvIIEQDqIusLcKypZv0VjWEJhHmrQAGbCmyflF9dmI",
+"state": "Hrb-CNy6fH4pl3p6l-irCH7Fc1KPF3cTe_shlIoXr7O",
+"challenge": "ZDvIIEQDqIusLcKypZv0VjWEJhHmrQAGbCmyflF9dmI",
+"scopes": [
+"offline_access",
+"zone.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=7vVwXO0jHLVUHs5sg7gCjgHwHeDuWtQL1CyQylLmaDk&state=uLzyJQ-sUAPqD_AptFRE51O-sqLdvTmTiBAQimSq42z&client_id=-b742ecddd6df-7&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+offline_access+zone.read&code_challenge_method=S256&response_type=code",
+"state": "uLzyJQ-sUAPqD_AptFRE51O-sqLdvTmTiBAQimSq42z",
+"challenge": "7vVwXO0jHLVUHs5sg7gCjgHwHeDuWtQL1CyQylLmaDk",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&clin]_id=a056c-2c19b00f-360&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=cT-Cttrp_DQT_Y8xrp1T4FCgL0ELXvbZpMEjSIplP3d&scope=dns.write+zone.read&response_type=code&state=liMoHW2CY2kFvZR_nDX1fhfnsoD0hu43IdZYUGYS0dG",
+"state": "liMoHW2CY2kFvZR_nDX1fhfnsoD0hu43IdZYUGYS0dG",
+"challenge": "cT-Cttrp_DQT_Y8xrp1T4FCgL0ELXvbZpMEjSIplP3d",
+"scopes": [
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cl\\udflare.com/oauth2/auth?code_challenge=mAnq7o6EsGhmyJwzB-1vy8Tl-0jc_Ovh7U3NrUTRsgf&client_id=c&state=ajzXAgzMYGuFPJN18SAYCCM6YGZ6Y65UOepQSJLOIH9&redirect_uri=https://sh=mpz.com/api/o,auth/cloudflare/callback&response_type=code&code_challenge_method=S256&scope=dns.read+dns.write+offline_access+zone.read",
+"state": "ajzXAgzMYGuFPJN18SAYCCM6YGZ6Y65UOepQSJLOIH9",
+"challenge": "mAnq7o6EsGhmyJwzB-1vy8Tl-0jc_Ovh7U3NrUTRsgf",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&scope=dns.write+offline_access+zone.read&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=v3eO1x6T2ksO5wwq3Srsr58SGkugA-UqzaC8rPXsr9V&response_type=code&code_chalenge=GIebQAhm25B768AqJaz5s9HMzC4REK1z_Wbjh9OCriG&client_id=d4bbe3e8ff5c",
+"state": "v3eO1x6T2ksO5wwq3Srsr58SGkugA-UqzaC8rPXsr9V",
+"challenge": "GIebQAhm25B768AqJaz5s9HMzC4REK1z_Wbjh9OCriG",
+"scopes": [
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=6_bRSP7Ah__V8SJHhraqCzY7z50A_502dM1CUoEGsc8&client_id=100c49&scope=dns.read+dns.write+offline_access+zone.read&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=xCeFVyGRgiZIZntCWST3E8uv9B15_MKJuQ9UQzkJNUF&code_challenge_method=S256&response_type=code&scope=dns.read+dns.write+offline_access+zone.read&x=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+"state": "xCeFVyGRgiZIZntCWST3E8uv9B15_MKJuQ9UQzkJNUF",
+"challenge": "6_bRSP7Ah__V8SJHhraqCzY7z50A_502dM1CUoEGsc8",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=wCBGAo027ZINb2iQbkYeRBeYx2bwV6V5ahRAzO_4Fxx&state=BW39-AAYAXZIAggAbhVvHbBUoTe6QqU5SIUEZ1BGYtT&scope=dns.read+dns.write+offline_access+zone.read&response_type=code&code_challenge_method=S256&client_id=62f493ed7c&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "BW39-AAYAXZIAggAbhVvHbBUoTe6QqU5SIUEZ1BGYtT",
+"challenge": "wCBGAo027ZINb2iQbkYeRBeYx2bwV6V5ahRAzO_4Fxx",
+"scopes": [
+"zone.read",
+"offline_access",
+"dns.write",
+"dns.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read+dns.wri]te&redirect_uri=https:/=shimpz.com/api/oauth/cloudflare/callback&code_challenge_method=S256&code_ch/allenge=PnqghXOITHdoEPoXahfUebzBvm35qzd2r3l5QDY0y9x&response_type=code&state=umMgj98GNg7dBoyBh5PRmHzvAwYiPqlm448fn0bYg9U&client_id=a292-1fa&state=umMgj98GNg7dBoyBh5PRmHzvAwYiPqlm448fn0bYg9U",
+"state": "umMgj98GNg7dBoyBh5PRmHzvAwYiPqlm448fn0bYg9U",
+"challenge": "PnqghXOITHdoEPoXahfUebzBvm35qzd2r3l5QDY0y9x",
+"scopes": [
+"dns.read",
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.write+offline_access&code_challenge=X_iRJC3gq9DSL-xsN2KER92cCVYQBtZxMeDuvnX9Ifp&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&client_id=f9&state=2yIwyFk5UmA6_1GULKOng54TzuzR2u2BimaCVSsyVl1",
+"state": "2yIwyFk5UmA6_1GULKOng54TzuzR2u2BimaCVSsyVl1",
+"challenge": "X_iRJC3gq9DSL-xsN2KER92cCVYQBtZxMeDuvnX9Ifp",
+"scopes": [
+"dns.write",
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+offline_access+zone.read&code_challenge=pBGlJ-dry3WplJQMsQruyiRuEtwrI-d1fMJ8qgHQPo7&client_id=ad-b655fe393a7&state=NIhsT2lzc6M6-_Lf3JaTlyySQZVr66CbayK2SjWYf07",
+"state": "NIhsT2lzc6M6-_Lf3JaTlyySQZVr66CbayK2SjWYf07",
+"challenge": "pBGlJ-dry3WplJQMsQruyiRuEtwrI-d1fMJ8qgHQPo7",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=c21066e6438-85179&scope=dns.read+dns.write&state=adMzpWR5ThT_fk42SKMDuIR2YtsuHONUlSemQMlP94l&code_challenge=1N7tDzXCbMkcwt9ixkZ3YFRRGFgLSpHzpeA9lMFREn1&response_type=code&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "adMzpWR5ThT_fk42SKMDuIR2YtsuHONUlSemQMlP94l",
+"challenge": "1N7tDzXCbMkcwt9ixkZ3YFRRGFgLSpHzpeA9lMFREn1",
+"scopes": [
+"dns.write",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&c'lient_id=b9b76&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=wsKcN2mHIkFOO9yoDSKi6tV8VvxffYXkNvlJMCwuHS6&response_type=code&code_challenge=MpfBVcWNpkHSnoepjdoV5plgxdxajbW7x_b5W5_fsZ3&scope=dns.read+dns.write+zone.read",
+"state": "wsKcN2mHIkFOO9yoDSKi6tV8VvxffYXkNvlJMCwuHS6",
+"challenge": "MpfBVcWNpkHSnoepjdoV5plgxdxajbW7x_b5W5_fsZ3",
+"scopes": [
+"dns.read",
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=-ee%fc&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=DUa0EeXIVNompELANSe6BsTl0D3rxMZp08UYjar_ahc&scope=dns.write&code_challenge_method=S256&state=aTL3dOA2kyN_C9HucgBNDN_UnUC68zd2A5LYgQJ6rxx&response_type=code",
+"state": "aTL3dOA2kyN_C9HucgBNDN_UnUC68zd2A5LYgQJ6rxx",
+"challenge": "DUa0EeXIVNompELANSe6BsTl0D3rxMZp08UYjar_ahc",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cl\\udflare.com/oauth2/auth?client_id=client-1&state=1_-jq4WbmZYgOEaihUdEAIAYHpalLA8JLNPz38nR0BY&response_type=code&scope=dns.read+dns.write+offline_access+zone.read&code_challenge=-Edx1RTjOHBdBXGCn4jZOBG5miStuN03-6O4qhj_Lqb&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "1_-jq4WbmZYgOEaihUdEAIAYHpalLA8JLNPz38nR0BY",
+"challenge": "-Edx1RTjOHBdBXGCn4jZOBG5miStuN03-6O4qhj_Lqb",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=v7PncqbBfJbFYtK_Si4tq9y3DD0Pk3mcZ38fPZLyL6a&scope=dns.write+zone.read&state=qOC2nuY_EyFNJtBXCBwk3349LiOvg0D17mVRXSsKfsC&response_type=code&redirct_uri=ttps://shimpz.com/api/oauth/loudflare/callback&code_challenge_method=S256&client_id=1cbc19dc24",
+"state": "qOC2nuY_EyFNJtBXCBwk3349LiOvg0D17mVRXSsKfsC",
+"challenge": "v7PncqbBfJbFYtK_Si4tq9y3DD0Pk3mcZ38fPZLyL6a",
+"scopes": [
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code)challenge_method=S256&code_challenge=09cW8vxjEbN055fmwutQkwDl6RrMPV7qutbUSk0joP2&response_type=code&client_id=94820&state=qaTV-rsYCkfyeEfFTBOyI4kI00D3Hhz54hFrju-6iM_&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "qaTV-rsYCkfyeEfFTBOyI4kI00D3Hhz54hFrju-6iM_",
+"challenge": "09cW8vxjEbN055fmwutQkwDl6RrMPV7qutbUSk0joP2",
+"scopes": [
+"dns.write",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.write+offline_access+zone.read&state=3N0NvHM52ADixyZQ9b0Jap6P734S50mRCB93o2y86YQ&code_challenge_method=S256&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=eYhz3RHUxNc8GGvLUda5L_Z3UkaHtMfKYdnXLjS-04-&client_id=f3",
+"state": "3N0NvHM52ADixyZQ9b0Jap6P734S50mRCB93o2y86YQ",
+"challenge": "eYhz3RHUxNc8GGvLUda5L_Z3UkaHtMfKYdnXLjS-04-",
+"scopes": [
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudfl_are.com/oauth2/auth?code_challenge_method=S256&code_challenge=rx6QUzDQ7G8wHRYpXfBwLvouYd5HFhN5et6-9Ha1U2l&cliet_id=3--72b63-2&scope=dns.write&response_type=code&state=xoBRiTqOqf_mHYvJZLNl70ljBF_rX7X0oQ4w_C3Bl2v",
+"state": "xoBRiTqOqf_mHYvJZLNl70ljBF_rX7X0oQ4w_C3Bl2v",
+"challenge": "rx6QUzDQ7G8wHRYpXfBwLvouYd5HFhN5et6-9Ha1U2l",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth'/auth?state=IIBK3sDPkf4hhQbw9htdgNpoC7ZjK0Q2pzv7lKTffE-&response_type=code&code_challenge=NA8tJ5iScW3KmsX.INM2NKlpkCGYLhHmQV2thCTOWBm&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+offline_acces{s+zone.read&client_id=client-1",
+"state": "IIBK3sDPkf4hhQbw9htdgNpoC7ZjK0Q2pzv7lKTffE-",
+"challenge": "NA8tJ5iScW3KmsX9INM2NKlpkCGYLhHmQV2thCTOWBm",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=Rpu4Q4sjSf3HJuneeqh+rFB-lSkiV0rYSIvNo4krwrD&scope=dns.read&code_challenge=AR2_iMImqTO-FAVzqNDQzhOVBVgMmQmg3v2bXnVjGlB&redirect_uri=https://shimpz.com/api/oauth/clo[dflare/callback&code_challenge_method=S256&response_typecode&client_id=9eb2207805-bd-497f30",
+"state": "Rpu4Q4sjSf3HJuneeqh0rFB-lSkiV0rYSIvNo4krwrD",
+"challenge": "AR2_iMImqTO-FAVzqNDQzhOVBVgMmQmg3v2bXnVjGlB",
+"scopes": [
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read&state=mAuPqN2ySb9FAauzE2qZJ6DSNzZTl7IH8oFJpghuUMr&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=1hmhED4gRSw_L1FZawumvB1EV-hUsgXDycbBor395lM&code_challenge_method=S256&response_type=code&client_id=654470c81f84ba5f0f2b",
+"state": "mAuPqN2ySb9FAauzE2qZJ6DSNzZTl7IH8oFJpghuUMr",
+"challenge": "1hmhED4gRSw_L1FZawumvB1EV-hUsgXDycbBor395lM",
+"scopes": [
+"dns.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=c5oRgTqJrKoSn3BFjgU1ZSz6PmkcRQWUGeZ54FF-Z6D&lient_id=2d4c91aa0a33a4aabff5&response_type=code&scope=dns.read+zone.read&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge_method=S256&code_challenge=zwhaLk6cRpSOZNaPD4nsxilgrhH_fCNfyZ0OovGhMsU",
+"state": "c5oRgTqJrKoSn3BFjgU1ZSz6PmkcRQWUGeZ54FF-Z6D",
+"challenge": "zwhaLk6cRpSOZNaPD4nsxilgrhH_fCNfyZ0OovGhMsU",
+"scopes": [
+"dns.read",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=iKq4FdT7ROI2wcsxemt2lygPtafPLTLY1KLIDbs-sYT&client_id=b2fffc9d5a54fc64f&state=wIDWn6K4QaJJmm5TKf4WtfndL_8QYnqHvpqmNgWuB2V&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.read+dns.write+zone.read&response_type=code&code_challenge_method=S256",
+"state": "wIDWn6K4QaJJmm5TKf4WtfndL_8QYnqHvpqmNgWuB2V",
+"challenge": "iKq4FdT7ROI2wcsxemt2lygPtafPLTLY1KLIDbs-sYT",
+"scopes": [
+"dns.read",
+"dns.write",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=a&state=9r8YJ3L7hQbsx63e8eM9r_iaX8Ev9sP3svzTu8SA8P&response_type=code&scope=dns.read+offline_access+zone.read&code_challenge_ethod=S256&code_challenge=q02N_bGDMF3Trk6-Y-q4pyrx_EY6eDvR8CSkYpX7FnK&redirect_uri=https://shimpz.com/api/oaut`/cloudflare/callback",
+"state": "9r8YJ3L7hQbsx63e8eM9r_iaX8Ev9hsP3svzTu8SA8P",
+"challenge": "q02N_bGDMF3Trk6-Y-q4pyrx_EY6eDvR8CSkYpX7FnK",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read+dns.write+zone.read&state=SCD50j6T1CK9SeMyIMBPDiI85UMZr5aYb_ZYmgPGAhn&code_challenge_method=S256&code_challenge=ekmyN9prUeSJNa3G2RwvKN3Rf88tccSVSbWVdVdm8--&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=61383a&response_type=code",
+"state": "SCD50j6T1CK9SeMyIMBPDiI85UMZr5aYb_ZYmgPGAhn",
+"challenge": "ekmyN9prUeSJNa3G2RwvKN3Rf88tccSVSbWVdVdm8--",
+"scopes": [
+"dns.read",
+"dns.write",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?scope=dns.read+dns.write+offline_access+zone.read&code_challenge_method=S256&edirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=2&state=456HnZLMrDuMAYzRLjBhWikSdO_jlhGIW5hqLEP1jvG&code_challenge=IgBY2dDwiikAEVTSCkGDh7pbfvCF800tt0hylMSUopV&response_type=code",
+"state": "456HnZLMrDuMAYzRLjBhWikSdO_jlhGIW5hqLEP1jvG",
+"challenge": "IgBY2dDwiikAEVTSCkGDh7pbfvCF800tt0hylMSUopV",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&scope=dns.read+zone.read&client_id=8ea77b-25f9-0&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=8Xeh6OkSvo7Q-X5tXpZ36TnRJ32Q32pS1zpZbIMkQfi&code_challenge=-6yIEaNIORG0cStFx2oN2P_4C6LiCJExPn824Y2_6F5&scope=dns.read+zone.read",
+"state": "8Xeh6OkSvo7Q-X5tXpZ36TnRJ32Q32pS1zpZbIMkQfi",
+"challenge": "-6yIEaNIORG0cStFx2oN2P_4C6LiCJExPn824Y2_6F5",
+"scopes": [
+"dns.read",
+"zone.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&code_challenge=k9SH55xuSCR0Jq0lUXxdGpGTov1QP1zXLSasQdLFyf_&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=Cj9vCOgD8_LP_TOu3luFmcrGuhT8GnqV-wDNGRNJKS9&code_challenge_method=S256&scope=offline_access&client_id=ffc0fc-bd5&code_challenge=k9SH55xuSCR0Jq0lUXxdGpGTov1QP1zXLSasQdLFyf_",
+"state": "Cj9vCOgD8_LP_TOu3luFmcrGuhT8GnqV-wDNGRNJKS9",
+"challenge": "k9SH55xuSCR0Jq0lUXxdGpGTov1QP1zXLSasQdLFyf_",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=56afcc626fb1f10-&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&code_challenge=7vkheFWuUfOtAFnXRvZnsooKNQHYrHyJSX_84lX5Sif&scope=dns.read+zone.read&state=dsJDmZ4ZNdDG9cPqrJZQqq78INueXpxb_xdFUjQn549&code_challenge_method=S256",
+"state": "dsJDmZ4ZNdDG9cPqrJZQqq78INueXpxb_xdFUjQn549",
+"challenge": "7vkheFWuUfOtAFnXRvZnsooKNQHYrHyJSX_84lX5Sif",
+"scopes": [
+"zone.read",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&state=FBOj83dAMJktqW_rH6CKXDjQo3HSLOSX3qP_idWEvff&scope=dns.read+dns.write+offline_access+zone.read&code_challenge=m-a8W3LHdXJg6LnRuPQMvfYtq_qNPxsIoPYQbWIfjHc&cl@ient_id=bd7686a152f&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "FBOj83dAMJktqW_rH6CKXDjQo3HSLOSX3qP_idWEvff",
+"challenge": "m-a8W3LHdXJg6LnRuPQMvfYtq_qNPxsIoPYQbWIfjHc",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=987058b&code_challenge=Z9N359bn_N261LGC19ZmWwiysL1N5jfS2e4ckhEFli_&redirct_uri=https://shimpz.com/api/oauth/cl\\udflare/callback&state=b5S-cGjuPxR2B_DBDFvD1MSMKxrh9ioCqXgnOgC4fEW&scpe=dns.read+dns.write+offline_access+zone.read&code_challenge_method=S256",
+"state": "b5S-cGjuPxR2B_DBDFvD1MSMKxrh9ioCqXgnOgC4fEW",
+"challenge": "Z9N359bn_N261LGC19ZmWwiysL1N5jfS2e4ckhEFli_",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&scope=dns.read+dns.write+offline_access&code_challenge=5EYGg9ccxDocc4CTjrjSoDS5ogAfLzWTS5VWvBvZiYk&code_challenge_method=S256&state=1B3OVkMB_GlsdBPAUlPB3Kfxo73d8oBIJY1K7CEmXFQ",
+"state": "1B3OVkMB_GlsdBPAUlPB3Kfxo73d8oBIJY1K7CEmXFQ",
+"challenge": "5EYGg9ccxDocc4CTjrjSoDS5ogAfLzWTS5VWvBvZiYk",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&state=6nfiqUuR_VJ,KV8K1xWfIuCUZtwZS1sjjKvkRPvFljA&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=7152-30cf4&sc\\ope=dns.read+dns.write+offline_access+zone.read&code_challenge=B96zBghdDpRQSRSeFCJfAAaswqleNyX2whiXptxSPrj",
+"state": "6nfiqUuR_VJAKV8K1xWfIuCUZtwZS1sjjKvkRPvFljA",
+"challenge": "B96zBghdDpRQSRSeFCJfAAaswqleNyX2whiXptxSPrj",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=YiDZx-KbQMeaGI7im7yDvzq_YwBIu_zZwjcfwUPXVi4&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&state=%41&scope=dns.read+offline_access+zone.read&client_id=bf0a014da3-ccf64",
+"state": "ciilVTDTZU2t-_FGSny3RNUgzahsURVd75SScK9z0a6",
+"challenge": "YiDZx-KbQMeaGI7im7yDvzq_YwBIu_zZwjcfwUPXVi4",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read",
+"account.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S256&state=sXZsqNEtfKRKENJ6V-vQ1KDF6U49GIUCZLhd2rhX1qo&response_type=code&scope=dns.read+zone.read&client_id=21de&code_challenge=9rsTU_P8VobMJJCMsG8BBFgzuMWWHuEknLgqOjNeFdu&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "sXZsqNEtfKRKENJ6V-vQ1KDF6U49GIUCZLhd2rhX1qo",
+"challenge": "9rsTU_P8VobMJJCMsG8BBFgzuMWWHuEknLgqOjNeFdu",
+"scopes": [
+"dns.read",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=X9s1eAyOXkiyjfBK7vukRU-cd2qzClirVSekSak7U2H&response_type=code&code_challenge_method=S256&code_challenge=UUPUQ1mgFcdz5krhocgz4hxMugRTeTYv_pREX45NpaF&scope=dns.read+dns.write+offline_access+zone.read&client_id=69a115c4&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=X9s1eAyOXkiyjfBK7vukRU-cd2qzClirVSekSak7U2H",
+"state": "X9s1eAyOXkiyjfBK7vukRU-cd2qzClirVSekSak7U2H",
+"challenge": "UUPUQ1mgFcdz5krhocgz4hxMugRTeTYv_pREX45NpaF",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=JDXepEsLFv8vm8g4LfN19dGGusX6BtFbXhv7AAjJv4k&code_challenge_method=S256&scope=dns.read+offline_access+zone.read&code_challenge=9LAtLFsn0MO5OpKK6wUWFybK25vj7KvDPQRIRgF66US&response_type=code&client_id=-a1d646f65184",
+"state": "JDXepEsLFv8vm8g4LfN19dGGusX6BtFbXhv7AAjJv4k",
+"challenge": "9LAtLFsn0MO5OpKK6wUWFybK25vj7KvDPQRIRgF66US",
+"scopes": [
+"dns.read",
+"offline_access",
+"zone.read"
+]
+},
+"python": "ok"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/Zapi/oauth/cloudflare/callback&code_challenge_method=S256&code_challenge=zUTPFEWDBFtLFdKR9hFWurNAUnrWhd9P4SYR76zQJ_Y&state=HSPlgSAbvgPm4ZDuSc40e0iMZphr2u-mQe8nf1kR-aJ&client_id=5d5&scope=dns.read+dns.write+zone.read&response_type=code",
+"state": "HSPlgSAbvgPm4ZDuSc40e0iMZphr2u-mQe8nf1kR-aJ",
+"challenge": "zUTPFEWDBFtLFdKR9hFWurNAUnrWhd9P4SYR76zQJ_Y",
+"scopes": [
+"zone.read",
+"dns.write",
+"dns.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=PQJQ_v7URHYD83SOkFnwB8AHnMgww5M-n1tuLqw9jfe&scope=dns.read+dns.write+offline_access+zone.read&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&response_type=code&code_challenge=OzKfe4AmqwkGHaVhrOPi90BPY_82lCZJIy3wt4w7qnQ&clie-t_id=361f7916c793eb&code_challenge_method=S256",
+"state": "PQJQ_v7URHYD83SOkFnwB8AHnMgww5M-n1tuLqw9jfe",
+"challenge": "OzKfe4AmqwkGHaVhrOPi90BPY_82lCZJIy3wt4w7qnQ",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge_method=S2a56&redirect_uri=https://shimpz.com/api/oauth/clo\\udflare/callback&client_id=fe2b9beb67b9431-c90&scope=dns.read+dns.write&response_type=code&code_challenge=QO3gW4dLXtj2q6n5RCYiDjrvTJzrN-8RmQ1j_4F8qP&state=zY8Wan9lTMt33ePoQstwRQQIGHPq9RzP9W-fJLgTkp7",
+"state": "zY8Wan9lTMt33ePoQstwRQQIGHPq9RzP9W-fJLgTkp7",
+"challenge": "QO3gWJ4dLXtj2q6n5RCYiDjrvTJzrN-8RmQ1j_4F8qP",
+"scopes": [
+"dns.read",
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=2%b5f63-51-b6&code_challenge_method=S256&state=LUDsOCc3vGLM_uBels4C785y2KprHmue1hkOEWYbGJW&code_challenge=OCuq47C_NeXjTfVOI1gh_Qv2l9d1gKpwdoS58i8HEVP&response_type=code&scope=dns.read+dns.write+offline_access+zone.read",
+"state": "LUDsOCc3vGLM_uBels4C785y2KprHmue1hkOEWYbGJW",
+"challenge": "OCuq47C_NeXjTfVOI1gh_Qv2l9d1gKpwdoS58i8HEVP",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.clo\\udflare.com/oauth2/auth?response_type=code&code_challenge_method=S256&client_id=874d9&state=4uHbGpOZnl7H6jFzQ60Gu__tILRjg5o1yGVnUnj7opj&scope=dns.read+dns.write+offline_acess&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "4uHbGpOZnl7H6jFzQ60Gu__tILRjg5o1yGVnUnj7opj",
+"challenge": "JNy4olKLt3jrGrlJnxIU9BaRRhp6WPgLGj-Z0q3J3OE",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=Tm8BwN7OJJ1DC-e4XHrSOpgkvAX5a0TYS-N0nTeUx_B&code_challenge=Jd5HRXFEQ25GsmaKjrumYbkm1fNJbuEz22tQb9BdeIc&scope=offline_access&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=%b0570edf9766&code_challenge_method=S256&response_type=code",
+"state": "Tm8BwN7OJJ1DC-e4XHrSOpgkvAX5a0TYS-N0nTeUx_B",
+"challenge": "Jd5HRXFEQ25GsmaKjrumYbkm1fNJbuEz22tQb9BdeIc",
+"scopes": [
+"offline_access"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=3ee7%c3f8838da3&state=q014Er4pD-J_304JYidO0LA3QvIlO0sMe1CshuXas_w&code_challenge=9xbd7Lo3exPZDT2XhTvAW4082DXbXR6TlCSTbLHiaHv&response_type=code&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&scope=dns.write&code_challenge_method=S256",
+"state": "q014Er4pD-J_304JYidO0LA3QvIlO0sMe1CshuXas_w",
+"challenge": "9xbd7Lo3exPZDT2XhTvAW4082DXbXR6TlCSTbLHiaHv",
+"scopes": [
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?client_id=bd93b84b783ad45%d3-6&scope=dns.read+dns.write&response_type=code&code_challenge_method=S256&code_challenge=Dl1RLK1CXDUwi-2_Prc69px31nl4TJUU6_I6aBjyi00&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state=X5sjeomqmjmo5l2ureXW2MODlZWaTD-wi6SUZaPHkXe",
+"state": "X5sjeomqmjmo5l2ureXW2MODlZWaTD-wi6SUZaPHkXe",
+"challenge": "Dl1RLK1CXDUwi-2_Prc69px31nl4TJUU6_I6aBjyi00",
+"scopes": [
+"dns.read",
+"dns.write"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cl\\udflare.com/oauth2/auth?code_challenge=KPmMmnlX-6vPNF_Uc91GTOJMlMAIvwlJqak_n4tFfb&code_challenge_method=S256&response_type=code&client_id=63ff7b0&scope=dns.read+dns.write+offline_access+zone.read&state=kFwcEh1pCZ_f6LsaYTp9n6xtr3ySizPMOLrIwVcjlGU&redirect_uri=https://shimpz.com/api/oauth/cloudflare/c llback",
+"state": "kFwcEh1pCZ_f6LsaYTp9n6xtr3ySizPMOLrIwVcjlGU",
+"challenge": "KPmMmnlX-6hvPNF_Uc91GTOJMlMAIvwlJqak_n4tFfb",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?code_challenge=VikImsBBT0JoDGKpEJSapqWIVHrv-YLpiW50qRGrIJY&response_type=code&scope=dns.read+dns.write+offline_access+zone.read&code_challenge_method=S256&state=-dAS4HC_3mdwWJYwHjezKN0oVqMXu1JOgVgma7UGAjS&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&client_id=6%a687e2f",
+"state": "-dAS4HC_3mdwWJYwHjezKN0oVqMXu1JOgVgma7UGAjS",
+"challenge": "VikImsBBT0JoDGKpEJSapqWIVHrv-YLpiW50qRGrIJY",
+"scopes": [
+"dns.read",
+"dns.write",
+"offline_access",
+"zone.read"
+]
+},
+"python": "refuse"
+},
+{
+"case": {
+"domain": "authorization",
+"url": "https://dash.cloudflare.com/oauth2/auth?state=itljin5yeuScTN_P0usUnSlRo34OlqIWtG2nezO5TSR&scope=dns.read+zone.read&code_challenge=eNU2nh7Kgzl-5Sg1uU5Lg6BLxi3zqHOdEzv-J7c7fFA&response_type=code&client_id=07e4%9aefb7&code_challenge_method=S256&redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback",
+"state": "itljin5yeuScTN_P0usUnSlRo34OlqIWtG2nezO5TSR",
+"challenge": "eNU2nh7Kgzl-5Sg1uU5Lg6BLxi3zqHOdEzv-J7c7fFA",
+"scopes": [
+"dns.read",
+"zone.read"
+]
+},
+"python": "refuse"
+}
+]

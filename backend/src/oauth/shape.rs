@@ -135,7 +135,12 @@ mod tests {
     }
 
     #[test]
-    fn returned_scopes_are_sorted_but_still_unique_and_admitted() {
+    fn caller_scopes_are_canonical_and_provider_scopes_stay_closed() {
+        for refused in [&["dns.read", "dns.read"][..], &["dns.read", "unknown"]] {
+            assert_eq!(Scopes::sorted(refused), Err(BrokerError));
+            assert_eq!(Scopes::returned(refused), Err(BrokerError));
+        }
+        assert_eq!(Scopes::sorted(&["zone.read", "dns.read"]), Err(BrokerError));
         let scopes = Scopes::returned(&["zone.read", "offline_access", "dns.write"]).unwrap();
         assert_eq!(scopes.names(), ["dns.write", "offline_access", "zone.read"]);
         assert_eq!(
@@ -163,7 +168,9 @@ mod tests {
     }
 
     #[test]
-    fn bindings_are_exactly_43_base64url_characters() {
+    fn scalar_contracts_reject_invalid_values() {
+        assert!(!code("short", 16, 4096));
+        assert_eq!(Scopes::sorted(&[]), Err(BrokerError));
         assert!(binding(&"A_-9".repeat(11)[..43]));
         assert!(!binding(&"A".repeat(42)));
         assert!(!binding(&format!("{}=", "A".repeat(42))));
@@ -179,5 +186,15 @@ mod tests {
         assert!(token(&"t".repeat(16 * 1024)));
         assert!(!token(&"t".repeat(16 * 1024 + 1)));
         assert!(!token("\u{e9}tttttttttttttttt"));
+    }
+
+    #[test]
+    fn code_rejects_unencodable_text() {
+        assert!(!code("authorization-code-\u{e9}", 16, 4096));
+        assert!(!code(
+            "\u{1f600}\u{1f600}\u{1f600}\u{1f600}\u{1f600}",
+            16,
+            4096
+        ));
     }
 }

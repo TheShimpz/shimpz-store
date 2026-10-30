@@ -1,0 +1,418 @@
+[
+{
+"case": {
+"domain": "path",
+"path": "build",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "en.html//",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-home\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "secret.txt/A.JS/../build",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "index.html/immutable/de",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "pt/./../%2e%2e/",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">portuguese-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "inner.txt\n",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/../404/../secret.txt",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "a.js",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "A.JS/dir",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "en/robots.txt\t",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "",
+"navigation": false
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/a.js",
+"navigation": false
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-a\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "a.js/de/immutable/..",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "é/deep/a.js/version.json\u0000",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "immutable/%2e%2e/A.JS/pt",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/en/inside-link",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "é/./404/robots.txt",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/index.html/robots.txt/x",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "\t",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/index.html",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "404/404.html/..//",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "en/robots.txt/./inside-link",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "robots.txt/secret.txt/404",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "pt/en.html",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">portuguese-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "index.html/./",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/index",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "../en/missing/404.html",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "404.html/version.json/favicon.ico\u001f",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "404.html/",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "favicon.ico",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"icon\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "dir.html/../en",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "\u001f",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "pt/%2e%2e",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">portuguese-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "404.html/immutable/build",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/_app/dir.html/immutable",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "a.js/x/..",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": ".",
+"navigation": false
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "x\u0000",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/pt/./%2e%2e/A.JS",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">portuguese-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/a.js",
+"navigation": false
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-a\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "/../favicon.ico/en.html",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "index.html",
+"navigation": true
+},
+"python": "[200,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">root-index\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "de/index/inside-link",
+"navigation": false
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"not found\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "en/a b/version.json",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "version.json/build/favicon.ico\u001f",
+"navigation": true
+},
+"python": "[404,\"public, no-cache, max-age=0, must-revalidate, no-transform\",\"<meta http-equiv=\\\"content-security-policy\\\" content=\\\"script-src 'self'; require-trusted-types-for 'script'; trusted-types svelte-trusted-html\\\">english-missing\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/A.JS",
+"navigation": false
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-upper\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/a.js",
+"navigation": false
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-a\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/a.js",
+"navigation": true
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-a\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/A.JS",
+"navigation": true
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-upper\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/a.js",
+"navigation": false
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-a\"]"
+},
+{
+"case": {
+"domain": "path",
+"path": "_app/immutable/A.JS",
+"navigation": true
+},
+"python": "[200,\"public, max-age=31536000, immutable\",\"asset-upper\"]"
+}
+]

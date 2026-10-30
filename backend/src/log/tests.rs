@@ -10,7 +10,7 @@ use super::{Level, event, install_panic_hook, line, panic_line};
 static HOOK: Mutex<()> = Mutex::new(());
 
 #[test]
-fn an_event_is_one_json_line_with_its_code_and_escaped_fields() {
+fn the_server_loggers_write_only_json_templates_on_stdout() {
     let at = UNIX_EPOCH + Duration::new(1_700_000_000, 5_000);
     assert_eq!(
         line(
@@ -63,4 +63,47 @@ fn the_installed_hook_writes_its_line() {
     let caught = panic::catch_unwind(|| panic!("PRIVATE_SENTINEL"));
     panic::set_hook(previous);
     assert!(caught.is_err());
+}
+
+#[test]
+fn every_exception_form_is_summarized_by_its_class() {
+    use crate::catalog::upstream::Failure;
+    for failure in [Failure::Connect, Failure::TimedOut, Failure::Protocol] {
+        let line = super::line(
+            std::time::SystemTime::UNIX_EPOCH,
+            super::Level::Warning,
+            "proxy_unreachable",
+            &[("error", failure.code())],
+        );
+        assert!(
+            line.ends_with(&format!(",\"error\":\"{}\"}}", failure.code())),
+            "{line}"
+        );
+    }
+}
+
+#[test]
+fn logged_exceptions_never_render_frame_locals() {
+    let _turn = HOOK.lock().unwrap_or_else(PoisonError::into_inner);
+    let lines = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&lines);
+    let previous = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        sink.lock().unwrap().push(panic_line(info));
+    }));
+    let local_secret = String::from("PRIVATE_LOCAL_VALUE");
+    let caught = panic::catch_unwind(|| panic!("failed with {local_secret}"));
+    panic::set_hook(previous);
+    assert!(caught.is_err());
+    let lines = lines.lock().unwrap();
+    let line = lines.first().unwrap();
+    assert!(
+        !line.contains("PRIVATE_LOCAL_VALUE") && !line.contains("failed with"),
+        "{line}"
+    );
+    let keys: Vec<&str> = line
+        .split("\":")
+        .map(|part| part.rsplit('"').next().unwrap())
+        .collect();
+    assert_eq!(keys[..3], ["level", "msg", "location"]);
 }

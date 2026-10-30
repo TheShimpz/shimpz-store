@@ -1,0 +1,282 @@
+[
+{
+"case": {
+"domain": "query",
+"query": "out-of-band=%\"9"
+},
+"python": "[[[\"out-of-band\",\"%\\\"9\"]],[[\"out-of-band\",\"%\\\"9\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "#\"e* );\\[>/(@`|>S>c^c&@[[|:_*.'|^S"
+},
+"python": "[[[\"#\\\"e* );\\\\[>/(@`|>S>c^c\",\"\"],[\"@[[|:_*.'|^S\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "{e.;;=d@&;&&callback= /&loopback=local-domain&code_challenge==&scope=%(#&code=:; a+d"
+},
+"python": "[[[\"{e.;;\",\"d@\"],[\";\",\"\"],[\"callback\",\" /\"],[\"loopback\",\"local-domain\"],[\"code_challenge\",\"=\"],[\"scope\",\"%(#\"],[\"code\",\":; a d\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "`%b9!\" +@#Sd]/b>@,>0<|\"$?==| "
+},
+"python": "[[[\"`\\ufffd!\\\"  @#Sd]/b>@,>0<|\\\"$?\",\"=| \"]],[[\"`\\ufffd!\\\"  @#Sd]/b>@,>0<|\\\"$?\",\"=| \"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "state=&code=e:b}&code=state&code=!+(#`d:#&:);&==*-,!{a&state=scope"
+},
+"python": "[[[\"state\",\"\"],[\"code\",\"e:b}\"],[\"code\",\"state\"],[\"code\",\"! (#`d:#\"],[\":);\",\"\"],[\"\",\"=*-,!{a\"],[\"state\",\"scope\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "~0-_]~/=a>}@d#>[&-b/+, \"}=:-*~0=%Z-&Z\\"
+},
+"python": "[[[\"~0-_]~/\",\"a>}@d#>[\"],[\"-b/ , \\\"}\",\":-*~0=%Z-\"],[\"Z\\\\\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "state=~&}[]&code_challenge=state&+;~=~[S&scope=&Z;#)|&code&a={`!"
+},
+"python": "[[[\"state\",\"~\"],[\"}[]\",\"\"],[\"code_challenge\",\"state\"],[\" ;~\",\"~[S\"],[\"scope\",\"\"],[\"Z;#)|\",\"\"],[\"code\",\"\"],[\"a\",\"{`!\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "e|e>)=a|%cd?%?`*|{:S="
+},
+"python": "[[[\"e|e>)\",\"a|\\ufffd?%?`*|{:S=\"]],[[\"e|e>)\",\"a|\\ufffd?%?`*|{:S=\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "local-domain=![a&scope=..`&out-of-band=local-domain&code=local-domain&code_challenge=scope"
+},
+"python": "[[[\"local-domain\",\"![a\"],[\"scope\",\"..`\"],[\"out-of-band\",\"local-domain\"],[\"code\",\"local-domain\"],[\"code_challenge\",\"scope\"]],[[\"local-domain\",\"![a\"],[\"scope\",\"..`\"],[\"out-of-band\",\"local-domain\"],[\"code\",\"local-domain\"],[\"code_challenge\",\"scope\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "#&~S)=>,)&)[+;\\e.__"
+},
+"python": "[[[\"#\",\"\"],[\"~S)\",\">,)\"],[\")[ ;\\\\e.__\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "=}]=.b% e:[a=dc^>*Z/,\")& >b0c?.`"
+},
+"python": "[[[\"\",\"}]=.b% e:[a=dc^>*Z/,\\\")\"],[\" >b0c?.`\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "&e&e&@-#}b]}S+&(&&S:.]`.\"<$(`(&:.+e"
+},
+"python": "[[[\"e\",\"\"],[\"e\",\"\"],[\"@-#}b]}S \",\"\"],[\"(\",\"\"],[\"S:.]`.\\\"<$(`(\",\"\"],[\":. e\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "callback a?~e&code_challenge=out-of-band&{*$] _=&%0a%@='}:#~+!|&>+/="
+},
+"python": "[[[\"callback a?~e\",\"\"],[\"code_challenge\",\"out-of-band\"],[\"{*$] _\",\"\"],[\"\\n%@\",\"'}:#~ !|\"],[\"> /\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "ce&[$$a@a$-?=,^^*(=)]S}0&@\"^#9{<"
+},
+"python": "[[[\"ce\",\"\"],[\"[$$a@a$-?\",\",^^*(=)]S}0\"],[\"@\\\"^#9{<\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "out-of-band(%_ae\\==&local-domain=b|)`%+S&code=_/<'%&S^aa=code"
+},
+"python": "[[[\"out-of-band(%_ae\\\\\",\"=\"],[\"local-domain\",\"b|)`% S\"],[\"code\",\"_/<'%\"],[\"S^aa\",\"code\"]],[[\"out-of-band(%_ae\\\\\",\"=\"],[\"local-domain\",\"b|)`% S\"],[\"code\",\"_/<'%\"],[\"S^aa\",\"code\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "+e=/\\(~e<@e\\;^&}~&{'`/; 9=&&cb9b[\\&^&&"
+},
+"python": "[[[\" e\",\"/\\\\(~e<@e\\\\;^\"],[\"}~\",\"\"],[\"{'`/; 9\",\"\"],[\"cb9b[\\\\\",\"\"],[\"^\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "{*/a!0'e(~%&`d[cZS'(b#):\\c &#a%bc:\\"
+},
+"python": "[[[\"{*/a!0'e(~%\",\"\"],[\"`d[cZS'(b#):\\\\c \",\"\"],[\"#a\\ufffd:\\\\\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "scope{+'0|S"
+},
+"python": "[[[\"scope{ '0|S\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "^Z<@%={&a/9}]=S0 c}"
+},
+"python": "[[[\"^Z<@%\",\"{\"],[\"a/9}]\",\"S0 c}\"]],[[\"^Z<@%\",\"{\"],[\"a/9}]\",\"S0 c}\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "!0\" a!e=b?|\"(ZS[$#=^b=+a(]%bc"
+},
+"python": "[[[\"!0\\\" a!e\",\"b?|\\\"(ZS[$#=^b= a(]\\ufffd\"]],[[\"!0\\\" a!e\",\"b?|\\\"(ZS[$#=^b= a(]\\ufffd\"]],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": " ,=&#b^=$0$&|(9 =&scope&&\\~&%a.+<=state&state="
+},
+"python": "[[[\" ,\",\"\"],[\"#b^\",\"$0$\"],[\"|(9 \",\"\"],[\"scope\",\"\"],[\"\\\\~\",\"\"],[\"%a. <\",\"state\"],[\"state\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ";\\?*#/;d(;*>|"
+},
+"python": "[[[\";\\\\?*#/;d(;*>|\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "&:,a&~=#=`=:) Z$&9~_'$\"\"%&:"
+},
+"python": "[[[\":,a\",\"\"],[\"~\",\"#=`=:) Z$\"],[\"9~_'$\\\"\\\"%\",\"\"],[\":\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "code_challenge=&_&a\\}d&code\"&'*=?' /^d&}&code_challenge=&)  &[/=<"
+},
+"python": "[[[\"code_challenge\",\"\"],[\"_\",\"\"],[\"a\\\\}d\",\"\"],[\"code\\\"\",\"\"],[\"'*\",\"?' /^d\"],[\"}\",\"\"],[\"code_challenge\",\"\"],[\")  \",\"\"],[\"[/\",\"<\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "<($)ec[ebb9Zb))S{c-^&Z,\"a(@=e`d.&c%b%ae"
+},
+"python": "[[[\"<($)ec[ebb9Zb))S{c-^\",\"\"],[\"Z,\\\"a(@\",\"e`d.\"],[\"c%b\\ufffd\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "&&@=(=?e_a=(0,=|*~$\".'ac*#/!`\"(d_,"
+},
+"python": "[[[\"@\",\"(=?e_a=(0,=|*~$\\\".'ac*#/!`\\\"(d_,\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ",%'/a( `/<%+\\"
+},
+"python": "[[[\",%'/a( `/<% \\\\\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "&`^?9%0c\\!b9?&e>e\" :|~#%`_(|-*<"
+},
+"python": "[[[\"`^?9\\f\\\\!b9?\",\"\"],[\"e>e\\\" :|~#%`_(|-*<\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ">'&&\"}'&>*$?\"%(d09(<&=[&=&S[.e=&=&"
+},
+"python": "[[[\">'\",\"\"],[\"\\\"}'\",\"\"],[\">*$?\\\"%(d09(<\",\"\"],[\"\",\"[\"],[\"\",\"\"],[\"S[.e\",\"\"],[\"\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "%c=&)*\"![}`["
+},
+"python": "[[[\"%c\",\"\"],[\")*\\\"![}`[\",\"\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": ""
+},
+"python": "[[],[],null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "code=&callback=:? &state=]`<&\\%&out-of-bandcode&local-domain=out-of-band&]@~=&~=0@."
+},
+"python": "[[[\"code\",\"\"],[\"callback\",\":? \"],[\"state\",\"]`<\"],[\"\\\\%\",\"\"],[\"out-of-bandcode\",\"\"],[\"local-domain\",\"out-of-band\"],[\"]@~\",\"\"],[\"~\",\"0@.\"]],null,null,null]"
+},
+{
+"case": {
+"domain": "query",
+"query": "~=~_|99:@+)#e'9<;,\"S$:/?(%9bb9,a"
+},
+"python": "[[[\"~\",\"~_|99:@ )#e'9<;,\\\"S$:/?(\\ufffdb9,a\"]],[[\"~\",\"~_|99:@ )#e'9<;,\\\"S$:/?(\\ufffdb9,a\"]],null,null]"
+}
+]

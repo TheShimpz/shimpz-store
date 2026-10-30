@@ -42,7 +42,7 @@ async fn answering(body: &str) -> (Fake, Neuron) {
 }
 
 #[tokio::test]
-async fn authorization_posts_the_exact_request_and_returns_the_consent_url() {
+async fn neuron_client_sends_access_service_identity_and_validates_fixed_authorization() {
     let url = consent(&good_query());
     let (fake, client) = answering(&format!("{{\"authorization_url\":\"{url}\"}}")).await;
     assert_eq!(
@@ -83,18 +83,36 @@ async fn authorization_posts_the_exact_request_and_returns_the_consent_url() {
 }
 
 #[tokio::test]
-async fn an_authorization_reply_with_another_member_or_a_non_string_url_fails() {
+async fn neuron_authorization_rejects_invalid_response() {
     let url = consent(&good_query());
     for body in [
         format!("{{\"authorization_url\":\"{url}\",\"x\":1}}"),
         String::from("{\"authorization_url\":7}"),
         String::from("{\"url\":\"x\"}"),
+        String::from("{}"),
     ] {
         let (_fake, client) = answering(&body).await;
         assert_eq!(
             client.authorization(STATE, CHALLENGE, &scopes()).await,
             Err(BrokerError),
             "{body}"
+        );
+    }
+    let good = consent(&good_query());
+    for url in [
+        "https://dash.cloudflare.com/oauth2/auth?broken".to_owned(),
+        good.replace("https://", "HTTPS://"),
+        good.replace("dash.cloudflare.com", "dash.cloudflare.com:443"),
+        good.replace("https://", "https://user@"),
+        good.replace("oauth2/auth", "oauth2/./auth"),
+        format!(" {good}"),
+        format!("{good}&x=\u{e9}"),
+        format!("{good}&x=\""),
+    ] {
+        assert_eq!(
+            consent_url(&url, STATE, CHALLENGE, &scopes()),
+            Err(BrokerError),
+            "{url}"
         );
     }
 }
@@ -135,7 +153,7 @@ fn the_consent_url_has_the_exact_grammar_and_fields() {
 }
 
 #[tokio::test]
-async fn exchange_and_refresh_return_exactly_shaped_tokens_for_the_expected_scopes() {
+async fn neuron_exchange_refresh_and_revoke_validate_results() {
     let body = "{\"access_token\":\"aaaaaaaaaaaaaaaa\",\"refresh_token\":\"rrrrrrrrrrrrrrrr\",\
                 \"scopes\":[\"dns.read\",\"zone.read\"],\"expires_in\":3600}";
     let (fake, client) = answering(body).await;
@@ -175,7 +193,7 @@ async fn exchange_and_refresh_return_exactly_shaped_tokens_for_the_expected_scop
 }
 
 #[test]
-fn tokens_need_every_member_in_shape() {
+fn neuron_tokens_reject_invalid_shape_scopes_and_expiry() {
     let parse = |text: &str| strict_json::parse(text.as_bytes()).unwrap();
     let good = "{\"access_token\":\"aaaaaaaaaaaaaaaa\",\"refresh_token\":\"rrrrrrrrrrrrrrrr\",\
                 \"scopes\":[\"dns.read\",\"zone.read\"],\"expires_in\":30}";
@@ -206,7 +224,7 @@ fn tokens_need_every_member_in_shape() {
 }
 
 #[tokio::test]
-async fn revoke_needs_exactly_the_boolean_true_acknowledgement() {
+async fn neuron_revoke_accepts_only_the_exact_acknowledgement() {
     let (fake, client) = answering("{\"revoked\":true}").await;
     assert_eq!(client.revoke("tttttttttttttttt").await, Ok(()));
     assert_eq!(
@@ -233,7 +251,7 @@ async fn revoke_needs_exactly_the_boolean_true_acknowledgement() {
 }
 
 #[tokio::test]
-async fn a_reply_that_is_not_a_json_object_from_a_200_json_response_fails() {
+async fn neuron_object_rejects_status_json_and_shape() {
     let replies = [
         reply("502 Bad Gateway", "application/json", "{\"revoked\":true}"),
         reply("200 OK", "text/plain", "{\"revoked\":true}"),
@@ -340,5 +358,86 @@ fn production_reads_the_installed_access_credential() {
     assert_eq!(
         production.credential[1].to_str(),
         Some("/run/shimpz-store-oauth/access-client-secret")
+    );
+}
+
+#[tokio::test]
+async fn neuron_client_rejects_world_readable_access_files() {
+    let (fake, _client) = answering("{\"revoked\":true}").await;
+    std::fs::set_permissions(
+        &fake.credential[0],
+        std::os::unix::fs::PermissionsExt::from_mode(0o444),
+    )
+    .unwrap();
+    assert_eq!(
+        neuron(&fake).revoke("tttttttttttttttt").await,
+        Err(BrokerError)
+    );
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn fixed_transport_rejects_endpoint_oversize_and_http_failure() {
+    let oversized = format!("{{\"revoked\":true,\"x\":\"{}\"}}", "x".repeat(32 * 1024));
+    let replies = [
+        reply("200 OK", "application/json", &oversized),
+        b"garbage\r\n\r\n".to_vec(),
+        Vec::new(),
+    ];
+    for answer in replies {
+        let fake = fake(Egress::Established, "neuron.shimpz.com", move |_| {
+            answer.clone()
+        })
+        .await;
+        assert_eq!(
+            neuron(&fake).revoke("tttttttttttttttt").await,
+            Err(BrokerError)
+        );
+        let path = fake.received.lock().unwrap()[0]
+            .head
+            .split(' ')
+            .nth(1)
+            .unwrap()
+            .to_owned();
+        assert_eq!(
+            path, "/api/internal/oauth/cloudflare/revoke",
+            "the endpoint is fixed"
+        );
+    }
+}
+
+#[test]
+fn neuron_call_rejects_unknown_operation() {
+    use super::Operation;
+    let paths = [
+        Operation::Authorization,
+        Operation::Exchange,
+        Operation::Refresh,
+        Operation::Revoke,
+    ]
+    .map(Operation::path);
+    assert_eq!(
+        paths,
+        [
+            "/api/internal/oauth/cloudflare/authorization",
+            "/api/internal/oauth/cloudflare/exchange",
+            "/api/internal/oauth/cloudflare/refresh",
+            "/api/internal/oauth/cloudflare/revoke",
+        ],
+        "the closed operation set has no other path"
+    );
+}
+
+#[test]
+fn neuron_authorization_admits_every_character_a_redirect_carries_unchanged() {
+    let url = "https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=id_.~%3A%2F%2541%3F%3D%40%5B%5D%21%24%27%28%29%2A%2B%2C%3B-&redirect_uri=https%3A%2F%2Fshimpz.com%2Fapi%2Foauth%2Fcloudflare%2Fcallback&scope=dns.read+dns.write+offline_access+zone.read&state=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&code_challenge=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&code_challenge_method=S256";
+    let all = Scopes::sorted(&["dns.read", "dns.write", "offline_access", "zone.read"]).unwrap();
+    let reply = Value::Object(vec![(
+        "authorization_url".to_owned(),
+        Value::String(url.to_owned()),
+    )]);
+    assert_eq!(
+        super::consent(&reply, &"a".repeat(43), &"b".repeat(43), &all),
+        Ok(url.to_owned())
     );
 }

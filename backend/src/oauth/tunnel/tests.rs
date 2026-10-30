@@ -10,7 +10,7 @@ use crate::oauth::{
 };
 
 #[tokio::test]
-async fn the_tunnel_connects_through_the_egress_and_verifies_neuron() {
+async fn fixed_transport_uses_exact_connect_proxy_and_end_to_end_neuron_tls() {
     let neuron = fake(Egress::Established, "neuron.shimpz.com", |_| {
         reply("200 OK", "application/json", "{}")
     })
@@ -33,7 +33,7 @@ async fn a_certificate_for_another_name_fails() {
 }
 
 #[tokio::test]
-async fn the_egress_must_establish_exactly() {
+async fn fixed_transport_fails_closed_on_proxy_response() {
     let refusals: [&[u8]; 4] = [
         b"HTTP/1.1 403 Forbidden\r\n\r\n",
         b"HTTP/1.1 200 Connection established\r\nX: y\r\n\r\n",
@@ -51,17 +51,35 @@ async fn the_egress_must_establish_exactly() {
 }
 
 #[tokio::test]
-async fn an_oversized_head_ending_past_the_bound_is_refused() {
+async fn proxy_reader_translates_socket_and_size_failures() {
     let mut long = b"HTTP/1.1 200 Connection established\r\nX: ".to_vec();
     long.resize(1030, b'y');
     long.extend_from_slice(b"\r\n\r\n");
     let bytes: &'static [u8] = Box::leak(long.into_boxed_slice());
     let neuron = fake(Egress::Reply(bytes), "neuron.shimpz.com", |_| Vec::new()).await;
     assert_eq!(neuron.tunnel.open().await.err(), Some(BrokerError));
+    let mut failing = Failing;
+    assert_eq!(
+        super::proxy_response(&mut failing).await.err(),
+        Some(BrokerError)
+    );
+}
+
+/// A reader whose every read fails.
+struct Failing;
+
+impl tokio::io::AsyncRead for Failing {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+        _: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        std::task::Poll::Ready(Err(std::io::Error::other("failed")))
+    }
 }
 
 #[tokio::test]
-async fn an_unreachable_or_silent_egress_fails_within_the_timeout() {
+async fn neuron_tunnel_translates_connection_failure() {
     let closed = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = closed.local_addr().unwrap().port();
     drop(closed);

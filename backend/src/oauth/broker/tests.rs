@@ -49,7 +49,7 @@ fn counts(broker: &Broker) -> (usize, usize, usize, usize) {
 }
 
 #[tokio::test]
-async fn a_start_callback_claim_refresh_and_revoke_complete_the_flow() {
+async fn broker_keeps_tokens_out_of_browser_and_claims_once_with_local_pkce() {
     let (fake, broker, _clock) = broker(neuron_answer).await;
     let state = local_state('L');
     let completion = authorized(&fake, &broker, &state, CallbackMode::Loopback).await;
@@ -70,6 +70,10 @@ async fn a_start_callback_claim_refresh_and_revoke_complete_the_flow() {
     assert_eq!(challenge_of(broker_verifier), challenge);
     assert_eq!(counts(&broker), (0, 1, 1, 0));
     let handoff = broker.claim(&claim, &state, VERIFIER).unwrap();
+    assert!(
+        broker.claim(&claim, &state, VERIFIER).is_err(),
+        "a claim is handed over once"
+    );
     assert_eq!(handoff.tokens.expires_in, 3600);
     assert_eq!(handoff.scopes.joined(), "dns.read zone.read");
     assert_eq!(counts(&broker), (0, 0, 0, 0));
@@ -86,7 +90,7 @@ async fn a_start_callback_claim_refresh_and_revoke_complete_the_flow() {
 }
 
 #[tokio::test]
-async fn the_local_domain_and_out_of_band_modes_hand_over_the_claim_their_way() {
+async fn broker_returns_only_the_named_local_domain_admin_callback() {
     let (fake, broker, _clock) = broker(neuron_answer).await;
     let domain = authorized(&fake, &broker, &local_state('D'), CallbackMode::LocalDomain).await;
     let Completion::Redirect(location) = domain else {
@@ -167,7 +171,12 @@ fn fill_authorizations(broker: &Broker, count: usize) {
 }
 
 #[tokio::test]
-async fn a_failed_authorization_releases_its_local_state() {
+async fn broker_retries_binding_and_cleans_failed_authorization() {
+    let mut draws = vec!["second".to_owned(), "first".to_owned()];
+    assert_eq!(
+        unused(&|key| key == "first", &mut || draws.pop().unwrap()),
+        "second"
+    );
     let (_fake, broker, _clock) =
         broker(|_| reply("502 Bad Gateway", "application/json", "{}")).await;
     let state = local_state('F');
@@ -203,7 +212,7 @@ async fn a_callback_refuses_malformed_values_and_unknown_authorizations() {
 }
 
 #[tokio::test]
-async fn a_callback_with_other_scopes_or_a_failed_exchange_releases_the_local_state() {
+async fn broker_refuses_callback_scope_drift_before_token_exchange() {
     let (fake, broker, _clock) = broker(|recorded| {
         if recorded.head.contains("/exchange ") {
             reply("502 Bad Gateway", "application/json", "{}")
@@ -224,6 +233,11 @@ async fn a_callback_with_other_scopes_or_a_failed_exchange_releases_the_local_st
         Err(BrokerError)
     );
     assert_eq!(counts(&broker), (0, 0, 0, 0));
+    assert_eq!(
+        fake.received.lock().unwrap().len(),
+        1,
+        "no exchange after scope drift"
+    );
     broker
         .start(&state, &challenge, CallbackMode::Loopback, &SCOPES)
         .await
@@ -237,7 +251,7 @@ async fn a_callback_with_other_scopes_or_a_failed_exchange_releases_the_local_st
 }
 
 #[tokio::test]
-async fn a_callback_past_the_grant_capacity_keeps_the_authorization() {
+async fn broker_callback_enforces_capacity_and_cleans_failed_exchange() {
     let (fake, broker, _clock) = broker(neuron_answer).await;
     broker
         .start(
@@ -283,16 +297,35 @@ async fn a_claim_needs_its_shape_state_and_verifier_and_an_unproven_claim_stays(
 }
 
 #[tokio::test]
-async fn a_claim_with_too_little_token_lifetime_left_is_consumed_and_refused() {
+async fn broker_refuses_a_claim_whose_token_lifetime_is_nearly_spent() {
     let (fake, broker, clock) = broker(neuron_answer).await;
-    let state = local_state('R');
-    let claim = claim_of(&authorized(&fake, &broker, &state, CallbackMode::Loopback).await);
-    let mut grants = broker.state();
-    let grant = grants.grants.get_mut(&claim).unwrap();
-    grant.token_expires_at =
-        crate::clock::Clock::monotonic(&*clock) + Duration::from_millis(29_999);
-    drop(grants);
-    assert!(broker.claim(&claim, &state, VERIFIER).is_err());
+    let sixty = |broker: &Broker, claim: &str| {
+        let now = crate::clock::Clock::monotonic(&*clock);
+        broker
+            .state()
+            .grants
+            .get_mut(claim)
+            .unwrap()
+            .token_expires_at = now + Duration::from_secs(60);
+    };
+    let claim =
+        claim_of(&authorized(&fake, &broker, &local_state('R'), CallbackMode::Loopback).await);
+    sixty(&broker, &claim);
+    clock.step(Duration::from_secs(30));
+    assert_eq!(
+        broker
+            .claim(&claim, &local_state('R'), VERIFIER)
+            .unwrap()
+            .tokens
+            .expires_in,
+        30
+    );
+    let claim =
+        claim_of(&authorized(&fake, &broker, &local_state('T'), CallbackMode::Loopback).await);
+    sixty(&broker, &claim);
+    clock.step(Duration::from_millis(30_500));
+    assert!(broker.claim(&claim, &local_state('T'), VERIFIER).is_err());
+    assert!(broker.claim(&claim, &local_state('T'), VERIFIER).is_err());
     assert_eq!(counts(&broker), (0, 0, 0, 0));
 }
 
@@ -307,7 +340,7 @@ async fn a_claim_whose_lease_cannot_be_signed_is_consumed_and_refused() {
 }
 
 #[tokio::test]
-async fn authorizations_and_grants_expire_after_five_minutes_and_release_their_local_states() {
+async fn broker_expires_grants_and_enforces_start_capacity() {
     let (fake, broker, clock) = broker(neuron_answer).await;
     let challenge = challenge_of(VERIFIER);
     broker
@@ -352,7 +385,7 @@ async fn refresh_and_revoke_need_a_token_and_a_lease_naming_it() {
 }
 
 #[tokio::test]
-async fn a_start_whose_authorization_a_callback_consumed_leaves_the_callbacks_state_alone() {
+async fn broker_failed_authorization_tolerates_concurrent_removal() {
     let (fake, broker, _clock) = broker(|recorded| {
         if recorded.head.contains("/authorization ") {
             reply("502 Bad Gateway", "application/json", "{}")
@@ -414,11 +447,13 @@ async fn a_panicking_operation_restores_reservations_and_local_state() {
     assert_eq!(counts(&broker), (0, 0, 0, 0));
 }
 
-#[test]
-fn a_colliding_key_is_drawn_again() {
+#[tokio::test]
+async fn broker_callback_retries_claim_collision_and_claim_rejects_shape() {
     let mut draws = vec!["fresh".to_owned(), "taken".to_owned()];
     let key = unused(&|key| key == "taken", &mut || draws.pop().unwrap());
     assert_eq!(key, "fresh");
+    let (_fake, broker, _clock) = broker(neuron_answer).await;
+    assert!(broker.claim("bad", &local_state('S'), VERIFIER).is_err());
 }
 
 #[test]
@@ -452,4 +487,171 @@ fn only_the_three_callback_modes_parse() {
         Some(CallbackMode::OutOfBand)
     );
     assert_eq!(CallbackMode::parse("remote"), None);
+}
+
+#[tokio::test]
+async fn broker_preserves_a_read_only_scope_subset_without_refresh_widening() {
+    let (fake, broker, _clock) = broker(neuron_answer).await;
+    let read = ["dns.read", "offline_access", "zone.read"];
+    let state = local_state('W');
+    broker
+        .start(
+            &state,
+            &challenge_of(VERIFIER),
+            CallbackMode::OutOfBand,
+            &read,
+        )
+        .await
+        .unwrap();
+    let (broker_state, _) = latest_authorization(&fake);
+    let reversed = ["zone.read", "offline_access", "dns.read"];
+    let completion = broker
+        .callback(&broker_state, CODE, &reversed)
+        .await
+        .unwrap();
+    let handoff = broker
+        .claim(&claim_of(&completion), &state, VERIFIER)
+        .unwrap();
+    assert_eq!(handoff.scopes.names(), read);
+    let widened =
+        Scopes::sorted(&["dns.read", "dns.write", "offline_access", "zone.read"]).unwrap();
+    assert!(
+        broker
+            .refresh("refresh-token-001", &handoff.lease, &widened)
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        fake.received.lock().unwrap().len(),
+        2,
+        "authorization and exchange only"
+    );
+}
+
+#[tokio::test]
+async fn broker_rejects_wrong_pkce_tampered_lease_and_expired_state() {
+    let (fake, broker, clock) = broker(neuron_answer).await;
+    let state = local_state('S');
+    let claim = claim_of(&authorized(&fake, &broker, &state, CallbackMode::Loopback).await);
+    assert!(broker.claim(&claim, &state, &"x".repeat(43)).is_err());
+    let handoff = broker.claim(&claim, &state, VERIFIER).unwrap();
+    let tampered = format!("{}x", &handoff.lease[..handoff.lease.len() - 1]);
+    let scopes = Scopes::sorted(&SCOPES).unwrap();
+    assert!(
+        broker
+            .refresh("refresh-token-001", &tampered, &scopes)
+            .await
+            .is_err()
+    );
+    broker
+        .start(
+            &local_state('T'),
+            &challenge_of(VERIFIER),
+            CallbackMode::Loopback,
+            &SCOPES,
+        )
+        .await
+        .unwrap();
+    let (expired, _) = latest_authorization(&fake);
+    clock.step(Duration::from_secs(301));
+    assert_eq!(
+        broker.callback(&expired, CODE, &SCOPES).await,
+        Err(BrokerError)
+    );
+}
+
+#[tokio::test]
+async fn broker_out_of_band_completion_keeps_the_fixed_claim_and_pkce_contract() {
+    let (fake, broker, clock) = broker(neuron_answer).await;
+    let state = local_state('O');
+    let completion = authorized(&fake, &broker, &state, CallbackMode::OutOfBand).await;
+    let Completion::OutOfBand(code) = &completion else {
+        panic!("an out-of-band completion");
+    };
+    let parts: Vec<&str> = code.split('.').collect();
+    assert_eq!(
+        (parts[0], parts[1], parts[2].len()),
+        ("c1", state.as_str(), 64)
+    );
+    assert!(!code.contains("access-token"));
+    clock.step(Duration::from_secs(299));
+    let handoff = broker.claim(parts[2], &state, VERIFIER).unwrap();
+    assert!(handoff.tokens.access.starts_with("access-token"));
+}
+
+#[tokio::test]
+async fn broker_claim_delivers_only_the_token_lifetime_left_after_the_handoff() {
+    let (fake, broker, clock) = broker(neuron_answer).await;
+    let state = local_state('S');
+    let claim = claim_of(&authorized(&fake, &broker, &state, CallbackMode::Loopback).await);
+    clock.step(Duration::from_millis(100_500));
+    let handoff = broker.claim(&claim, &state, VERIFIER).unwrap();
+    assert_eq!(handoff.tokens.expires_in, 3499);
+    let scopes = Scopes::sorted(&SCOPES).unwrap();
+    let refreshed = broker
+        .refresh("refresh-token-001", &handoff.lease, &scopes)
+        .await
+        .unwrap();
+    assert_eq!(refreshed.tokens.expires_in, 3600);
+}
+
+#[tokio::test]
+async fn broker_reserves_one_local_state_until_its_grant_is_claimed() {
+    let (fake, broker, _clock) = broker(neuron_answer).await;
+    let state = local_state('S');
+    let challenge = challenge_of(VERIFIER);
+    let mode = CallbackMode::OutOfBand;
+    broker
+        .start(&state, &challenge, mode, &SCOPES)
+        .await
+        .unwrap();
+    assert_eq!(
+        broker.start(&state, &challenge, mode, &SCOPES).await,
+        Err(BrokerError)
+    );
+    let (broker_state, _) = latest_authorization(&fake);
+    let completion = broker.callback(&broker_state, CODE, &SCOPES).await.unwrap();
+    assert_eq!(
+        broker.start(&state, &challenge, mode, &SCOPES).await,
+        Err(BrokerError)
+    );
+    broker
+        .claim(&claim_of(&completion), &state, VERIFIER)
+        .unwrap();
+    assert!(
+        broker
+            .start(&state, &challenge, mode, &SCOPES)
+            .await
+            .is_ok()
+    );
+}
+
+#[tokio::test]
+async fn broker_reserves_local_state_while_neuron_exchanges_the_code() {
+    let (fake, broker, _clock) = broker(neuron_answer).await;
+    let broker = Arc::new(broker);
+    let state = local_state('S');
+    let challenge = challenge_of(VERIFIER);
+    broker
+        .start(&state, &challenge, CallbackMode::OutOfBand, &SCOPES)
+        .await
+        .unwrap();
+    let (broker_state, _) = latest_authorization(&fake);
+    fake.held.send_replace(true);
+    let exchanging = tokio::spawn({
+        let broker = Arc::clone(&broker);
+        async move { broker.callback(&broker_state, CODE, &SCOPES).await }
+    });
+    while fake.received.lock().unwrap().len() < 2 {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let during = broker
+        .start(&state, &challenge, CallbackMode::OutOfBand, &SCOPES)
+        .await;
+    fake.held.send_replace(false);
+    assert_eq!(during, Err(BrokerError));
+    assert!(matches!(
+        exchanging.await.unwrap(),
+        Ok(Completion::OutOfBand(_))
+    ));
 }

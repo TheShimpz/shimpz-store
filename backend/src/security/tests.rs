@@ -138,7 +138,7 @@ fn only_the_exact_oauth_paths_drop_the_referrer_and_only_the_callback_keeps_its_
 }
 
 #[tokio::test]
-async fn a_panicking_handler_answers_the_closed_500() {
+async fn application_exception_handlers_return_closed_responses() {
     assert_eq!(
         guarded(
             "/x",
@@ -151,4 +151,42 @@ async fn a_panicking_handler_answers_the_closed_500() {
     let failed = guarded("/x", Box::pin(async { panic!("PRIVATE_SENTINEL") })).await;
     assert_eq!(failed.status, StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(failed.body, &b"{\"detail\":\"internal server error\"}"[..]);
+    let saturated = crate::oauth::admission::capacity_reached("/api/oauth/cloudflare/claim");
+    assert_eq!(saturated.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(
+        &saturated.body[..],
+        b"{\"detail\":\"Store upstream capacity reached\"}"
+    );
+}
+
+#[test]
+fn every_response_refuses_framing() {
+    let policy = http::HeaderValue::from_static("frame-ancestors 'none'; frame-src 'none'");
+    for path in ["/api/health", "/en/assistants", "/pt"] {
+        let response = secure(
+            Reply::detail(http::StatusCode::OK, "ok", Vec::new()),
+            path,
+            "id",
+            &policy,
+        );
+        assert_eq!(response.headers()["x-frame-options"], "DENY");
+        let csp = response.headers()["content-security-policy"]
+            .to_str()
+            .unwrap();
+        assert!(csp.contains("frame-ancestors 'none'") && csp.contains("frame-src 'none'"));
+    }
+}
+
+#[tokio::test]
+async fn an_unhandled_failure_answers_with_the_security_headers_and_the_request_id() {
+    let policy = http::HeaderValue::from_static("default-src 'self'");
+    let reply = guarded("/x", Box::pin(async { panic!("PRIVATE_SENTINEL") })).await;
+    let response = secure(reply, "/x", "trace-1", &policy);
+    assert_eq!(response.status(), http::StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.headers()["x-request-id"], "trace-1");
+    assert_eq!(response.headers()["x-frame-options"], "DENY");
+    assert_eq!(
+        response.headers()["content-security-policy"],
+        "default-src 'self'"
+    );
 }

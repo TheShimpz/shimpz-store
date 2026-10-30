@@ -327,3 +327,12 @@ async fn the_dispatcher_sends_catalog_and_icon_requests_to_the_catalog() {
     .await;
     assert_eq!(icon.0, StatusCode::SERVICE_UNAVAILABLE);
 }
+
+#[tokio::test]
+async fn health() {
+    let (_build, application) = site_application();
+    assert_eq!(
+        answer(&application, Method::GET, "/api/health", "").await,
+        (StatusCode::OK, String::from("{\"status\":\"ok\"}"))
+    );
+}

@@ -45,7 +45,7 @@ async fn scripted(script: Script) -> (Developers, Arc<Mutex<String>>) {
 }
 
 #[tokio::test]
-async fn a_read_sends_one_closed_request_and_returns_the_status_headers_and_body() {
+async fn json_transport_returns_the_status_and_decoded_body() {
     let (developers, head) = scripted(Script::Reply(
         b"HTTP/1.1 200 OK\r\nContent-Type: image/png; x=1\r\nContent-Type: text/html\r\nContent-Length: 3\r\n\r\npng",
     ))
@@ -76,7 +76,7 @@ async fn a_read_sends_one_closed_request_and_returns_the_status_headers_and_body
 }
 
 #[tokio::test]
-async fn a_body_past_the_bound_is_marked_too_long_and_absent_headers_are_none() {
+async fn json_transport_rejects_an_oversized_response() {
     let (developers, head) = scripted(Script::Reply(
         b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n12345",
     ))
@@ -105,7 +105,7 @@ async fn framing_failures_and_a_broken_body_are_protocol_errors() {
 }
 
 #[tokio::test]
-async fn an_unreachable_developers_fails_to_connect() {
+async fn json_transport_closes_on_network_failure() {
     let port = TcpListener::bind("127.0.0.1:0")
         .await
         .unwrap()
@@ -173,7 +173,7 @@ async fn a_write_that_never_drains_times_out_and_flush_and_shutdown_pass_through
 }
 
 #[test]
-fn every_failure_has_a_closed_code() {
+fn upstream_failures_log_only_closed_codes() {
     assert_eq!(Failure::Connect.code(), "connect_failed");
     assert_eq!(Failure::TimedOut.code(), "timed_out");
     assert_eq!(Failure::Protocol.code(), "protocol_error");

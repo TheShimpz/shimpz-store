@@ -49,7 +49,7 @@ async fn a_verified_icon_is_read_once_and_then_kept() {
 }
 
 #[tokio::test]
-async fn an_unreachable_developers_or_a_full_slot_queue_answers_unavailable() {
+async fn asset_transport_closes_on_network_failure() {
     let mut developers = fake(|_| Script::Reply(Vec::new())).await.developers;
     developers.port = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -81,7 +81,7 @@ async fn an_unreachable_developers_or_a_full_slot_queue_answers_unavailable() {
 }
 
 #[tokio::test]
-async fn concurrent_requests_for_one_icon_share_one_read_and_past_the_pending_bound_are_refused() {
+async fn icons_past_the_pending_bound_are_refused_and_never_queued() {
     let release = Arc::new(Notify::new());
     let held = Arc::clone(&release);
     let fake = fake(move |_| Script::Held(Arc::clone(&held), ok("image/png", b"x"))).await;
@@ -150,7 +150,7 @@ fn fetched(
 }
 
 #[test]
-fn only_an_exact_png_reply_of_its_declared_length_is_admitted() {
+fn asset_transport_enforces_status_type_length_and_exact_body() {
     let png = Some("image/png");
     assert!(admitted(fetched(200, png, Some("3"), Some(b"png"))).is_some());
     assert!(
@@ -184,4 +184,50 @@ fn only_an_exact_png_reply_of_its_declared_length_is_admitted() {
     for refused in refusals {
         assert!(admitted(refused).is_none());
     }
+}
+
+#[tokio::test]
+async fn visitors_asking_for_one_cold_icon_together_share_one_read() {
+    let release = Arc::new(Notify::new());
+    let held = Arc::clone(&release);
+    let fake = fake(move |_| Script::Held(Arc::clone(&held), ok("image/png", b"one icon"))).await;
+    let icons = Arc::new(Icons::new(fake.developers.clone(), Duration::from_secs(60)));
+    let visitors: Vec<_> = (0..24)
+        .map(|_| {
+            let icons = Arc::clone(&icons);
+            tokio::spawn(async move { icons.icon(&source(1), &digest(b"one icon")).await })
+        })
+        .collect();
+    fake.wait_active(1).await;
+    for visitor in visitors {
+        let mut visitor = visitor;
+        loop {
+            release.notify_waiters();
+            if let Ok(served) = tokio::time::timeout(Duration::from_millis(20), &mut visitor).await
+            {
+                assert!(served.unwrap().is_some());
+                break;
+            }
+        }
+    }
+    assert_eq!(fake.calls.lock().unwrap().values().sum::<usize>(), 1);
+    assert!(icons.state.lock().unwrap().reading.is_empty());
+}
+
+#[tokio::test]
+async fn icons_are_read_two_at_a_time_and_kept_within_their_budget() {
+    let fake = fake(|target| Script::Reply(ok("image/png", target.as_bytes()))).await;
+    let icons = Arc::new(Icons::new(fake.developers.clone(), Duration::from_secs(60)));
+    let reads: Vec<_> = (0..12)
+        .map(|index| {
+            let icons = Arc::clone(&icons);
+            let source = format!("{index:064x}");
+            let target = format!("/api/v1/assistant-publications/sha256:{source}/icon.png");
+            tokio::spawn(async move { icons.icon(&source, &digest(target.as_bytes())).await })
+        })
+        .collect();
+    for read in reads {
+        assert!(read.await.unwrap().is_some());
+    }
+    assert!(fake.peak.load(std::sync::atomic::Ordering::SeqCst) <= 2);
 }

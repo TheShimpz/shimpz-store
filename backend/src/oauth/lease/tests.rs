@@ -45,15 +45,23 @@ fn a_lease_is_byte_identical_to_the_python_stores_and_verifies_under_either_key(
 }
 
 #[test]
-fn a_lease_verifies_until_its_expiry_second() {
+fn lease_signer_rejects_short_key_non_string_and_expired_lease() {
     let directory = tempfile::tempdir().unwrap();
     let (clock, signer) = signer(directory.path(), &[b'n'; 32], &[b'q'; 32]);
     let lease = signer.issue(ACCESS, REFRESH, SCOPES).unwrap();
     let ttl = u64::try_from(LEASE_TTL_SECONDS).unwrap();
     clock.step(Duration::from_secs(ttl - 1));
     assert_eq!(signer.verify(&lease, ACCESS, None), Ok(()));
+    assert_eq!(
+        signer.verify(&lease, &"c".repeat(16), None),
+        Err(BrokerError)
+    );
+    assert_eq!(signer.verify("", ACCESS, None), Err(BrokerError));
     clock.step(Duration::from_secs(1));
     assert_eq!(signer.verify(&lease, ACCESS, None), Err(BrokerError));
+    let short = tempfile::tempdir().unwrap();
+    let (_clock, short) = self::signer(short.path(), b"short", &[b'p'; 32]);
+    assert_eq!(short.issue(ACCESS, REFRESH, SCOPES), Err(BrokerError));
 }
 
 #[test]
@@ -81,7 +89,7 @@ fn a_lease_naming_other_tokens_or_scopes_or_forged_is_refused() {
 }
 
 #[test]
-fn a_ring_needs_two_distinct_full_length_keys() {
+fn the_lease_ring_requires_two_distinct_full_length_keys() {
     let refused: [(&[u8], &[u8]); 4] = [
         (&[b'n'; 32], &[b'n'; 32]),
         (&[b'n'; 31], &[b'q'; 32]),
@@ -156,4 +164,90 @@ fn digests_are_unpadded_base64url_sha256() {
         production.paths[1].to_str(),
         Some("/run/shimpz-store-oauth/lease-key-previous")
     );
+}
+
+#[test]
+fn broker_lease_signer_rejects_a_world_readable_key() {
+    let directory = tempfile::tempdir().unwrap();
+    let (_clock, signer) = signer(directory.path(), &[b'k'; 32], &[b'p'; 32]);
+    let key = directory.path().join("lease-key");
+    std::fs::set_permissions(&key, std::os::unix::fs::PermissionsExt::from_mode(0o444)).unwrap();
+    assert_eq!(signer.issue(ACCESS, REFRESH, SCOPES), Err(BrokerError));
+}
+
+#[test]
+fn lease_names_its_signing_key_and_verifies_under_that_key_from_the_file_ring() {
+    let directory = tempfile::tempdir().unwrap();
+    let (_clock, signer) = signer(directory.path(), &[b'k'; 32], &[b'p'; 32]);
+    let lease = signer.issue(ACCESS, REFRESH, SCOPES).unwrap();
+    assert_eq!(signer.verify(&lease, REFRESH, Some(SCOPES)), Ok(()));
+    let kid = |current: &[u8], previous: &[u8]| {
+        let other = tempfile::tempdir().unwrap();
+        let (_clock, signer) = self::signer(other.path(), current, previous);
+        signer
+            .issue(ACCESS, REFRESH, SCOPES)
+            .unwrap()
+            .split('.')
+            .nth(1)
+            .unwrap()
+            .to_owned()
+    };
+    assert_eq!(lease.split('.').next(), Some("l3"));
+    assert_eq!(
+        lease.split('.').nth(1).unwrap(),
+        kid(&[b'k'; 32], &[b'q'; 32])
+    );
+    assert_ne!(
+        lease.split('.').nth(1).unwrap(),
+        kid(&[b'p'; 32], &[b'k'; 32])
+    );
+}
+
+#[test]
+fn rotation_keeps_leases_of_the_previous_key_and_signs_only_with_the_new_key() {
+    let before_directory = tempfile::tempdir().unwrap();
+    let (_clock, before) = signer(before_directory.path(), &[b'k'; 32], &[b'o'; 32]);
+    let lease = before.issue(ACCESS, REFRESH, SCOPES).unwrap();
+    let rotated_directory = tempfile::tempdir().unwrap();
+    let (_clock, rotated) = signer(rotated_directory.path(), &[b'n'; 32], &[b'k'; 32]);
+    assert_eq!(rotated.verify(&lease, ACCESS, Some(SCOPES)), Ok(()));
+    let fresh = rotated.issue(ACCESS, REFRESH, SCOPES).unwrap();
+    assert_ne!(fresh.split('.').nth(1), lease.split('.').nth(1));
+    assert_eq!(
+        before.verify(&fresh, ACCESS, Some(SCOPES)),
+        Err(BrokerError)
+    );
+}
+
+#[test]
+fn a_lease_of_a_dropped_key_or_a_forged_kid_is_refused() {
+    let issuing = tempfile::tempdir().unwrap();
+    let (_clock, issuer) = signer(issuing.path(), &[b'k'; 32], &[b'o'; 32]);
+    let lease = issuer.issue(ACCESS, REFRESH, SCOPES).unwrap();
+    let dropping = tempfile::tempdir().unwrap();
+    let (_clock, dropped) = signer(dropping.path(), &[b'n'; 32], &[b'm'; 32]);
+    assert_eq!(
+        dropped.verify(&lease, ACCESS, Some(SCOPES)),
+        Err(BrokerError)
+    );
+    let rotating = tempfile::tempdir().unwrap();
+    let (_clock, rotated) = signer(rotating.path(), &[b'n'; 32], &[b'o'; 32]);
+    let trusted = rotated.issue(ACCESS, REFRESH, SCOPES).unwrap();
+    let mut parts: Vec<&str> = lease.split('.').collect();
+    parts[1] = trusted.split('.').nth(1).unwrap();
+    assert_eq!(
+        rotated.verify(&parts.join("."), ACCESS, Some(SCOPES)),
+        Err(BrokerError)
+    );
+}
+
+#[test]
+fn a_missing_previous_lease_key_file_fails_closed() {
+    let directory = tempfile::tempdir().unwrap();
+    let current = installed(directory.path(), "lease-key", &[b'k'; 32]);
+    let signer = LeaseSigner::new(
+        [current, directory.path().join("lease-key-previous")],
+        Arc::new(ManualClock::at(0)),
+    );
+    assert_eq!(signer.issue(ACCESS, REFRESH, SCOPES), Err(BrokerError));
 }

@@ -1,3 +1,6 @@
+//! The broker routes, named after the Python route tests they replace, plus the owned-operation tests of the Rust
+//! design.
+
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
@@ -14,29 +17,52 @@ use crate::{
     oauth::{
         body::Body,
         broker::challenge_of,
-        testing::{Fake, broker, latest_authorization, neuron_answer, reply},
+        testing::{
+            Fake, Recorded, broker, latest_authorization, neuron_answer, neuron_answer_for, reply,
+        },
     },
-    ratelimit::StartLimit,
+    ratelimit::{StartLimit, trusted_proxies},
     response::Reply,
 };
 
 const VERIFIER: &str = "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv";
 const START: &str = "/api/oauth/cloudflare/start";
-const PEER: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1));
+const CALLBACK: &str = "/api/oauth/cloudflare/callback";
+const PEER: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 0, 2, 10));
+const SCOPES: &str = "dns.read+dns.write+offline_access+zone.read";
 
-async fn routes(
-    script: impl Fn(&crate::oauth::testing::Recorded) -> Vec<u8> + Send + Sync + 'static,
+async fn routes_behind(
+    proxies: &str,
+    script: impl Fn(&Recorded) -> Vec<u8> + Send + Sync + 'static,
 ) -> (Fake, Arc<Oauth>) {
     let (fake, broker, _clock) = broker(script).await;
-    let limit = StartLimit::new(Vec::new(), Arc::new(ManualClock::at(0)));
+    let proxies = trusted_proxies(Some(std::ffi::OsStr::new(proxies))).unwrap();
+    let limit = StartLimit::new(proxies, Arc::new(ManualClock::at(0)));
     (fake, Arc::new(Oauth::new(broker, limit)))
+}
+
+async fn routes(
+    script: impl Fn(&Recorded) -> Vec<u8> + Send + Sync + 'static,
+) -> (Fake, Arc<Oauth>) {
+    routes_behind("10.0.0.0/32", script).await
 }
 
 fn start_query(state: &str, callback: &str) -> String {
     format!(
-        "state={state}&code_challenge={}&scope=dns.read+zone.read&callback={callback}",
+        "state={state}&code_challenge={}&scope={SCOPES}&callback={callback}",
         challenge_of(VERIFIER)
     )
+}
+
+async fn start(oauth: &Oauth, state: &str, callback: &str) -> Reply {
+    oauth
+        .start(
+            PEER,
+            &HeaderMap::new(),
+            Some(&start_query(state, callback)),
+            START,
+        )
+        .await
 }
 
 fn json_headers(length: usize) -> HeaderMap {
@@ -71,37 +97,34 @@ fn header<'a>(reply: &'a Reply, name: &str) -> Option<&'a str> {
         .map(|(_, value)| value.to_str().unwrap())
 }
 
+fn callback_query(broker_state: &str, scopes: &str) -> String {
+    format!("state={broker_state}&code=authorization-code-0001&scope={scopes}")
+}
+
 /// Start for `state` and run the callback; the callback's reply.
 async fn called_back(fake: &Fake, oauth: &Oauth, state: &str, callback: &str) -> Reply {
-    let started = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(state, callback)),
-            START,
-        )
-        .await;
-    assert_eq!(started.status, StatusCode::SEE_OTHER);
+    assert_eq!(
+        start(oauth, state, callback).await.status,
+        StatusCode::SEE_OTHER
+    );
     let (broker_state, _) = latest_authorization(fake);
-    let query = format!("state={broker_state}&code=code-0000000000000&scope=zone.read+dns.read");
     oauth
-        .callback(Some(&query), "/api/oauth/cloudflare/callback")
+        .callback(Some(&callback_query(&broker_state, SCOPES)), CALLBACK)
         .await
 }
 
+async fn wait_for(fake: &Fake, requests: usize) {
+    while fake.received.lock().unwrap().len() < requests {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+}
+
 #[tokio::test]
-async fn a_start_redirects_to_the_consent_url_without_caching_or_a_referrer() {
-    let (_fake, oauth) = routes(neuron_answer).await;
-    let reply = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&"s".repeat(43), "loopback")),
-            START,
-        )
-        .await;
-    assert_eq!(reply.status, StatusCode::SEE_OTHER);
-    let names: Vec<_> = reply
+async fn browser_start_and_callback_redirect_without_oauth_tokens() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let started = start(&oauth, &"s".repeat(43), "loopback").await;
+    assert_eq!(started.status, StatusCode::SEE_OTHER);
+    let names: Vec<_> = started
         .headers
         .iter()
         .map(|(name, _)| name.as_str())
@@ -116,103 +139,144 @@ async fn a_start_redirects_to_the_consent_url_without_caching_or_a_referrer() {
         ]
     );
     assert!(
-        header(&reply, "location")
+        header(&started, "location")
             .unwrap()
             .starts_with("https://dash.cloudflare.com/oauth2/auth?")
     );
-    assert_eq!(header(&reply, "cache-control"), Some("private, no-store"));
-    assert!(reply.body.is_empty());
-}
-
-#[tokio::test]
-async fn a_start_refuses_an_inexact_query_or_an_unknown_callback_before_the_broker() {
-    let (fake, oauth) = routes(neuron_answer).await;
-    let good = start_query(&"s".repeat(43), "loopback");
-    for query in [
-        None,
-        Some(good.replace("&callback=loopback", "")),
-        Some(format!("{good}&callback=loopback")),
-        Some(format!("{good}&extra=1")),
-        Some(good.replace("loopback", "remote")),
-        Some(good.replace("loopback", "https://evil.example")),
-    ] {
-        let reply = oauth
-            .start(PEER, &HeaderMap::new(), query.as_deref(), START)
-            .await;
-        assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{query:?}");
-    }
-    assert!(fake.received.lock().unwrap().is_empty());
-    let broken = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&good.replace(&"s".repeat(43), "short")),
-            START,
-        )
+    assert_eq!(header(&started, "cache-control"), Some("private, no-store"));
+    let (broker_state, _) = latest_authorization(&fake);
+    let completed = oauth
+        .callback(Some(&callback_query(&broker_state, SCOPES)), CALLBACK)
         .await;
-    assert_eq!(broken.status, StatusCode::BAD_GATEWAY);
+    let location = header(&completed, "location").unwrap();
+    assert!(location.starts_with("http://127.0.0.1:7777/api/oauth/cloudflare/callback?state=sss"));
+    assert!(!location.contains("access-token") && !location.contains("refresh-token"));
+    assert_eq!(header(&completed, "referrer-policy"), Some("no-referrer"));
+    assert!(completed.body.is_empty());
 }
 
 #[tokio::test]
-async fn the_eleventh_start_in_a_minute_is_limited_even_when_malformed() {
-    let (_fake, oauth) = routes(neuron_answer).await;
-    for _ in 0..10 {
-        let reply = oauth.start(PEER, &HeaderMap::new(), None, START).await;
-        assert_eq!(reply.status, StatusCode::BAD_REQUEST);
-    }
-    let limited = oauth.start(PEER, &HeaderMap::new(), None, START).await;
-    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
-    assert_eq!(header(&limited, "retry-after"), Some("6"));
-}
-
-#[tokio::test]
-async fn a_callback_redirects_or_renders_the_completion_page_and_refuses_inexact_queries() {
+async fn browser_start_requires_an_explicit_callback_mode() {
     let (fake, oauth) = routes(neuron_answer).await;
-    let redirected = called_back(&fake, &oauth, &"r".repeat(43), "loopback").await;
-    assert_eq!(redirected.status, StatusCode::SEE_OTHER);
-    assert!(
-        header(&redirected, "location")
-            .unwrap()
-            .starts_with("http://127.0.0.1:7777/")
+    let query = start_query(&"s".repeat(43), "loopback").replace("&callback=loopback", "");
+    let reply = oauth
+        .start(PEER, &HeaderMap::new(), Some(&query), START)
+        .await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST);
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn browser_callback_requires_the_closed_cloudflare_scope_envelope() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let state = "b".repeat(43);
+    for query in [
+        format!("state={state}&code=authorization-code-0001"),
+        format!("{}&token=must-not-cross", callback_query(&state, SCOPES)),
+        format!("state={state}&code=first&code=second&scope={SCOPES}"),
+    ] {
+        let reply = oauth.callback(Some(&query), CALLBACK).await;
+        assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{query}");
+    }
+    assert_eq!(
+        oauth.callback(None, CALLBACK).await.status,
+        StatusCode::BAD_REQUEST
     );
-    let page = called_back(&fake, &oauth, &"o".repeat(43), "out-of-band").await;
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn browser_routes_forward_the_canonical_read_only_scope_subset() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let read = "dns.read+offline_access+zone.read";
+    let query = start_query(&"r".repeat(43), "loopback").replace(SCOPES, read);
+    let started = oauth
+        .start(PEER, &HeaderMap::new(), Some(&query), START)
+        .await;
+    assert!(
+        header(&started, "location")
+            .unwrap()
+            .ends_with("scope=dns.read+offline_access+zone.read")
+    );
+    let (broker_state, _) = latest_authorization(&fake);
+    let completed = oauth
+        .callback(Some(&callback_query(&broker_state, read)), CALLBACK)
+        .await;
+    assert_eq!(completed.status, StatusCode::SEE_OTHER);
+    let exchanged = fake.received.lock().unwrap().last().unwrap().body.clone();
+    assert!(
+        exchanged.ends_with("\"scopes\":[\"dns.read\",\"offline_access\",\"zone.read\"]}"),
+        "{exchanged}"
+    );
+}
+
+#[tokio::test]
+async fn browser_start_forwards_only_the_named_local_domain_admin_callback() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let completed = called_back(&fake, &oauth, &"l".repeat(43), "local-domain").await;
+    let location = header(&completed, "location").unwrap();
+    assert!(
+        location.starts_with("https://local.shimpz.com/api/oauth/cloudflare/callback?state=lll")
+    );
+}
+
+#[tokio::test]
+async fn out_of_band_callback_renders_only_a_hardened_completion_code() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let state = "o".repeat(43);
+    let page = called_back(&fake, &oauth, &state, "out-of-band").await;
     assert_eq!(page.status, StatusCode::OK);
     assert_eq!(
         header(&page, "content-type"),
         Some("text/html; charset=utf-8")
     );
-    for query in [
-        None,
-        Some("state=x&code=y"),
-        Some("state=x&code=y&scope=z&scope=z"),
-    ] {
-        let reply = oauth
-            .callback(query, "/api/oauth/cloudflare/callback")
-            .await;
-        assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{query:?}");
-    }
-    let unknown = oauth
-        .callback(
-            Some("state=x&code=code-0000000000000&scope=dns.read"),
-            "/api/oauth/cloudflare/callback",
-        )
-        .await;
-    assert_eq!(unknown.status, StatusCode::BAD_GATEWAY);
+    assert_eq!(header(&page, "cache-control"), Some("private, no-store"));
+    assert_eq!(
+        header(&page, "cross-origin-opener-policy"),
+        Some("same-origin")
+    );
+    assert_eq!(header(&page, "location"), None);
+    let policy = header(&page, "content-security-policy").unwrap();
+    let nonce = policy
+        .split("'nonce-")
+        .nth(1)
+        .unwrap()
+        .split('\'')
+        .next()
+        .unwrap();
+    assert_eq!(nonce.len(), 24);
+    let text = String::from_utf8(page.body.to_vec()).unwrap();
+    assert!(text.contains(&format!("<script nonce=\"{nonce}\">")));
+    assert!(text.contains(&format!("<style nonce=\"{nonce}\">")));
+    assert!(text.contains(&format!("value=\"c1.{state}.")));
+    assert!(!policy.contains("'unsafe-inline'") && !policy.contains("sha256-"));
+    assert!(!text.contains("access-token") && !text.contains("refresh-token"));
 }
 
 #[tokio::test]
-async fn claim_refresh_and_revoke_answer_exact_uncached_json() {
+async fn browser_start_rejects_an_arbitrary_or_unknown_callback_before_the_broker() {
     let (fake, oauth) = routes(neuron_answer).await;
+    for callback in ["https://evil.example", "remote"] {
+        assert_eq!(
+            start(&oauth, &"s".repeat(43), callback).await.status,
+            StatusCode::BAD_REQUEST
+        );
+    }
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+/// Complete a loopback flow and claim it; the lease of the claimed tokens.
+async fn claimed_lease(fake: &Fake, oauth: &Oauth) -> String {
     let state = "c".repeat(43);
-    let redirected = called_back(&fake, &oauth, &state, "loopback").await;
-    let claim = header(&redirected, "location")
+    let completed = called_back(fake, oauth, &state, "loopback").await;
+    let claim = header(&completed, "location")
         .unwrap()
         .rsplit("claim=")
         .next()
         .unwrap()
         .to_owned();
     let claimed = post(
-        &oauth,
+        oauth,
         Post::Claim,
         &format!(
             "{{\"claim\":\"{claim}\",\"state\":\"{state}\",\"code_verifier\":\"{VERIFIER}\"}}"
@@ -222,22 +286,33 @@ async fn claim_refresh_and_revoke_answer_exact_uncached_json() {
     assert_eq!(claimed.status, StatusCode::OK);
     assert_eq!(header(&claimed, "cache-control"), Some("private, no-store"));
     let text = String::from_utf8(claimed.body.to_vec()).unwrap();
-    let prefix = "{\"access_token\":\"access-token-0001\",\"refresh_token\":\"refresh-token-001\",\
-                  \"expires_in\":3600,\"scopes\":[\"dns.read\",\"zone.read\"],\"broker_lease\":\"l3.";
+    let prefix = "{\"access_token\":\"access-token-0001\",\"refresh_token\":\"refresh-token-001\",\"expires_in\":3600,\
+                  \"scopes\":[\"dns.read\",\"dns.write\",\"offline_access\",\"zone.read\"],\"broker_lease\":\"l3.";
     assert!(text.starts_with(prefix), "{text}");
-    let lease = text
-        .rsplit("\"broker_lease\":\"")
+    text.rsplit("\"broker_lease\":\"")
         .next()
         .unwrap()
         .trim_end_matches("\"}")
-        .to_owned();
+        .to_owned()
+}
+
+#[tokio::test]
+async fn server_only_claim_refresh_and_revoke_are_exact_and_no_store() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let lease = claimed_lease(&fake, &oauth).await;
     let refreshed = post(
         &oauth,
         Post::Refresh,
-        &format!("{{\"refresh_token\":\"refresh-token-001\",\"broker_lease\":\"{lease}\",\"scopes\":[\"dns.read\",\"zone.read\"]}}"),
+        &format!(
+            "{{\"refresh_token\":\"refresh-token-001\",\"broker_lease\":\"{lease}\",\
+             \"scopes\":[\"dns.read\",\"dns.write\",\"offline_access\",\"zone.read\"]}}"
+        ),
     )
     .await;
-    assert_eq!(refreshed.status, StatusCode::OK);
+    assert_eq!(
+        (refreshed.status, header(&refreshed, "cache-control")),
+        (StatusCode::OK, Some("private, no-store"))
+    );
     let revoked = post(
         &oauth,
         Post::Revoke,
@@ -251,14 +326,190 @@ async fn claim_refresh_and_revoke_answer_exact_uncached_json() {
 }
 
 #[tokio::test]
-async fn server_only_operations_refuse_their_body_or_wrong_types() {
-    let (_fake, oauth) = routes(neuron_answer).await;
-    let mut browser = json_headers(2);
-    browser.insert("origin", HeaderValue::from_static("https://shimpz.com"));
-    let forbidden = oauth.post(Post::Revoke, &browser, body("{}"), "/x").await;
+async fn token_routes_reject_browser_origin_duplicate_and_extra_fields() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let claim = format!(
+        "{{\"claim\":\"{}\",\"state\":\"{}\",\"code_verifier\":\"{VERIFIER}\"}}",
+        "a".repeat(64),
+        "s".repeat(43)
+    );
+    let mut browser = json_headers(claim.len());
+    browser.insert("origin", HeaderValue::from_static("https://evil.example"));
+    let forbidden = oauth.post(Post::Claim, &browser, body(&claim), "/x").await;
     assert_eq!(forbidden.status, StatusCode::FORBIDDEN);
-    let inexact = post(&oauth, Post::Revoke, "{\"token\":\"x\"}").await;
-    assert_eq!(inexact.status, StatusCode::BAD_REQUEST);
+    let duplicate = claim.replacen("{\"claim\":", "{\"claim\":\"first\",\"claim\":", 1);
+    assert_eq!(
+        post(&oauth, Post::Claim, &duplicate).await.status,
+        StatusCode::BAD_REQUEST
+    );
+    let extra = "{\"token\":\"private-token-123456\",\"broker_lease\":\"private-lease-123456\",\"extra\":true}";
+    assert_eq!(
+        post(&oauth, Post::Revoke, extra).await.status,
+        StatusCode::BAD_REQUEST
+    );
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn refresh_and_revoke_refuse_a_lease_expiry_with_non_ascii_digits() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    let digest = "a".repeat(43);
+    let lease = format!(
+        "l3.{}.{}.{digest}.{digest}.{digest}.{digest}",
+        "k".repeat(11),
+        "\u{661}".repeat(10)
+    );
+    let refreshed = post(
+        &oauth,
+        Post::Refresh,
+        &format!("{{\"refresh_token\":\"refresh-token-private-123456\",\"broker_lease\":\"{lease}\",\"scopes\":[\"dns.read\"]}}"),
+    )
+    .await;
+    let revoked = post(
+        &oauth,
+        Post::Revoke,
+        &format!("{{\"token\":\"access-token-private-123456\",\"broker_lease\":\"{lease}\"}}"),
+    )
+    .await;
+    for reply in [&refreshed, &revoked] {
+        assert_eq!(reply.status, StatusCode::BAD_GATEWAY);
+        assert_eq!(
+            &reply.body[..],
+            b"{\"detail\":\"OAuth broker operation failed\"}"
+        );
+        assert_eq!(header(reply, "cache-control"), Some("private, no-store"));
+    }
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn oauth_start_and_callback_translate_broker_failures() {
+    let (_fake, oauth) = routes(|_| reply("502 Bad Gateway", "application/json", "{}")).await;
+    assert_eq!(
+        start(&oauth, &"f".repeat(43), "loopback").await.status,
+        StatusCode::BAD_GATEWAY
+    );
+    let unknown = oauth
+        .callback(Some(&callback_query(&"b".repeat(43), SCOPES)), CALLBACK)
+        .await;
+    assert_eq!(unknown.status, StatusCode::BAD_GATEWAY);
+    let malformed = start(&oauth, "short", "loopback").await;
+    assert_eq!(malformed.status, StatusCode::BAD_GATEWAY);
+}
+
+#[tokio::test]
+async fn oauth_callback_rejects_an_unexpected_result() {
+    // A callback completes only as a Local Admin redirect or the completion page; every other outcome is the 502.
+    let (fake, oauth) = routes(|recorded| {
+        if recorded.head.contains("/exchange ") {
+            reply("200 OK", "application/json", "{\"unexpected\":true}")
+        } else {
+            neuron_answer(recorded)
+        }
+    })
+    .await;
+    let unexpected = called_back(&fake, &oauth, &"u".repeat(43), "loopback").await;
+    assert_eq!(unexpected.status, StatusCode::BAD_GATEWAY);
+}
+
+#[tokio::test]
+async fn oauth_start_limits_each_client_before_any_broker_work() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    for index in 0..10 {
+        assert_eq!(
+            start(&oauth, &format!("{index:043}"), "loopback")
+                .await
+                .status,
+            StatusCode::SEE_OTHER
+        );
+    }
+    let refused = start(&oauth, &"x".repeat(43), "loopback").await;
+    assert_eq!(refused.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(header(&refused, "retry-after"), Some("6"));
+    assert_eq!(header(&refused, "cache-control"), Some("private, no-store"));
+    assert_eq!(fake.received.lock().unwrap().len(), 10);
+}
+
+#[tokio::test]
+async fn oauth_start_counts_malformed_starts_against_the_same_client() {
+    let (fake, oauth) = routes(neuron_answer).await;
+    for _ in 0..10 {
+        let malformed = oauth.start(PEER, &HeaderMap::new(), None, START).await;
+        assert_eq!(malformed.status, StatusCode::BAD_REQUEST);
+    }
+    assert_eq!(
+        start(&oauth, &"s".repeat(43), "loopback").await.status,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+    assert!(fake.received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn oauth_start_keys_a_direct_peer_by_its_socket_even_with_a_forged_client_header() {
+    let (_fake, oauth) = routes(neuron_answer).await;
+    let mut statuses = Vec::new();
+    for attempt in 0..11 {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "cf-connecting-ip",
+            HeaderValue::from_str(&format!("203.0.113.{attempt}")).unwrap(),
+        );
+        let query = start_query(&format!("{attempt:043}"), "loopback");
+        statuses.push(
+            oauth
+                .start(PEER, &headers, Some(&query), START)
+                .await
+                .status
+                .as_u16(),
+        );
+    }
+    assert_eq!(statuses, [[303; 10].as_slice(), &[429]].concat());
+}
+
+#[tokio::test]
+async fn oauth_start_keys_a_trusted_tunnel_peer_by_its_one_asserted_client() {
+    let (fake, oauth) = routes_behind("10.202.84.0/24", neuron_answer).await;
+    let tunnel = IpAddr::V4(Ipv4Addr::new(10, 202, 84, 2));
+    let started = async |index: usize, clients: &[&str]| {
+        let mut headers = HeaderMap::new();
+        for client in clients {
+            headers.append("cf-connecting-ip", HeaderValue::from_str(client).unwrap());
+        }
+        let query = start_query(&format!("{index:043}"), "loopback");
+        oauth
+            .start(tunnel, &headers, Some(&query), START)
+            .await
+            .status
+            .as_u16()
+    };
+    let mut first = Vec::new();
+    for index in 0..11 {
+        first.push(started(index, &["203.0.113.5"]).await);
+    }
+    assert_eq!(first, [[303; 10].as_slice(), &[429]].concat());
+    assert_eq!(started(20, &["203.0.113.6"]).await, 303);
+    assert_eq!(started(21, &[]).await, 400);
+    assert_eq!(started(22, &["203.0.113.7", "203.0.113.8"]).await, 400);
+    assert_eq!(started(23, &["not-an-address"]).await, 400);
+    assert_eq!(fake.received.lock().unwrap().len(), 11);
+}
+
+#[tokio::test]
+async fn the_start_redirect_is_the_validated_consent_url_byte_for_byte() {
+    let (_fake, oauth) =
+        routes(|recorded| neuron_answer_for(recorded, "AZaz09_.~:/%2F?@[]!$'()*,;-")).await;
+    let started = start(&oauth, &"s".repeat(43), "out-of-band").await;
+    assert_eq!(started.status, StatusCode::SEE_OTHER);
+    let location = header(&started, "location").unwrap();
+    assert!(
+        location.contains("&client_id=AZaz09_.~:/%2F?@[]!$'()*,;-&"),
+        "{location}"
+    );
+}
+
+#[tokio::test]
+async fn server_only_operations_refuse_wrong_member_types_as_broker_failures() {
+    let (_fake, oauth) = routes(neuron_answer).await;
     for (operation, text) in [
         (
             Post::Claim,
@@ -284,16 +535,8 @@ async fn server_only_operations_refuse_their_body_or_wrong_types() {
             Post::Refresh,
             "{\"refresh_token\":\"r\",\"broker_lease\":1,\"scopes\":[\"dns.read\"]}",
         ),
-        (
-            Post::Refresh,
-            "{\"refresh_token\":\"refresh-token-001\",\"broker_lease\":\"l3.x\",\"scopes\":[\"dns.read\"]}",
-        ),
         (Post::Revoke, "{\"token\":1,\"broker_lease\":\"l\"}"),
         (Post::Revoke, "{\"token\":\"t\",\"broker_lease\":1}"),
-        (
-            Post::Revoke,
-            "{\"token\":\"access-token-0001\",\"broker_lease\":\"l3.x\"}",
-        ),
     ] {
         assert_eq!(
             post(&oauth, operation, text).await.status,
@@ -309,40 +552,41 @@ async fn capacity_recovers_after_disconnected_operations_end() {
     fake.held.send_replace(true);
     for index in 0..16 {
         let oauth = Arc::clone(&oauth);
-        let state = format!("{index:043}");
         let peer = IpAddr::V4(Ipv4Addr::new(192, 0, 2, index));
+        let query = start_query(&format!("{index:043}"), "loopback");
         let waiting = tokio::spawn(async move {
             oauth
-                .start(
-                    peer,
-                    &HeaderMap::new(),
-                    Some(&start_query(&state, "loopback")),
-                    START,
-                )
+                .start(peer, &HeaderMap::new(), Some(&query), START)
                 .await
         });
         tokio::time::sleep(Duration::from_millis(10)).await;
         waiting.abort();
     }
     let refused = oauth
-        .callback(
-            Some("state=x&code=y&scope=z"),
-            "/api/oauth/cloudflare/callback",
-        )
+        .callback(Some("state=x&code=y&scope=z"), CALLBACK)
         .await;
     assert_eq!(refused.status, StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(header(&refused, "retry-after"), Some("1"));
-    while fake.received.lock().unwrap().len() < 8 {
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
+    wait_for(&fake, 8).await;
     fake.held.send_replace(false);
-    tokio::time::timeout(Duration::from_secs(10), oauth.drained())
-        .await
-        .unwrap();
+    wait_for(&fake, 16).await;
+    let recovered = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let reply = oauth
+                .callback(Some("state=x&code=y&scope=z"), CALLBACK)
+                .await;
+            if reply.status != StatusCode::TOO_MANY_REQUESTS {
+                return reply;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
     assert_eq!(
-        fake.received.lock().unwrap().len(),
-        16,
-        "every disconnected start reached Neuron"
+        recovered.status,
+        StatusCode::BAD_GATEWAY,
+        "admitted again once the disconnected starts ended"
     );
 }
 
@@ -359,15 +603,12 @@ async fn a_disconnect_during_a_held_authorization_keeps_the_operation_and_its_ou
                 .await
         }
     });
-    while fake.received.lock().unwrap().is_empty() {
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
+    wait_for(&fake, 1).await;
     waiting.abort();
     fake.held.send_replace(false);
     let (broker_state, _) = latest_authorization(&fake);
-    let query = format!("state={broker_state}&code=code-0000000000000&scope=dns.read+zone.read");
     let completed = oauth
-        .callback(Some(&query), "/api/oauth/cloudflare/callback")
+        .callback(Some(&callback_query(&broker_state, SCOPES)), CALLBACK)
         .await;
     assert_eq!(
         completed.status,
@@ -380,43 +621,24 @@ async fn a_disconnect_during_a_held_authorization_keeps_the_operation_and_its_ou
 async fn a_disconnect_during_a_held_exchange_stores_the_grant_and_frees_the_reservation() {
     let (fake, oauth) = routes(neuron_answer).await;
     let state = "e".repeat(43);
-    oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&state, "out-of-band")),
-            START,
-        )
-        .await;
+    start(&oauth, &state, "out-of-band").await;
     let (broker_state, _) = latest_authorization(&fake);
     fake.held.send_replace(true);
     let waiting = tokio::spawn({
-        let (oauth, query) = (
-            Arc::clone(&oauth),
-            format!("state={broker_state}&code=code-0000000000000&scope=dns.read+zone.read"),
-        );
-        async move {
-            oauth
-                .callback(Some(&query), "/api/oauth/cloudflare/callback")
-                .await
-        }
+        let (oauth, query) = (Arc::clone(&oauth), callback_query(&broker_state, SCOPES));
+        async move { oauth.callback(Some(&query), CALLBACK).await }
     });
-    while fake.received.lock().unwrap().len() < 2 {
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
+    wait_for(&fake, 2).await;
     waiting.abort();
     fake.held.send_replace(false);
     tokio::time::timeout(Duration::from_secs(10), oauth.drained())
         .await
         .unwrap();
-    let again = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&state, "loopback")),
-            START,
-        )
-        .await;
+    assert!(
+        !oauth.idle(),
+        "the grant is stored and holds its local state"
+    );
+    let again = start(&oauth, &state, "loopback").await;
     assert_eq!(
         again.status,
         StatusCode::TOO_MANY_REQUESTS,
@@ -435,45 +657,22 @@ async fn a_failed_exchange_after_a_disconnect_releases_the_local_state() {
     })
     .await;
     let state = "f".repeat(43);
-    oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&state, "loopback")),
-            START,
-        )
-        .await;
+    start(&oauth, &state, "loopback").await;
     let (broker_state, _) = latest_authorization(&fake);
     fake.held.send_replace(true);
     let waiting = tokio::spawn({
-        let (oauth, query) = (
-            Arc::clone(&oauth),
-            format!("state={broker_state}&code=code-0000000000000&scope=dns.read+zone.read"),
-        );
-        async move {
-            oauth
-                .callback(Some(&query), "/api/oauth/cloudflare/callback")
-                .await
-        }
+        let (oauth, query) = (Arc::clone(&oauth), callback_query(&broker_state, SCOPES));
+        async move { oauth.callback(Some(&query), CALLBACK).await }
     });
-    while fake.received.lock().unwrap().len() < 2 {
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
+    wait_for(&fake, 2).await;
     waiting.abort();
     fake.held.send_replace(false);
-    tokio::time::sleep(Duration::from_millis(200)).await;
-    let again = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&state, "loopback")),
-            START,
-        )
-        .await;
-    assert_eq!(
-        again.status,
-        StatusCode::SEE_OTHER,
-        "the failed exchange released the local state"
+    tokio::time::timeout(Duration::from_secs(10), oauth.drained())
+        .await
+        .unwrap();
+    assert!(
+        oauth.idle(),
+        "the failed exchange released the local state and the reservation"
     );
 }
 
@@ -490,24 +689,17 @@ async fn an_aborted_operation_restores_the_broker_and_a_panic_answers_500() {
                 .await
         }
     });
-    while fake.received.lock().unwrap().is_empty() {
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
+    wait_for(&fake, 1).await;
     oauth.abort();
     assert_eq!(
         waiting.await.unwrap().status,
         StatusCode::INTERNAL_SERVER_ERROR
     );
     fake.held.send_replace(false);
-    let again = oauth
-        .start(
-            PEER,
-            &HeaderMap::new(),
-            Some(&start_query(&state, "loopback")),
-            START,
-        )
-        .await;
-    assert_eq!(again.status, StatusCode::SEE_OTHER);
+    assert_eq!(
+        start(&oauth, &state, "loopback").await.status,
+        StatusCode::SEE_OTHER
+    );
     let panicked = oauth
         .owned(
             "/x",

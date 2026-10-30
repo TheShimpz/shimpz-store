@@ -28,7 +28,7 @@ fn header(scripts: &str) -> String {
 }
 
 #[test]
-fn the_header_admits_this_origin_and_the_sorted_union_of_every_page_policy() {
+fn the_build_inline_scripts_are_admitted_by_their_exact_hashes() {
     let build = tempfile::tempdir().unwrap();
     fs::create_dir_all(build.path().join("en")).unwrap();
     fs::write(
@@ -57,7 +57,7 @@ fn the_header_admits_this_origin_and_the_sorted_union_of_every_page_policy() {
 }
 
 #[test]
-fn no_build_or_a_build_without_pages_admits_only_this_origin() {
+fn without_a_build_only_this_origin_may_run_scripts() {
     let build = tempfile::tempdir().unwrap();
     assert_eq!(
         page_policy(&build.path().join("absent"))
@@ -130,4 +130,46 @@ fn an_unreadable_build_refuses_to_start() {
     let refused = page_policy(&parent.join("build"));
     fs::set_permissions(&parent, fs::Permissions::from_mode(0o700)).unwrap();
     assert_eq!(refused, Err(PolicyError::Unreadable(parent.join("build"))));
+}
+
+fn directives(policy: &str) -> Vec<String> {
+    policy.split("; ").map(str::to_owned).collect()
+}
+
+#[test]
+fn no_response_admits_unsafe_inline_scripts() {
+    let build = tempfile::tempdir().unwrap();
+    fs::write(
+        build.path().join("en.html"),
+        page(&format!("script-src 'self' {FIRST} {SECOND}")),
+    )
+    .unwrap();
+    let policy = page_policy(build.path()).unwrap();
+    let scripts = directives(policy.to_str().unwrap())
+        .into_iter()
+        .find(|directive| directive.starts_with("script-src "))
+        .unwrap();
+    assert_eq!(scripts, format!("script-src 'self' {FIRST} {SECOND}"));
+    assert!(!scripts.contains("'unsafe-inline'"));
+}
+
+#[test]
+fn every_response_refuses_plain_strings_at_dom_injection_sinks() {
+    let build = tempfile::tempdir().unwrap();
+    let policy = directives(page_policy(build.path()).unwrap().to_str().unwrap());
+    assert!(policy.contains(&"require-trusted-types-for 'script'".to_owned()));
+    assert!(policy.contains(&"trusted-types svelte-trusted-html".to_owned()));
+}
+
+#[test]
+fn pages_load_images_and_open_connections_only_from_this_origin() {
+    let build = tempfile::tempdir().unwrap();
+    let policy = directives(
+        page_policy(&build.path().join("absent"))
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    );
+    assert!(policy.contains(&"img-src 'self'".to_owned()));
+    assert!(policy.contains(&"connect-src 'self'".to_owned()));
 }

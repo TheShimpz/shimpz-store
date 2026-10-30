@@ -53,7 +53,7 @@ fn a_secret_that_is_missing_linked_or_loosely_installed_is_refused() {
 }
 
 #[test]
-fn a_fifo_without_a_writer_is_refused_at_once() {
+fn a_secret_fifo_without_a_writer_is_refused_without_blocking() {
     let directory = tempfile::tempdir().unwrap();
     let fifo = directory.path().join("fifo");
     rustix::fs::mknodat(
@@ -127,7 +127,12 @@ impl std::io::Read for Broken {
 }
 
 #[test]
-fn a_secret_must_hold_exactly_the_size_its_metadata_reported() {
+fn secret_reader_translates_open_and_short_read_failures() {
+    let directory = tempfile::tempdir().unwrap();
+    assert_eq!(
+        read_secret(&directory.path().join("missing"), 32).err(),
+        Some(BrokerError)
+    );
     assert_eq!(
         exact(&mut Cursor::new(b"value"), 5, 8).unwrap().as_slice(),
         b"value"
@@ -144,7 +149,7 @@ fn a_secret_must_hold_exactly_the_size_its_metadata_reported() {
 }
 
 #[test]
-fn the_access_credential_needs_an_exact_client_id_and_a_printable_secret() {
+fn neuron_access_headers_reject_encoding_and_identity() {
     let directory = tempfile::tempdir().unwrap();
     let id = format!("{}.access", "i".repeat(16));
     let secret = "s".repeat(32);
@@ -185,4 +190,21 @@ fn printable_means_ascii_from_exclamation_mark_to_tilde() {
     assert!(!printable(b" "));
     assert!(!printable(b"\x7f"));
     assert!(!printable(b"\x80"));
+}
+
+#[test]
+fn default_lease_key_uses_the_initialized_private_volume() {
+    assert_eq!(
+        super::ACCESS_CLIENT_ID_PATH,
+        "/run/shimpz-store-oauth/access-client-id"
+    );
+    assert_eq!(
+        super::ACCESS_CLIENT_SECRET_PATH,
+        "/run/shimpz-store-oauth/access-client-secret"
+    );
+    assert_eq!(super::LEASE_KEY_PATH, "/run/shimpz-store-oauth/lease-key");
+    assert_eq!(
+        super::PREVIOUS_LEASE_KEY_PATH,
+        "/run/shimpz-store-oauth/lease-key-previous"
+    );
 }

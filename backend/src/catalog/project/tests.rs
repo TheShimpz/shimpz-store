@@ -327,3 +327,118 @@ fn actions_are_unique_and_at_most_one_hundred_twenty_eight() {
         None
     );
 }
+
+/// The Python catalog tests' cases of `test`, each with the bytes the Python Store projected or null for a refusal,
+/// as `oracle/catalog_vectors.py` wrote them; every case must project to exactly those bytes here.
+fn python_cases(test: &str) -> usize {
+    let Value::Array(entries) = strict_json::parse(include_bytes!("vectors.json")).unwrap() else {
+        panic!("the vectors are an array");
+    };
+    let field = |entry: &Value, name: &str| match entry.get(name) {
+        Some(Value::String(value)) => value.clone(),
+        _ => panic!("a vector names its {name}"),
+    };
+    let mut checked = 0;
+    for entry in entries.iter().filter(|entry| field(entry, "test") == test) {
+        let document = strict_json::parse(field(entry, "document").as_bytes()).unwrap();
+        let expected = match entry.get("python") {
+            Some(Value::String(bytes)) => Some(bytes.clone().into_bytes()),
+            _ => None,
+        };
+        assert_eq!(
+            super::project(&document, &field(entry, "locale")),
+            expected,
+            "{test} {}",
+            field(entry, "document")
+        );
+        checked += 1;
+    }
+    checked
+}
+
+#[test]
+fn projects_only_bounded_browser_metadata() {
+    assert_eq!(python_cases("projects_only_bounded_browser_metadata"), 1);
+}
+
+#[test]
+fn rejects_ambiguous_or_executable_catalog_data() {
+    assert_eq!(
+        python_cases("rejects_ambiguous_or_executable_catalog_data"),
+        116
+    );
+}
+
+#[test]
+fn admits_every_link_kind_on_its_host_in_canonical_order() {
+    assert_eq!(
+        python_cases("admits_every_link_kind_on_its_host_in_canonical_order"),
+        3
+    );
+}
+
+#[test]
+fn admits_every_allowed_host_shape_developers_emits() {
+    assert_eq!(
+        python_cases("admits_every_allowed_host_shape_developers_emits"),
+        2
+    );
+}
+
+#[test]
+fn admits_localized_display_copy_up_to_its_catalog_bounds() {
+    assert_eq!(
+        python_cases("admits_localized_display_copy_up_to_its_catalog_bounds"),
+        1
+    );
+}
+
+#[test]
+fn projects_exactly_the_requested_locale() {
+    assert_eq!(python_cases("projects_exactly_the_requested_locale"), 8);
+}
+
+#[test]
+fn refuses_a_locale_outside_the_closed_set() {
+    assert_eq!(python_cases("refuses_a_locale_outside_the_closed_set"), 3);
+}
+
+#[test]
+fn an_assistant_with_the_producer_maximum_of_actions_is_projected() {
+    assert_eq!(
+        python_cases("an_assistant_with_the_producer_maximum_of_actions_is_projected"),
+        2
+    );
+}
+
+#[test]
+fn every_integration_and_action_shape_developers_emits_is_projected() {
+    assert_eq!(
+        python_cases("every_integration_and_action_shape_developers_emits_is_projected"),
+        1
+    );
+}
+
+#[test]
+fn an_action_may_use_several_declared_stored_inputs() {
+    assert_eq!(
+        python_cases("an_action_may_use_several_declared_stored_inputs"),
+        2
+    );
+}
+
+#[test]
+fn the_summary_is_a_short_description_of_at_most_eighty_characters() {
+    assert_eq!(
+        python_cases("the_summary_is_a_short_description_of_at_most_eighty_characters"),
+        3
+    );
+}
+
+#[test]
+fn the_public_catalog_admits_developers_identifiers() {
+    assert_eq!(
+        python_cases("the_public_catalog_admits_developers_identifiers"),
+        5
+    );
+}

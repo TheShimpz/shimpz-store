@@ -132,7 +132,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_exact_json_object_is_admitted() {
+    async fn read_admits_one_bounded_object_and_an_empty_body() {
         let length = ("content-length", "15");
         assert_eq!(
             status(&[JSON, length], b"{\"a\":1,\"b\":\"x\"}").await,
@@ -168,11 +168,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn lengths_must_be_given_readable_and_within_the_bound() {
+    async fn oauth_body_requires_an_explicit_length() {
         assert_eq!(
             status(&[JSON], b"{}").await,
             Err(StatusCode::LENGTH_REQUIRED)
         );
+    }
+
+    #[tokio::test]
+    async fn read_refuses_invalid_length_oversize_duplicate_keys_and_non_objects() {
         assert_eq!(
             status(&[JSON, ("content-length", "x")], b"{}").await,
             Err(StatusCode::BAD_REQUEST)
@@ -185,10 +189,10 @@ mod tests {
             status(&[JSON, ("content-length", "32769")], b"{}").await,
             Err(StatusCode::PAYLOAD_TOO_LARGE)
         );
+        exact_members_only().await;
     }
 
-    #[tokio::test]
-    async fn anything_but_the_operations_exact_members_is_invalid() {
+    async fn exact_members_only() {
         for bytes in [
             &b"{\"a\":1}"[..],
             b"{\"a\":1,\"c\":2}",

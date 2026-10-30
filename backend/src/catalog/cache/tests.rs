@@ -25,7 +25,7 @@ fn catalogs(
 }
 
 #[tokio::test]
-async fn a_read_catalog_is_kept_for_its_lifetime_and_then_read_again() {
+async fn a_burst_of_visitors_shares_one_read_and_the_next_minute_reuses_it() {
     let fake = fake(|_| Script::Reply(ok("application/json", CATALOG.as_bytes()))).await;
     let clock = Arc::new(ManualClock::at(0));
     let catalogs = catalogs(&fake, &clock, 5_000);
@@ -41,7 +41,7 @@ async fn a_read_catalog_is_kept_for_its_lifetime_and_then_read_again() {
 }
 
 #[tokio::test]
-async fn refused_unreadable_or_failed_reads_are_never_kept() {
+async fn a_failed_catalog_read_is_never_kept() {
     let replies = [
         b"HTTP/1.1 503 Busy\r\nContent-Length: 2\r\n\r\n{}".to_vec(),
         ok("application/json", b""),
@@ -109,7 +109,7 @@ async fn concurrent_visitors_share_one_read_that_a_leaving_visitor_never_cancels
 }
 
 #[tokio::test]
-async fn a_read_waiting_past_its_deadline_for_one_of_two_load_slots_is_refused() {
+async fn a_read_that_waits_past_its_deadline_for_a_load_slot_is_refused() {
     let release = Arc::new(Notify::new());
     let held = Arc::clone(&release);
     let fake = fake(move |target| {
@@ -138,4 +138,35 @@ async fn a_read_waiting_past_its_deadline_for_one_of_two_load_slots_is_refused()
     for load in loads {
         assert!(load.await.unwrap().is_some());
     }
+}
+
+#[tokio::test]
+async fn reads_of_different_locales_never_exceed_what_developers_loads_at_once() {
+    let fake = fake(|target| {
+        let locale = target.rsplit('=').next().unwrap().to_owned();
+        let document =
+            CATALOG.replacen("\"locale\":\"pt\"", &format!("\"locale\":\"{locale}\""), 1);
+        Script::Reply(ok("application/json", document.as_bytes()))
+    })
+    .await;
+    let catalogs = catalogs(&fake, &Arc::new(ManualClock::at(0)), 5_000);
+    let reads: Vec<_> = ["en", "pt", "es", "fr", "de"]
+        .into_iter()
+        .map(|locale| {
+            let catalogs = Arc::clone(&catalogs);
+            tokio::spawn(async move { catalogs.served(locale).await })
+        })
+        .collect();
+    for read in reads {
+        assert!(read.await.unwrap().is_some());
+    }
+    assert!(fake.peak.load(std::sync::atomic::Ordering::SeqCst) <= 2);
+}
+
+#[tokio::test]
+async fn json_transport_refuses_what_strict_json_refuses() {
+    let duplicate = CATALOG.replacen("{\"version\":1,", "{\"version\":1,\"version\":1,", 1);
+    let fake = fake(move |_| Script::Reply(ok("application/json", duplicate.as_bytes()))).await;
+    let catalogs = catalogs(&fake, &Arc::new(ManualClock::at(0)), 5_000);
+    assert_eq!(catalogs.served("pt").await, None);
 }
