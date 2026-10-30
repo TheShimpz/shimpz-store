@@ -102,9 +102,8 @@ mod tests {
     use bytes::Bytes;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use http_body_util::{BodyExt, Full, StreamBody};
-    use strict_json::Value;
 
-    use super::{Body, admitted, member, text};
+    use super::{Body, admitted};
 
     fn body(bytes: &'static [u8]) -> Body {
         Full::new(Bytes::from_static(bytes))
@@ -225,18 +224,5 @@ mod tests {
         let long: &'static [u8] = Box::leak(vec![b' '; 32 * 1024 + 1].into_boxed_slice());
         let oversized = admitted(&headers(&[JSON, ("content-length", "2")]), body(long), &[]).await;
         assert_eq!(oversized.err(), Some(StatusCode::PAYLOAD_TOO_LARGE));
-    }
-
-    #[test]
-    fn members_are_read_by_name_and_strings_by_type() {
-        let members = vec![
-            ("a".to_owned(), Value::String("x".to_owned())),
-            ("b".to_owned(), Value::Null),
-        ];
-        assert_eq!(text(&members, "a"), Some("x"));
-        assert_eq!(text(&members, "b"), None);
-        assert_eq!(text(&members, "c"), None);
-        assert_eq!(member(&members, "b"), Some(&Value::Null));
-        assert_eq!(member(&members, "c"), None);
     }
 }

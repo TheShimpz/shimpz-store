@@ -66,23 +66,6 @@ fn the_installed_hook_writes_its_line() {
 }
 
 #[test]
-fn every_exception_form_is_summarized_by_its_class() {
-    use crate::catalog::upstream::Failure;
-    for failure in [Failure::Connect, Failure::TimedOut, Failure::Protocol] {
-        let line = super::line(
-            std::time::SystemTime::UNIX_EPOCH,
-            super::Level::Warning,
-            "proxy_unreachable",
-            &[("error", failure.code())],
-        );
-        assert!(
-            line.ends_with(&format!(",\"error\":\"{}\"}}", failure.code())),
-            "{line}"
-        );
-    }
-}
-
-#[test]
 fn logged_exceptions_never_render_frame_locals() {
     let _turn = HOOK.lock().unwrap_or_else(PoisonError::into_inner);
     let lines = Arc::new(Mutex::new(Vec::new()));

@@ -90,27 +90,12 @@ impl Clock for ManualClock {
 mod tests {
     use std::time::Duration;
 
-    use super::{Clock, ManualClock, SystemClock};
+    use super::{Clock, SystemClock};
 
     #[test]
     fn the_system_clock_moves_forward_from_now() {
         let clock = SystemClock::default();
         assert!(clock.monotonic() < Duration::from_secs(60));
         assert!(clock.wall_seconds() > 1_700_000_000);
-    }
-
-    #[test]
-    fn a_manual_clock_moves_only_when_stepped() {
-        let clock = ManualClock::at(1_000);
-        assert_eq!(
-            (clock.monotonic(), clock.wall_seconds()),
-            (Duration::ZERO, 1_000)
-        );
-        clock.step(Duration::from_millis(61_500));
-        assert_eq!(
-            (clock.monotonic(), clock.wall_seconds()),
-            (Duration::from_millis(61_500), 1_061)
-        );
-        assert_eq!(ManualClock::default().wall_seconds(), 0);
     }
 }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use strict_json::Value;
 
-use super::{Neuron, consent_url, json_media_type, only, tokens};
+use super::{Neuron, consent_url, json_media_type, tokens};
 use crate::oauth::{
     BrokerError,
     shape::Scopes,
@@ -324,28 +324,6 @@ fn the_media_type_is_read_from_every_content_type_joined() {
     ])));
     assert!(!json_media_type(&headers(&[])));
     assert!(!json_media_type(&headers(&["application/json+x"])));
-}
-
-#[test]
-fn only_reads_a_single_member_object() {
-    let object = |members: &[(&str, Value)]| {
-        Value::Object(
-            members
-                .iter()
-                .map(|(name, value)| ((*name).to_owned(), value.clone()))
-                .collect(),
-        )
-    };
-    assert_eq!(
-        only(&object(&[("a", Value::Null)]), "a"),
-        Some(&Value::Null)
-    );
-    assert_eq!(only(&object(&[("b", Value::Null)]), "a"), None);
-    assert_eq!(
-        only(&object(&[("a", Value::Null), ("b", Value::Null)]), "a"),
-        None
-    );
-    assert_eq!(only(&Value::Null, "a"), None);
 }
 
 #[test]

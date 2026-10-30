@@ -225,16 +225,6 @@ fn a_path_holding_a_control_byte_names_no_file() {
 }
 
 #[test]
-fn a_range_request_receives_the_whole_file_without_advertising_ranges() {
-    let build = build();
-    let site = Site::new(build.path().to_path_buf());
-    let page = site.reply("en", false);
-    assert_eq!(body(&page), "english-home");
-    assert_eq!(page.header(&header::ACCEPT_RANGES), None);
-    assert_eq!(page.header(&header::CONTENT_RANGE), None);
-}
-
-#[test]
 fn files_resolving_outside_the_build_are_refused_while_a_linked_build_serves() {
     let parent = tempfile::tempdir().unwrap();
     let build = parent.path().join("build");

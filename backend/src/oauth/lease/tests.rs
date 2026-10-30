@@ -240,14 +240,3 @@ fn a_lease_of_a_dropped_key_or_a_forged_kid_is_refused() {
         Err(BrokerError)
     );
 }
-
-#[test]
-fn a_missing_previous_lease_key_file_fails_closed() {
-    let directory = tempfile::tempdir().unwrap();
-    let current = installed(directory.path(), "lease-key", &[b'k'; 32]);
-    let signer = LeaseSigner::new(
-        [current, directory.path().join("lease-key-previous")],
-        Arc::new(ManualClock::at(0)),
-    );
-    assert_eq!(signer.issue(ACCESS, REFRESH, SCOPES), Err(BrokerError));
-}

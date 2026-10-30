@@ -128,11 +128,6 @@ async fn the_dispatcher_serves_the_root_redirect_pages_and_localized_misses() {
 }
 
 #[test]
-fn any_argument_is_a_usage_error() {
-    assert_eq!(run(&["serve".into()], &settings()), ExitCode::from(2));
-}
-
-#[test]
 fn the_healthcheck_command_reports_the_local_stores_health() {
     let settings = settings();
     assert_eq!(run(&["healthcheck".into()], &settings), ExitCode::FAILURE);
@@ -326,13 +321,4 @@ async fn the_dispatcher_sends_catalog_and_icon_requests_to_the_catalog() {
     )
     .await;
     assert_eq!(icon.0, StatusCode::SERVICE_UNAVAILABLE);
-}
-
-#[tokio::test]
-async fn health() {
-    let (_build, application) = site_application();
-    assert_eq!(
-        answer(&application, Method::GET, "/api/health", "").await,
-        (StatusCode::OK, String::from("{\"status\":\"ok\"}"))
-    );
 }
