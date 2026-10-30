@@ -140,15 +140,14 @@ fn only_the_exact_oauth_paths_drop_the_referrer_and_only_the_callback_keeps_its_
 #[tokio::test]
 async fn application_exception_handlers_return_closed_responses() {
     assert_eq!(
-        guarded(
-            "/x",
-            Box::pin(async { Reply::new(StatusCode::OK, Vec::new(), None, &b""[..]) })
-        )
+        guarded("/x", async {
+            Reply::new(StatusCode::OK, Vec::new(), None, &b""[..])
+        })
         .await
         .status,
         StatusCode::OK
     );
-    let failed = guarded("/x", Box::pin(async { panic!("PRIVATE_SENTINEL") })).await;
+    let failed = guarded("/x", async { panic!("PRIVATE_SENTINEL") }).await;
     assert_eq!(failed.status, StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(failed.body, &b"{\"detail\":\"internal server error\"}"[..]);
     let saturated = crate::oauth::admission::capacity_reached("/api/oauth/cloudflare/claim");
@@ -180,7 +179,7 @@ fn every_response_refuses_framing() {
 #[tokio::test]
 async fn an_unhandled_failure_answers_with_the_security_headers_and_the_request_id() {
     let policy = http::HeaderValue::from_static("default-src 'self'");
-    let reply = guarded("/x", Box::pin(async { panic!("PRIVATE_SENTINEL") })).await;
+    let reply = guarded("/x", async { panic!("PRIVATE_SENTINEL") }).await;
     let response = secure(reply, "/x", "trace-1", &policy);
     assert_eq!(response.status(), http::StatusCode::INTERNAL_SERVER_ERROR);
     assert_eq!(response.headers()["x-request-id"], "trace-1");

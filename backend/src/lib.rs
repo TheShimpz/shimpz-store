@@ -134,7 +134,7 @@ impl Application {
         let path = query::unquote(request.uri().path()).into_owned();
         let id = security::request_id(request.headers());
         let dispatched = self.dispatch(request, &path, peer);
-        let reply = security::guarded(&path, Box::pin(dispatched)).await;
+        let reply = security::guarded(&path, dispatched).await;
         security::secure(reply, &path, &id, &self.page_policy)
     }
 

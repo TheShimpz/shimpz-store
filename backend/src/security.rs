@@ -5,7 +5,7 @@
 //! on the OAuth callback path, the policy the reply set itself), `x-content-type-options`, `x-frame-options`,
 //! `referrer-policy` (`no-referrer` on the OAuth start and callback paths), `permissions-policy`, and the request id.
 
-use std::{future::Future, panic::AssertUnwindSafe, pin::Pin};
+use std::{future::Future, panic::AssertUnwindSafe};
 
 use bytes::Bytes;
 use futures_util::FutureExt;
@@ -56,10 +56,7 @@ pub fn request_id(headers: &HeaderMap) -> String {
 }
 
 /// The reply a request's handler produced, or the closed 500 when it panicked.
-pub async fn guarded(
-    path: &str,
-    handler: Pin<Box<dyn Future<Output = Reply> + Send + '_>>,
-) -> Reply {
+pub async fn guarded(path: &str, handler: impl Future<Output = Reply> + Send) -> Reply {
     AssertUnwindSafe(handler)
         .catch_unwind()
         .await
