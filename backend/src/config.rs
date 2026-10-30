@@ -2,12 +2,13 @@
 //! every other value is a constant of the deployable, and tests build their own [`Settings`].
 
 use std::{
+    ffi::OsString,
     net::{Ipv4Addr, SocketAddr},
     path::PathBuf,
     time::Duration,
 };
 
-use crate::catalog::upstream::Developers;
+use crate::{catalog::upstream::Developers, ratelimit::TRUSTED_PROXY_CIDRS};
 
 /// The port the Store serves on, behind the tunnel connector.
 pub const PORT: u16 = 3200;
@@ -39,6 +40,8 @@ pub struct Settings {
     pub developers: Developers,
     /// The bound on waiting for a Developers load slot.
     pub developers_slot_wait: Duration,
+    /// The trusted proxy networks as configured, parsed when the Store starts.
+    pub trusted_proxies: Option<OsString>,
 }
 
 impl Settings {
@@ -56,6 +59,7 @@ impl Settings {
                 timeout: DEVELOPERS_TIMEOUT,
             },
             developers_slot_wait: DEVELOPERS_TIMEOUT,
+            trusted_proxies: std::env::var_os(TRUSTED_PROXY_CIDRS),
         }
     }
 }
@@ -77,5 +81,9 @@ mod tests {
         );
         assert_eq!(settings.developers.timeout.as_secs(), 5);
         assert_eq!(settings.developers_slot_wait.as_secs(), 5);
+        assert_eq!(
+            settings.trusted_proxies,
+            std::env::var_os("SHIMPZ_STORE_TRUSTED_PROXY_CIDRS")
+        );
     }
 }

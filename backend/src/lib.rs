@@ -6,8 +6,10 @@ pub mod clock;
 pub mod config;
 pub mod date;
 pub mod log;
+pub mod oauth;
 pub mod policy;
 pub mod query;
+pub mod ratelimit;
 pub mod response;
 pub mod route;
 pub mod security;
@@ -28,7 +30,8 @@ use crate::{
     catalog::Catalog,
     clock::SystemClock,
     config::Settings,
-    policy::{PolicyError, page_policy},
+    policy::page_policy,
+    ratelimit::{StartLimit, StartRefusal, trusted_proxies},
     response::{Reply, not_allowed, not_found},
     route::{Outcome, Route},
     serve::{Bounds, serve},
@@ -42,6 +45,27 @@ pub struct Application {
     page_policy: HeaderValue,
     site: Arc<Site>,
     catalog: Catalog,
+    start_limit: StartLimit,
+}
+
+/// Why the Store refused to start.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StartupError {
+    /// `SHIMPZ_STORE_TRUSTED_PROXY_CIDRS` is not a list of exact networks.
+    TrustedProxiesInvalid,
+    /// The build admits no page policy.
+    BuildPolicyInvalid,
+}
+
+impl StartupError {
+    /// The closed code the refusal is logged with.
+    #[must_use]
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::TrustedProxiesInvalid => "trusted_proxies_invalid",
+            Self::BuildPolicyInvalid => "build_policy_invalid",
+        }
+    }
 }
 
 impl Application {
@@ -49,17 +73,36 @@ impl Application {
     ///
     /// # Errors
     ///
-    /// The build admits no page policy.
-    pub fn new(settings: &Settings) -> Result<Self, PolicyError> {
+    /// The trusted proxy networks are invalid, or the build admits no page policy.
+    pub fn new(settings: &Settings) -> Result<Self, StartupError> {
+        let proxies = trusted_proxies(settings.trusted_proxies.as_deref())
+            .or(Err(StartupError::TrustedProxiesInvalid))?;
+        let policy = page_policy(&settings.build).or(Err(StartupError::BuildPolicyInvalid))?;
+        let clock = Arc::new(SystemClock::new());
         Ok(Self {
-            page_policy: page_policy(&settings.build)?,
+            page_policy: policy,
             site: Arc::new(Site::new(settings.build.clone())),
             catalog: Catalog::new(
                 &settings.developers,
-                Arc::new(SystemClock::new()),
+                clock.clone(),
                 settings.developers_slot_wait,
             ),
+            start_limit: StartLimit::new(proxies, clock),
         })
+    }
+
+    /// Count one OAuth start from `peer` against its client: `None` when admitted, otherwise the refusal.
+    #[must_use]
+    pub fn admit_start(&self, peer: SocketAddr, headers: &HeaderMap) -> Option<Reply> {
+        let refusal = self.start_limit.admit(peer.ip(), headers).err()?;
+        let (status, extra) = match refusal {
+            StartRefusal::ClientAddress => (StatusCode::BAD_REQUEST, None),
+            StartRefusal::Limited(seconds) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                Some((header::RETRY_AFTER, HeaderValue::from(seconds))),
+            ),
+        };
+        Some(oauth::failure("start", status, extra))
     }
 
     /// Answer one request from `peer`, through the security layer.
@@ -125,13 +168,16 @@ pub fn run(arguments: &[OsString], settings: &Settings) -> ExitCode {
         return ExitCode::from(2);
     }
     log::install_panic_hook();
-    let Ok(application) = Application::new(settings) else {
-        log::event(
-            log::Level::Error,
-            "startup_failed",
-            &[("error", "build_policy_invalid")],
-        );
-        return ExitCode::FAILURE;
+    let application = match Application::new(settings) {
+        Ok(application) => application,
+        Err(refusal) => {
+            log::event(
+                log::Level::Error,
+                "startup_failed",
+                &[("error", refusal.code())],
+            );
+            return ExitCode::FAILURE;
+        }
     };
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

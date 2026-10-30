@@ -9,7 +9,7 @@ use std::{
 use http::{Method, Request, StatusCode};
 use http_body_util::BodyExt;
 
-use super::{Application, run};
+use super::{Application, StartupError, run};
 use crate::config::Settings;
 
 /// Settings on a free loopback port and a build directory that does not exist.
@@ -30,6 +30,7 @@ pub(crate) fn settings() -> Settings {
             timeout: Duration::from_secs(5),
         },
         developers_slot_wait: Duration::from_secs(5),
+        trusted_proxies: None,
     }
 }
 
@@ -140,6 +141,59 @@ fn a_build_without_an_exact_policy_refuses_to_start() {
         ..settings()
     };
     assert_eq!(run(&[], &settings), ExitCode::FAILURE);
+    assert_eq!(
+        Application::new(&settings).err(),
+        Some(StartupError::BuildPolicyInvalid)
+    );
+    assert_eq!(
+        StartupError::BuildPolicyInvalid.code(),
+        "build_policy_invalid"
+    );
+}
+
+#[test]
+fn invalid_trusted_proxies_refuse_to_start() {
+    let settings = Settings {
+        trusted_proxies: Some("10.0.0.1/24".into()),
+        ..settings()
+    };
+    assert_eq!(run(&[], &settings), ExitCode::FAILURE);
+    assert_eq!(
+        Application::new(&settings).err(),
+        Some(StartupError::TrustedProxiesInvalid)
+    );
+    assert_eq!(
+        StartupError::TrustedProxiesInvalid.code(),
+        "trusted_proxies_invalid"
+    );
+}
+
+#[test]
+fn an_oauth_start_is_counted_against_its_client_and_refused_without_a_usable_address() {
+    let settings = Settings {
+        trusted_proxies: Some("10.0.0.0/24".into()),
+        ..settings()
+    };
+    let application = Application::new(&settings).unwrap();
+    let direct = SocketAddr::from(([192, 0, 2, 1], 40_000));
+    for _ in 0..10 {
+        assert!(
+            application
+                .admit_start(direct, &http::HeaderMap::new())
+                .is_none()
+        );
+    }
+    let limited = application
+        .admit_start(direct, &http::HeaderMap::new())
+        .unwrap();
+    assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.header(&http::header::RETRY_AFTER).unwrap(), "6");
+    let proxy = SocketAddr::from(([10, 0, 0, 2], 40_000));
+    let refused = application
+        .admit_start(proxy, &http::HeaderMap::new())
+        .unwrap();
+    assert_eq!(refused.status, StatusCode::BAD_REQUEST);
+    assert_eq!(refused.header(&http::header::RETRY_AFTER), None);
 }
 
 #[test]
