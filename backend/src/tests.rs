@@ -24,6 +24,12 @@ pub(crate) fn settings() -> Settings {
         build: PathBuf::from("/nonexistent/store-build"),
         header_read_timeout: Duration::from_secs(10),
         shutdown_deadline: Duration::from_secs(1),
+        developers: crate::catalog::upstream::Developers {
+            host: "127.0.0.1".into(),
+            port,
+            timeout: Duration::from_secs(5),
+        },
+        developers_slot_wait: Duration::from_secs(5),
     }
 }
 
@@ -168,4 +174,25 @@ fn the_store_serves_until_sigterm_and_then_exits_cleanly() {
     rustix::process::kill_process(rustix::process::getpid(), rustix::process::Signal::TERM)
         .unwrap();
     assert_eq!(server.join().unwrap(), ExitCode::SUCCESS);
+}
+
+#[tokio::test]
+async fn the_dispatcher_sends_catalog_and_icon_requests_to_the_catalog() {
+    let (_build, application) = site_application();
+    let refused = answer(
+        &application,
+        Method::GET,
+        "/api/assistants?locale=xx",
+        "*/*",
+    )
+    .await;
+    assert_eq!(refused.0, StatusCode::BAD_REQUEST);
+    let icon = answer(
+        &application,
+        Method::GET,
+        "/api/assistant-icons/a/b.png",
+        "*/*",
+    )
+    .await;
+    assert_eq!(icon.0, StatusCode::SERVICE_UNAVAILABLE);
 }

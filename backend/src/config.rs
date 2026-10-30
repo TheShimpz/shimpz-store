@@ -7,6 +7,8 @@ use std::{
     time::Duration,
 };
 
+use crate::catalog::upstream::Developers;
+
 /// The port the Store serves on, behind the tunnel connector.
 pub const PORT: u16 = 3200;
 /// The prerendered `SvelteKit` build the image ships.
@@ -15,6 +17,12 @@ pub const BUILD: &str = "/app/build";
 pub const HEADER_READ_TIMEOUT: Duration = Duration::from_secs(10);
 /// One deadline for draining connections and owned operations after a stop signal, below Docker's 10 s grace.
 pub const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(8);
+/// Developers on the private `developers_store` network.
+pub const DEVELOPERS_HOST: &str = "developers";
+/// Developers' port.
+pub const DEVELOPERS_PORT: u16 = 8080;
+/// How long a catalog or icon read waits for a Developers load slot, and then for each socket operation.
+pub const DEVELOPERS_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Everything one Store process is configured with.
 #[derive(Clone, Debug)]
@@ -27,6 +35,10 @@ pub struct Settings {
     pub header_read_timeout: Duration,
     /// The bound on draining after a stop signal.
     pub shutdown_deadline: Duration,
+    /// Where the catalog and icons are read from.
+    pub developers: Developers,
+    /// The bound on waiting for a Developers load slot.
+    pub developers_slot_wait: Duration,
 }
 
 impl Settings {
@@ -38,6 +50,12 @@ impl Settings {
             build: PathBuf::from(BUILD),
             header_read_timeout: HEADER_READ_TIMEOUT,
             shutdown_deadline: SHUTDOWN_DEADLINE,
+            developers: Developers {
+                host: DEVELOPERS_HOST.to_owned(),
+                port: DEVELOPERS_PORT,
+                timeout: DEVELOPERS_TIMEOUT,
+            },
+            developers_slot_wait: DEVELOPERS_TIMEOUT,
         }
     }
 }
@@ -53,5 +71,11 @@ mod tests {
         assert_eq!(settings.build.to_str(), Some("/app/build"));
         assert_eq!(settings.header_read_timeout.as_secs(), 10);
         assert_eq!(settings.shutdown_deadline.as_secs(), 8);
+        assert_eq!(
+            (settings.developers.host.as_str(), settings.developers.port),
+            ("developers", 8080)
+        );
+        assert_eq!(settings.developers.timeout.as_secs(), 5);
+        assert_eq!(settings.developers_slot_wait.as_secs(), 5);
     }
 }

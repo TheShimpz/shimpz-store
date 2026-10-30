@@ -1,6 +1,8 @@
 //! The platform Store service (ADR-0123 phase R3): the public site, the Assistant catalog projection, and the
 //! Cloudflare OAuth broker, behind one dispatcher that routes as the Python Store did and one security layer.
 
+pub mod catalog;
+pub mod clock;
 pub mod config;
 pub mod date;
 pub mod log;
@@ -23,6 +25,8 @@ use tokio::{
 };
 
 use crate::{
+    catalog::Catalog,
+    clock::SystemClock,
     config::Settings,
     policy::{PolicyError, page_policy},
     response::{Reply, not_allowed, not_found},
@@ -37,6 +41,7 @@ const USAGE: &str = "usage: shimpz-store";
 pub struct Application {
     page_policy: HeaderValue,
     site: Arc<Site>,
+    catalog: Catalog,
 }
 
 impl Application {
@@ -49,6 +54,11 @@ impl Application {
         Ok(Self {
             page_policy: page_policy(&settings.build)?,
             site: Arc::new(Site::new(settings.build.clone())),
+            catalog: Catalog::new(
+                &settings.developers,
+                Arc::new(SystemClock::new()),
+                settings.developers_slot_wait,
+            ),
         })
     }
 
@@ -58,18 +68,27 @@ impl Application {
         let id = security::request_id(request.headers());
         let method = request.method().clone();
         let navigation = html_navigation(request.headers());
-        let reply =
-            security::guarded(&path, Box::pin(self.dispatch(method, &path, navigation))).await;
+        let raw_query = request.uri().query().map(str::to_owned);
+        let dispatched = self.dispatch(method, &path, raw_query.as_deref(), navigation);
+        let reply = security::guarded(&path, Box::pin(dispatched)).await;
         security::secure(reply, &path, &id, &self.page_policy)
     }
 
     /// The reply of the route a request's method and decoded path select.
-    async fn dispatch(&self, method: Method, path: &str, navigation: bool) -> Reply {
+    async fn dispatch(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<&str>,
+        navigation: bool,
+    ) -> Reply {
         match route::route(&method, path) {
             Outcome::Matched(Route::Health) => {
                 Reply::json(StatusCode::OK, &b"{\"status\":\"ok\"}"[..], Vec::new())
             }
             Outcome::Matched(Route::Root) => static_files::root_redirect(),
+            Outcome::Matched(Route::Catalog) => self.catalog.catalog(query).await,
+            Outcome::Matched(Route::Icon { source, icon }) => self.catalog.icon(source, icon).await,
             Outcome::Matched(Route::Site { path }) => {
                 let site = Arc::clone(&self.site);
                 let path = path.to_owned();
