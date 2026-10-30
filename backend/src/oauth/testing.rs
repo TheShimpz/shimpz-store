@@ -50,7 +50,10 @@ pub struct Fake {
     pub credential: [PathBuf; 2],
     /// Every request Neuron received.
     pub received: Arc<Mutex<Vec<Recorded>>>,
-    _directory: tempfile::TempDir,
+    /// While true, Neuron holds every answer after recording its request.
+    pub held: tokio::sync::watch::Sender<bool>,
+    /// The temporary directory holding the credential and any key files.
+    pub directory: tempfile::TempDir,
 }
 
 /// A JSON reply with this status line and body.
@@ -99,12 +102,13 @@ pub async fn fake(
     let port = listener.local_addr().unwrap().port();
     let received = Arc::new(Mutex::new(Vec::new()));
     let script: Script = Arc::new(script);
+    let (held, gate) = tokio::sync::watch::channel(false);
     tokio::spawn(serve(
         listener,
         egress,
         TlsAcceptor::from(Arc::new(server)),
         script,
-        Arc::clone(&received),
+        (Arc::clone(&received), gate),
     ));
     let directory = tempfile::tempdir().unwrap();
     let credential = [
@@ -123,7 +127,8 @@ pub async fn fake(
         tunnel: Tunnel::new("127.0.0.1".to_owned(), port, Duration::from_secs(5), roots),
         credential,
         received,
-        _directory: directory,
+        held,
+        directory,
     }
 }
 
@@ -132,12 +137,19 @@ async fn serve(
     egress: Egress,
     acceptor: TlsAcceptor,
     script: Script,
-    received: Arc<Mutex<Vec<Recorded>>>,
+    (received, gate): (
+        Arc<Mutex<Vec<Recorded>>>,
+        tokio::sync::watch::Receiver<bool>,
+    ),
 ) {
     loop {
         let (mut stream, _) = listener.accept().await.unwrap();
-        let (acceptor, script, received) =
-            (acceptor.clone(), Arc::clone(&script), Arc::clone(&received));
+        let (acceptor, script, received, mut gate) = (
+            acceptor.clone(),
+            Arc::clone(&script),
+            Arc::clone(&received),
+            gate.clone(),
+        );
         tokio::spawn(async move {
             let connect = head(&mut stream).await;
             let Egress::Established = egress else {
@@ -167,6 +179,7 @@ async fn serve(
             };
             let answer = script(&recorded);
             received.lock().unwrap().push(recorded);
+            let _ = gate.wait_for(|held| !*held).await;
             let _ = secured.write_all(&answer).await;
             let _ = secured.shutdown().await;
         });
@@ -184,4 +197,75 @@ async fn head(stream: &mut (impl AsyncRead + Unpin)) -> String {
         head.push(byte[0]);
     }
     String::from_utf8_lossy(&head).into_owned()
+}
+
+/// Neuron's answer to a well-formed call: the consent URL echoing its state and challenge, tokens for its scopes
+/// (`access-token-0001`, `refresh-token-001`, an hour), or the revoke acknowledgement.
+pub fn neuron_answer(recorded: &Recorded) -> Vec<u8> {
+    let body = strict_json::parse(recorded.body.as_bytes()).unwrap();
+    let text = |name: &str| match body.get(name) {
+        Some(strict_json::Value::String(text)) => text.clone(),
+        _ => String::new(),
+    };
+    let scopes = match body.get("scopes") {
+        Some(strict_json::Value::Array(items)) => items
+            .iter()
+            .map(|item| match item {
+                strict_json::Value::String(text) => format!("\"{text}\""),
+                _ => String::new(),
+            })
+            .collect::<Vec<_>>(),
+        _ => Vec::new(),
+    };
+    let path = recorded.head.split(' ').nth(1).unwrap_or_default();
+    let json = match path.rsplit('/').next().unwrap_or_default() {
+        "authorization" => format!(
+            "{{\"authorization_url\":\"https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=client-1\
+             &redirect_uri=https://shimpz.com/api/oauth/cloudflare/callback&state={}&code_challenge={}\
+             &code_challenge_method=S256&scope={}\"}}",
+            text("state"),
+            text("code_challenge"),
+            scopes.join(" ").replace('"', "").replace(' ', "+")
+        ),
+        "revoke" => String::from("{\"revoked\":true}"),
+        _ => format!(
+            "{{\"access_token\":\"access-token-0001\",\"refresh_token\":\"refresh-token-001\",\
+             \"scopes\":[{}],\"expires_in\":3600}}",
+            scopes.join(",")
+        ),
+    };
+    reply("200 OK", "application/json", &json)
+}
+
+/// The broker state and PKCE challenge of the latest authorization Neuron received.
+pub fn latest_authorization(fake: &Fake) -> (String, String) {
+    let received = fake.received.lock().unwrap();
+    let recorded = received
+        .iter()
+        .rev()
+        .find(|recorded| recorded.head.contains("/authorization "))
+        .unwrap();
+    let body = strict_json::parse(recorded.body.as_bytes()).unwrap();
+    let text = |name: &str| match body.get(name) {
+        Some(strict_json::Value::String(text)) => text.clone(),
+        _ => String::new(),
+    };
+    (text("state"), text("code_challenge"))
+}
+
+/// A broker over a scripted Neuron, lease keys in a temporary directory, and a manual clock at wall second
+/// 1,800,000,000.
+pub async fn broker(
+    script: impl Fn(&Recorded) -> Vec<u8> + Send + Sync + 'static,
+) -> (Fake, super::broker::Broker, Arc<crate::clock::ManualClock>) {
+    let fake = fake(Egress::Established, "neuron.shimpz.com", script).await;
+    let clock = Arc::new(crate::clock::ManualClock::at(1_800_000_000));
+    let keys = [
+        installed(fake.directory.path(), "lease-key", &[b'n'; 32]),
+        installed(fake.directory.path(), "lease-key-previous", &[b'q'; 32]),
+    ];
+    let neuron = super::neuron::Neuron::new(fake.tunnel.clone(), fake.credential.clone());
+    let signer = super::lease::LeaseSigner::new(keys, clock.clone());
+    let broker = super::broker::Broker::new(neuron, signer, clock.clone());
+    (fake, broker, clock)
 }

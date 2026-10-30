@@ -1,12 +1,16 @@
 //! The Cloudflare OAuth broker: its routes' shared refusal, and the capacity every broker operation runs within.
 
 pub mod admission;
+pub mod body;
+pub mod broker;
+pub mod completion;
 pub mod lease;
 pub mod neuron;
+pub mod routes;
 pub mod secret;
 pub mod shape;
 #[cfg(test)]
-mod testing;
+pub(crate) mod testing;
 pub mod tunnel;
 
 use http::{HeaderName, HeaderValue, StatusCode, header};

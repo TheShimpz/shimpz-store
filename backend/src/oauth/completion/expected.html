@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finish in Shimpz Admin</title>
+  <style nonce="NNNNNNNNNNNNNNNNNNNNNNNN">
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #000; color: #f4f4f5; }
+    main { width: min(50rem, calc(100% - 2rem)); border: 1px solid #303036; padding: clamp(1.5rem, 5vw, 3rem); }
+    p { color: #a1a1aa; line-height: 1.6; }
+    label { display: block; margin: 2rem 0 .6rem; color: #00e5f0; font-size: .8rem; letter-spacing: .12em; }
+    input { width: 100%; padding: 1rem; border: 1px solid #3f3f46; background: #09090b; color: #fff; font: inherit; }
+    button { width: 100%; margin-top: .75rem; padding: 1rem; border: 0; background: #00e5f0; color: #000;
+      font: 700 1rem inherit; cursor: pointer; }
+    .warning { color: #f4f4f5; }
+  </style>
+</head>
+<body>
+  <main>
+    <p>INTEGRATION // ONE-TIME COMPLETION</p>
+    <h1>Finish in your original Shimpz Admin tab.</h1>
+    <p>Copy this short-lived code, return to the tab that started Cloudflare authorization, and paste it there.</p>
+    <label for="completion-code">COMPLETION CODE</label>
+    <input id="completion-code" value="c1.sssssssssssssssssssssssssssssssssssssssssss.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" readonly autocomplete="off" spellcheck="false">
+    <button id="copy-code" type="button">COPY CODE</button>
+    <p class="warning">Do not paste this code into chat or another site. It contains no provider token and works
+      only with the Admin session that started this authorization.</p>
+  </main>
+  <script nonce="NNNNNNNNNNNNNNNNNNNNNNNN">
+    const input = document.getElementById('completion-code');
+    const button = document.getElementById('copy-code');
+    button.addEventListener('click', async () => {
+      input.select();
+      try {
+        await navigator.clipboard.writeText(input.value);
+        button.textContent = 'COPIED';
+      } catch (_error) {
+        button.textContent = 'SELECTED — COPY MANUALLY';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 //! The HTTP/1.1 accept loop: every connection must deliver each request head within a bound, carries its peer
-//! address to the application, and is drained on shutdown within one deadline, after which it is aborted.
+//! address to the application, and is drained on shutdown, with the broker's owned operations, within one deadline,
+//! after which both are aborted.
 
 use std::{future::Future, io, net::SocketAddr, pin::pin, sync::Arc, time::Duration};
 
@@ -92,18 +93,33 @@ pub async fn serve<A: Accept>(
         }
     }
     drop(acceptor);
-    drain(graceful, connections, bounds.shutdown_deadline).await;
+    drain(
+        graceful,
+        connections,
+        &application,
+        bounds.shutdown_deadline,
+    )
+    .await;
 }
 
-/// Let connections finish until the deadline, then abort the rest and wait until every one has ended.
-async fn drain(graceful: GracefulShutdown, mut connections: JoinSet<()>, deadline: Duration) {
-    if tokio::time::timeout(deadline, graceful.shutdown())
-        .await
-        .is_err()
-    {
+/// Let connections and owned broker operations finish until one deadline, then abort the rest and wait until every
+/// connection and operation has ended.
+async fn drain(
+    graceful: GracefulShutdown,
+    mut connections: JoinSet<()>,
+    application: &Application,
+    deadline: Duration,
+) {
+    let finished = async {
+        graceful.shutdown().await;
+        application.oauth().drained().await;
+    };
+    if tokio::time::timeout(deadline, finished).await.is_err() {
         connections.abort_all();
+        application.oauth().abort();
     }
     while connections.join_next().await.is_some() {}
+    application.oauth().drained().await;
 }
 
 async fn pause_after_accept_error(error: &io::Error) {
@@ -123,5 +139,7 @@ async fn pause_after_accept_error(error: &io::Error) {
     tokio::time::sleep(ACCEPT_ERROR_PAUSE).await;
 }
 
+#[cfg(test)]
+mod shutdown_tests;
 #[cfg(test)]
 mod tests;

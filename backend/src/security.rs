@@ -60,20 +60,25 @@ pub async fn guarded(
     path: &str,
     handler: Pin<Box<dyn Future<Output = Reply> + Send + '_>>,
 ) -> Reply {
-    if let Ok(reply) = AssertUnwindSafe(handler).catch_unwind().await {
-        reply
-    } else {
-        crate::log::event(
-            crate::log::Level::Error,
-            "unhandled_exception",
-            &[("path", path)],
-        );
-        Reply::detail(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "internal server error",
-            Vec::new(),
-        )
-    }
+    AssertUnwindSafe(handler)
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|_| internal_error(path))
+}
+
+/// The closed 500 for a request whose handling failed unexpectedly, logged with its decoded path.
+#[must_use]
+pub fn internal_error(path: &str) -> Reply {
+    crate::log::event(
+        crate::log::Level::Error,
+        "unhandled_exception",
+        &[("path", path)],
+    );
+    Reply::detail(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "internal server error",
+        Vec::new(),
+    )
 }
 
 /// The response a reply becomes after the security layer, for the request with this decoded path and id.

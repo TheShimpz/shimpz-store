@@ -44,7 +44,7 @@ async fn answer(
         .method(method)
         .uri(target)
         .header("accept", accept)
-        .body(())
+        .body(http_body_util::Empty::<bytes::Bytes>::new())
         .unwrap();
     let response = application
         .handle(request, SocketAddr::from(([127, 0, 0, 1], 9)))
@@ -99,7 +99,7 @@ async fn the_dispatcher_answers_health_refusals_and_misses_through_the_security_
         (StatusCode::NOT_FOUND, "{\"detail\":\"Not Found\"}".into())
     );
     let start = answer(&application, Method::GET, "/api/oauth/cloudflare/start", "").await;
-    assert_eq!(start.0, StatusCode::NOT_FOUND);
+    assert_eq!(start.0, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -179,18 +179,21 @@ fn an_oauth_start_is_counted_against_its_client_and_refused_without_a_usable_add
     for _ in 0..10 {
         assert!(
             application
-                .admit_start(direct, &http::HeaderMap::new())
+                .oauth()
+                .admit_start(direct.ip(), &http::HeaderMap::new())
                 .is_none()
         );
     }
     let limited = application
-        .admit_start(direct, &http::HeaderMap::new())
+        .oauth()
+        .admit_start(direct.ip(), &http::HeaderMap::new())
         .unwrap();
     assert_eq!(limited.status, StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(limited.header(&http::header::RETRY_AFTER).unwrap(), "6");
     let proxy = SocketAddr::from(([10, 0, 0, 2], 40_000));
     let refused = application
-        .admit_start(proxy, &http::HeaderMap::new())
+        .oauth()
+        .admit_start(proxy.ip(), &http::HeaderMap::new())
         .unwrap();
     assert_eq!(refused.status, StatusCode::BAD_REQUEST);
     assert_eq!(refused.header(&http::header::RETRY_AFTER), None);
@@ -228,6 +231,24 @@ fn the_store_serves_until_sigterm_and_then_exits_cleanly() {
     rustix::process::kill_process(rustix::process::getpid(), rustix::process::Signal::TERM)
         .unwrap();
     assert_eq!(server.join().unwrap(), ExitCode::SUCCESS);
+}
+
+#[tokio::test]
+async fn the_dispatcher_sends_each_oauth_route_to_the_broker() {
+    let (_build, application) = site_application();
+    let callback = answer(
+        &application,
+        Method::GET,
+        "/api/oauth/cloudflare/callback",
+        "*/*",
+    )
+    .await;
+    assert_eq!(callback.0, StatusCode::BAD_REQUEST);
+    for operation in ["claim", "refresh", "revoke"] {
+        let target = format!("/api/oauth/cloudflare/{operation}");
+        let refused = answer(&application, Method::POST, &target, "*/*").await;
+        assert_eq!(refused.0, StatusCode::FORBIDDEN, "{operation}");
+    }
 }
 
 #[tokio::test]

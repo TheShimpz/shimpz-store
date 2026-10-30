@@ -19,7 +19,8 @@ pub mod static_files;
 use std::{ffi::OsString, net::SocketAddr, process::ExitCode, sync::Arc};
 
 use bytes::Bytes;
-use http::{HeaderMap, HeaderValue, Method, Request, Response, StatusCode, header};
+use http::{HeaderMap, HeaderValue, Request, Response, StatusCode, header};
+use http_body_util::BodyExt;
 use http_body_util::Full;
 use tokio::{
     net::TcpListener,
@@ -28,10 +29,16 @@ use tokio::{
 
 use crate::{
     catalog::Catalog,
+    clock::Clock,
     clock::SystemClock,
     config::Settings,
+    oauth::{
+        body::Body,
+        broker::Broker,
+        routes::{Oauth, Post},
+    },
     policy::page_policy,
-    ratelimit::{StartLimit, StartRefusal, trusted_proxies},
+    ratelimit::{StartLimit, trusted_proxies},
     response::{Reply, not_allowed, not_found},
     route::{Outcome, Route},
     serve::{Bounds, serve},
@@ -45,7 +52,7 @@ pub struct Application {
     page_policy: HeaderValue,
     site: Arc<Site>,
     catalog: Catalog,
-    start_limit: StartLimit,
+    oauth: Oauth,
 }
 
 /// Why the Store refused to start.
@@ -75,57 +82,86 @@ impl Application {
     ///
     /// The trusted proxy networks are invalid, or the build admits no page policy.
     pub fn new(settings: &Settings) -> Result<Self, StartupError> {
+        let clock: Arc<dyn Clock> = Arc::new(SystemClock::new());
+        Self::assemble(settings, Arc::clone(&clock), Broker::production(clock))
+    }
+
+    /// The Store for these settings on `clock`, with this OAuth broker.
+    ///
+    /// # Errors
+    ///
+    /// The trusted proxy networks are invalid, or the build admits no page policy.
+    pub fn assemble(
+        settings: &Settings,
+        clock: Arc<dyn Clock>,
+        broker: Broker,
+    ) -> Result<Self, StartupError> {
         let proxies = trusted_proxies(settings.trusted_proxies.as_deref())
             .or(Err(StartupError::TrustedProxiesInvalid))?;
         let policy = page_policy(&settings.build).or(Err(StartupError::BuildPolicyInvalid))?;
-        let clock = Arc::new(SystemClock::new());
         Ok(Self {
             page_policy: policy,
             site: Arc::new(Site::new(settings.build.clone())),
             catalog: Catalog::new(
                 &settings.developers,
-                clock.clone(),
+                Arc::clone(&clock),
                 settings.developers_slot_wait,
             ),
-            start_limit: StartLimit::new(proxies, clock),
+            oauth: Oauth::new(broker, StartLimit::new(proxies, clock)),
         })
     }
 
-    /// Count one OAuth start from `peer` against its client: `None` when admitted, otherwise the refusal.
+    /// The OAuth broker's routes.
     #[must_use]
-    pub fn admit_start(&self, peer: SocketAddr, headers: &HeaderMap) -> Option<Reply> {
-        let refusal = self.start_limit.admit(peer.ip(), headers).err()?;
-        let (status, extra) = match refusal {
-            StartRefusal::ClientAddress => (StatusCode::BAD_REQUEST, None),
-            StartRefusal::Limited(seconds) => (
-                StatusCode::TOO_MANY_REQUESTS,
-                Some((header::RETRY_AFTER, HeaderValue::from(seconds))),
-            ),
-        };
-        Some(oauth::failure("start", status, extra))
+    pub fn oauth(&self) -> &Oauth {
+        &self.oauth
     }
 
     /// Answer one request from `peer`, through the security layer.
-    pub async fn handle<B>(&self, request: Request<B>, _peer: SocketAddr) -> Response<Full<Bytes>> {
+    pub async fn handle<B>(&self, request: Request<B>, peer: SocketAddr) -> Response<Full<Bytes>>
+    where
+        B: hyper::body::Body<Data = Bytes> + Send + 'static,
+        B::Error: Into<oauth::body::BodyError>,
+    {
+        let request = request.map(|body| body.map_err(Into::into).boxed_unsync());
+        self.respond(request, peer).await
+    }
+
+    async fn respond(&self, request: Request<Body>, peer: SocketAddr) -> Response<Full<Bytes>> {
         let path = query::unquote(request.uri().path()).into_owned();
         let id = security::request_id(request.headers());
-        let method = request.method().clone();
-        let navigation = html_navigation(request.headers());
-        let raw_query = request.uri().query().map(str::to_owned);
-        let dispatched = self.dispatch(method, &path, raw_query.as_deref(), navigation);
+        let dispatched = self.dispatch(request, &path, peer);
         let reply = security::guarded(&path, Box::pin(dispatched)).await;
         security::secure(reply, &path, &id, &self.page_policy)
     }
 
     /// The reply of the route a request's method and decoded path select.
-    async fn dispatch(
-        &self,
-        method: Method,
-        path: &str,
-        query: Option<&str>,
-        navigation: bool,
-    ) -> Reply {
-        match route::route(&method, path) {
+    async fn dispatch(&self, request: Request<Body>, path: &str, peer: SocketAddr) -> Reply {
+        let (parts, body) = request.into_parts();
+        let query = parts.uri.query();
+        let navigation = html_navigation(&parts.headers);
+        match route::route(&parts.method, path) {
+            Outcome::Matched(Route::Start) => {
+                self.oauth
+                    .start(peer.ip(), &parts.headers, query, path)
+                    .await
+            }
+            Outcome::Matched(Route::Callback) => self.oauth.callback(query, path).await,
+            Outcome::Matched(Route::Claim) => {
+                self.oauth
+                    .post(Post::Claim, &parts.headers, body, path)
+                    .await
+            }
+            Outcome::Matched(Route::Refresh) => {
+                self.oauth
+                    .post(Post::Refresh, &parts.headers, body, path)
+                    .await
+            }
+            Outcome::Matched(Route::Revoke) => {
+                self.oauth
+                    .post(Post::Revoke, &parts.headers, body, path)
+                    .await
+            }
             Outcome::Matched(Route::Health) => {
                 Reply::json(StatusCode::OK, &b"{\"status\":\"ok\"}"[..], Vec::new())
             }
@@ -139,7 +175,7 @@ impl Application {
                     .await
                     .expect("a build file read never panics outside the reply")
             }
-            Outcome::Matched(_) | Outcome::NotFound => not_found(),
+            Outcome::NotFound => not_found(),
             Outcome::NotAllowed(allow) => not_allowed(allow),
         }
     }

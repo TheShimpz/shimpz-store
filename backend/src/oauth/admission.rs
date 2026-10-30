@@ -5,12 +5,16 @@
 //! disconnects drops only its wait for the outcome, never the operation: a Neuron call and the broker's own commit or
 //! cleanup finish, and the permits return only when the operation ends.
 
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Mutex, PoisonError},
+};
 
 use http::{HeaderValue, StatusCode, header};
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
-    task::JoinHandle,
+    task::{AbortHandle, JoinHandle},
 };
 
 use crate::{log, response::Reply};
@@ -29,7 +33,11 @@ pub type Operation = Pin<Box<dyn Future<Output = Reply> + Send>>;
 pub struct Capacity {
     admission: Arc<Semaphore>,
     execution: Arc<Semaphore>,
+    tasks: Tasks,
 }
+
+/// The abort handles of the owned operation tasks that may still run.
+type Tasks = Arc<Mutex<Vec<AbortHandle>>>;
 
 impl Default for Capacity {
     fn default() -> Self {
@@ -44,6 +52,7 @@ impl Capacity {
         Self {
             admission: Arc::new(Semaphore::new(ADMITTED)),
             execution: Arc::new(Semaphore::new(RUNNING)),
+            tasks: Tasks::default(),
         }
     }
 
@@ -54,6 +63,7 @@ impl Capacity {
         Some(Admitted {
             admission,
             execution: Arc::clone(&self.execution),
+            tasks: Arc::clone(&self.tasks),
         })
     }
 
@@ -63,6 +73,19 @@ impl Capacity {
         let _all = self.admission.acquire_many(every).await;
         self.admission.close();
     }
+
+    /// Abort every owned operation task; each drops its operation, whose guards restore the broker's state, and then
+    /// its permits.
+    pub fn abort(&self) {
+        for task in self
+            .tasks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .iter()
+        {
+            task.abort();
+        }
+    }
 }
 
 /// One admitted operation, not yet running.
@@ -70,17 +93,23 @@ impl Capacity {
 pub struct Admitted {
     admission: OwnedSemaphorePermit,
     execution: Arc<Semaphore>,
+    tasks: Tasks,
 }
 
 impl Admitted {
     /// Run `operation` in its own task once a running slot is free; the task owns both permits until it ends.
     #[must_use]
     pub fn spawn(self, operation: Operation) -> JoinHandle<Reply> {
-        tokio::spawn(async move {
-            let _admission = self.admission;
-            let _running = self.execution.acquire_owned().await;
+        let (admission, execution, tasks) = (self.admission, self.execution, self.tasks);
+        let task = tokio::spawn(async move {
+            let _admission = admission;
+            let _running = execution.acquire_owned().await;
             operation.await
-        })
+        });
+        let mut owned = tasks.lock().unwrap_or_else(PoisonError::into_inner);
+        owned.retain(|task| !task.is_finished());
+        owned.push(task.abort_handle());
+        task
     }
 }
 

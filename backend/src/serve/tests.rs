@@ -145,7 +145,13 @@ async fn a_connection_still_answering_at_the_deadline_is_aborted() {
         .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
     let started = Instant::now();
-    drain(graceful, connections, Duration::from_millis(200)).await;
+    drain(
+        graceful,
+        connections,
+        &application(),
+        Duration::from_millis(200),
+    )
+    .await;
     assert!(started.elapsed() >= Duration::from_millis(200));
     assert!(started.elapsed() < Duration::from_secs(5));
 }
