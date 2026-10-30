@@ -2,7 +2,12 @@
 
 pub mod admission;
 pub mod lease;
+pub mod neuron;
 pub mod secret;
+pub mod shape;
+#[cfg(test)]
+mod testing;
+pub mod tunnel;
 
 use http::{HeaderName, HeaderValue, StatusCode, header};
 
