@@ -36,8 +36,15 @@ pub struct Capacity {
     tasks: Tasks,
 }
 
-/// The abort handles of the owned operation tasks that may still run.
-type Tasks = Arc<Mutex<Vec<AbortHandle>>>;
+/// The owned operation tasks that may still run, and whether shutdown has aborted them: one lock makes registering a
+/// task and aborting every task atomic, so a task registered after the abort is aborted at once.
+type Tasks = Arc<Mutex<Registry>>;
+
+#[derive(Debug, Default)]
+struct Registry {
+    handles: Vec<AbortHandle>,
+    aborted: bool,
+}
 
 impl Default for Capacity {
     fn default() -> Self {
@@ -74,15 +81,12 @@ impl Capacity {
         self.admission.close();
     }
 
-    /// Abort every owned operation task; each drops its operation, whose guards restore the broker's state, and then
-    /// its permits.
+    /// Abort every owned operation task, and every task registered from now on; each drops its operation, whose
+    /// guards restore the broker's state, and then its permits.
     pub fn abort(&self) {
-        for task in self
-            .tasks
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .iter()
-        {
+        let mut registry = self.tasks.lock().unwrap_or_else(PoisonError::into_inner);
+        registry.aborted = true;
+        for task in &registry.handles {
             task.abort();
         }
     }
@@ -106,9 +110,13 @@ impl Admitted {
             let _running = execution.acquire_owned().await;
             operation.await
         });
-        let mut owned = tasks.lock().unwrap_or_else(PoisonError::into_inner);
-        owned.retain(|task| !task.is_finished());
-        owned.push(task.abort_handle());
+        let mut registry = tasks.lock().unwrap_or_else(PoisonError::into_inner);
+        if registry.aborted {
+            task.abort();
+        } else {
+            registry.handles.retain(|task| !task.is_finished());
+            registry.handles.push(task.abort_handle());
+        }
         task
     }
 }

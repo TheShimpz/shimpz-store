@@ -125,3 +125,19 @@ fn the_capacity_refusal_asks_for_a_retry_after_one_second() {
         ]
     );
 }
+
+#[tokio::test]
+async fn an_operation_admitted_before_shutdown_and_spawned_after_its_abort_is_aborted_at_once() {
+    let capacity = Capacity::new();
+    let admitted = capacity.admit().unwrap();
+    capacity.abort();
+    let pending: Operation = Box::pin(std::future::pending());
+    let task = admitted.spawn(pending);
+    let ended = tokio::time::timeout(Duration::from_secs(1), task)
+        .await
+        .unwrap();
+    assert!(ended.unwrap_err().is_cancelled());
+    tokio::time::timeout(Duration::from_secs(1), capacity.drained())
+        .await
+        .unwrap();
+}
