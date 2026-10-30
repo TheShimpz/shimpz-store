@@ -109,14 +109,12 @@ impl Neuron {
             ("code_challenge", text(challenge)),
             ("scopes", scope_array(scopes)),
         ]);
-        let reply = self.call(Operation::Authorization, body).await?;
-        let url = only(&reply, "authorization_url").and_then(|value| match value {
-            Value::String(url) => Some(url.as_str()),
-            _ => None,
-        });
-        let url = url.ok_or(BrokerError)?;
-        consent_url(url, state, challenge, scopes)?;
-        Ok(url.to_owned())
+        consent(
+            &self.call(Operation::Authorization, body).await?,
+            state,
+            challenge,
+            scopes,
+        )
     }
 
     /// Exchange an authorization code with the broker's PKCE verifier.
@@ -161,13 +159,11 @@ impl Neuron {
     ///
     /// The call fails, or the acknowledgement is anything else.
     pub async fn revoke(&self, revoked: &str) -> Result<(), BrokerError> {
-        let reply = self
-            .call(Operation::Revoke, body(vec![("token", text(revoked))]))
-            .await?;
-        match only(&reply, "revoked") {
-            Some(Value::Bool(true)) => Ok(()),
-            _ => Err(BrokerError),
-        }
+        acknowledged(
+            &self
+                .call(Operation::Revoke, body(vec![("token", text(revoked))]))
+                .await?,
+        )
     }
 
     /// Post `body` to the operation's path and return Neuron's JSON object.
@@ -239,6 +235,38 @@ fn body(members: Vec<(&str, Value)>) -> String {
     dumps(&Value::Object(members), ASCII_COMPACT)
 }
 
+/// The consent URL of an authorization reply: exactly `{"authorization_url": <T11 URL for these values>}`.
+///
+/// # Errors
+///
+/// The reply has another shape, or the URL is not exactly the consent URL for these values.
+pub fn consent(
+    reply: &Value,
+    state: &str,
+    challenge: &str,
+    scopes: &Scopes,
+) -> Result<String, BrokerError> {
+    let url = only(reply, "authorization_url").and_then(|value| match value {
+        Value::String(url) => Some(url.as_str()),
+        _ => None,
+    });
+    let url = url.ok_or(BrokerError)?;
+    consent_url(url, state, challenge, scopes)?;
+    Ok(url.to_owned())
+}
+
+/// A revoke reply that is exactly `{"revoked": true}` (T15).
+///
+/// # Errors
+///
+/// The reply is anything else.
+pub fn acknowledged(reply: &Value) -> Result<(), BrokerError> {
+    match only(reply, "revoked") {
+        Some(Value::Bool(true)) => Ok(()),
+        _ => Err(BrokerError),
+    }
+}
+
 /// The value of an object whose only member is `name`.
 fn only<'a>(object: &'a Value, name: &str) -> Option<&'a Value> {
     match object {
@@ -286,9 +314,13 @@ fn consent_url(
     exact.then_some(()).ok_or(BrokerError)
 }
 
-/// Exactly `access_token`, `refresh_token`, `scopes` equal to the expected, and an integer `expires_in` from 30 s to a
-/// year.
-fn tokens(reply: &Value, expected: &Scopes) -> Result<Tokens, BrokerError> {
+/// The tokens of an exchange or refresh reply: exactly `access_token`, `refresh_token`, `scopes` equal to the
+/// expected, and an integer `expires_in` from 30 s to a year.
+///
+/// # Errors
+///
+/// The reply has any other shape.
+pub fn tokens(reply: &Value, expected: &Scopes) -> Result<Tokens, BrokerError> {
     let Value::Object(members) = reply else {
         return Err(BrokerError);
     };

@@ -81,7 +81,8 @@ fn pages(build: &Path) -> Result<Vec<PathBuf>, PolicyError> {
 }
 
 /// The hash sources of the one policy the build wrote into a page, which may name none.
-fn page_sources(document: &str) -> Option<Vec<String>> {
+#[must_use]
+pub fn page_sources(document: &str) -> Option<Vec<String>> {
     let mut policies = document.split(META_PREFIX).skip(1);
     let policy = policies.next()?;
     if policies.next().is_some() {

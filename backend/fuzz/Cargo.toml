@@ -1,0 +1,102 @@
+[package]
+name = "store-backend-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "cargo-fuzz targets for every Store parser of untrusted bytes"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+bytes = "=1.12.1"
+http = "=1.5.0"
+http-body-util = "=0.1.5"
+libfuzzer-sys = "=0.4.13"
+store-backend = { path = ".." }
+strict-json = { path = "../../vendor/strict-json" }
+tempfile = "=3.27.0"
+tokio = { version = "=1.53.3", features = ["rt"] }
+
+[[bin]]
+name = "query"
+path = "fuzz_targets/query.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "oauth_body"
+path = "fuzz_targets/oauth_body.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "lease"
+path = "fuzz_targets/lease.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "proxy_reply"
+path = "fuzz_targets/proxy_reply.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "neuron_response"
+path = "fuzz_targets/neuron_response.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "catalog"
+path = "fuzz_targets/catalog.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "static_path"
+path = "fuzz_targets/static_path.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "client_key"
+path = "fuzz_targets/client_key.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "request_id"
+path = "fuzz_targets/request_id.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "build_policy"
+path = "fuzz_targets/build_policy.rs"
+test = false
+doc = false
+bench = false
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+
+# The fuzz crate is its own workspace, so the parent package never builds it.
+[workspace]
+members = ["."]

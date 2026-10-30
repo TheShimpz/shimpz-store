@@ -9,7 +9,7 @@ use std::{sync::Arc, time::Duration};
 
 use rustls::{ClientConfig, RootCertStore, pki_types::ServerName};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
 use tokio_rustls::{TlsConnector, client::TlsStream};
@@ -99,7 +99,13 @@ impl Tunnel {
 }
 
 /// The egress's reply head: read until an empty line, refused at EOF or past 1,024 bytes.
-async fn proxy_response(stream: &mut TimeoutIo<TcpStream>) -> Result<Vec<u8>, BrokerError> {
+///
+/// # Errors
+///
+/// The stream fails or ends first, or the head grows past 1,024 bytes.
+pub async fn proxy_response(
+    stream: &mut (dyn AsyncRead + Unpin + Send),
+) -> Result<Vec<u8>, BrokerError> {
     let mut reply = Vec::new();
     let mut chunk = [0; PROXY_READ_BYTES];
     while !reply.windows(4).any(|window| window == b"\r\n\r\n") {
