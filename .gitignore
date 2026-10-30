@@ -14,3 +14,8 @@ dist/
 .DS_Store
 .coverage
 .coverage.*
+target/
+backend/fuzz/corpus/
+backend/fuzz/artifacts/
+backend/fuzz/coverage/
+backend/mutants.out*/
