@@ -133,6 +133,62 @@ fn any_argument_is_a_usage_error() {
 }
 
 #[test]
+fn the_healthcheck_command_reports_the_local_stores_health() {
+    let settings = settings();
+    assert_eq!(run(&["healthcheck".into()], &settings), ExitCode::FAILURE);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let listener = runtime
+        .block_on(tokio::net::TcpListener::bind(settings.listen))
+        .unwrap();
+    let application = std::sync::Arc::new(Application::new(&settings).unwrap());
+    let bounds = crate::serve::Bounds {
+        header_read_timeout: Duration::from_secs(10),
+        shutdown_deadline: Duration::from_secs(1),
+    };
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server = runtime.spawn(crate::serve::serve(
+        listener,
+        application,
+        async move {
+            let _ = stopped.await;
+        },
+        bounds,
+        None,
+    ));
+    assert_eq!(run(&["healthcheck".into()], &settings), ExitCode::SUCCESS);
+    stop.send(()).unwrap();
+    runtime.block_on(server).unwrap();
+}
+
+#[test]
+fn tls_material_is_read_before_serving_and_refuses_to_start_when_unusable() {
+    let directory = tempfile::tempdir().unwrap();
+    let missing = directory.path().join("missing.pem");
+    let arguments: Vec<std::ffi::OsString> = vec![
+        "--tls-certificate".into(),
+        missing.clone().into(),
+        "--tls-key".into(),
+        missing.into(),
+    ];
+    assert_eq!(run(&arguments, &settings()), ExitCode::FAILURE);
+    let key = rcgen::KeyPair::generate().unwrap();
+    let certificate = rcgen::CertificateParams::new(vec!["localhost".to_owned()])
+        .unwrap()
+        .self_signed(&key)
+        .unwrap();
+    let files = crate::command::TlsFiles {
+        certificate: directory.path().join("cert.pem"),
+        key: directory.path().join("key.pem"),
+    };
+    std::fs::write(&files.certificate, certificate.pem()).unwrap();
+    std::fs::write(&files.key, key.serialize_pem()).unwrap();
+    let (_, acceptor) = super::start(&settings(), Some(&files)).unwrap();
+    assert!(acceptor.is_some());
+    let (_, plain) = super::start(&settings(), None).unwrap();
+    assert!(plain.is_none());
+}
+
+#[test]
 fn a_build_without_an_exact_policy_refuses_to_start() {
     let build = tempfile::tempdir().unwrap();
     std::fs::write(build.path().join("en.html"), "<script>x()</script>").unwrap();

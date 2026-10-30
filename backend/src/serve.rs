@@ -8,12 +8,14 @@ use futures_util::future::{Either, select};
 use hyper::{body::Incoming, server::conn::http1, service::service_fn};
 use hyper_util::{
     rt::{TokioIo, TokioTimer},
-    server::graceful::GracefulShutdown,
+    server::graceful::{GracefulShutdown, Watcher},
 };
 use tokio::{
+    io::{AsyncRead, AsyncWrite},
     net::{TcpListener, TcpStream},
     task::JoinSet,
 };
+use tokio_rustls::TlsAcceptor;
 
 use crate::Application;
 
@@ -51,13 +53,20 @@ pub struct Bounds {
     pub shutdown_deadline: Duration,
 }
 
+/// A connection's byte stream, whatever its source.
+trait Io: AsyncRead + AsyncWrite + Send + Unpin {}
+
+impl<T: AsyncRead + AsyncWrite + Send + Unpin> Io for T {}
+
 /// Serve `application` on `acceptor` until `shutdown` completes; then stop accepting, ask every connection to
-/// finish its in-flight request, and abort whatever remains at the deadline.
+/// finish its in-flight request, and abort whatever remains at the deadline. With `tls`, every connection first
+/// completes a TLS handshake within the header-read bound.
 pub async fn serve<A: Accept>(
     mut acceptor: A,
     application: Arc<Application>,
     shutdown: impl Future<Output = ()>,
     bounds: Bounds,
+    tls: Option<TlsAcceptor>,
 ) {
     let graceful = GracefulShutdown::new();
     let mut connections = JoinSet::new();
@@ -70,24 +79,10 @@ pub async fn serve<A: Accept>(
         while connections.try_join_next().is_some() {}
         match accepted {
             Ok((stream, peer)) => {
-                let application = Arc::clone(&application);
-                let service = service_fn(move |request: http::Request<Incoming>| {
-                    let application = Arc::clone(&application);
-                    async move {
-                        Ok::<_, std::convert::Infallible>(application.handle(request, peer).await)
-                    }
-                });
-                let connection = http1::Builder::new()
-                    .timer(TokioTimer::new())
-                    .header_read_timeout(bounds.header_read_timeout)
-                    .max_headers(MAX_HEADERS)
-                    .max_header_size(MAX_HEAD_BYTES)
-                    .serve_connection(TokioIo::new(stream), service);
-                let connection = graceful.watch(connection);
-                connections.spawn(async move {
-                    // A failed or timed-out connection concerns only its own peer.
-                    let _ended = connection.await;
-                });
+                let stream: Box<dyn Io> = Box::new(stream);
+                let (application, watcher, tls) =
+                    (Arc::clone(&application), graceful.watcher(), tls.clone());
+                connections.spawn(connection(stream, peer, application, watcher, tls, bounds));
             }
             Err(error) => pause_after_accept_error(&error).await,
         }
@@ -102,6 +97,38 @@ pub async fn serve<A: Accept>(
     .await;
 }
 
+/// Serve one connection, after its TLS handshake when there is one; a failed or timed-out connection concerns only
+/// its own peer.
+async fn connection(
+    stream: Box<dyn Io>,
+    peer: SocketAddr,
+    application: Arc<Application>,
+    watcher: Watcher,
+    tls: Option<TlsAcceptor>,
+    bounds: Bounds,
+) {
+    let stream: Box<dyn Io> = match tls {
+        None => stream,
+        Some(acceptor) => {
+            match tokio::time::timeout(bounds.header_read_timeout, acceptor.accept(stream)).await {
+                Ok(Ok(secured)) => Box::new(secured),
+                _ => return,
+            }
+        }
+    };
+    let service = service_fn(move |request: http::Request<Incoming>| {
+        let application = Arc::clone(&application);
+        async move { Ok::<_, std::convert::Infallible>(application.handle(request, peer).await) }
+    });
+    let connection = http1::Builder::new()
+        .timer(TokioTimer::new())
+        .header_read_timeout(bounds.header_read_timeout)
+        .max_headers(MAX_HEADERS)
+        .max_header_size(MAX_HEAD_BYTES)
+        .serve_connection(TokioIo::new(stream), service);
+    let _ended = watcher.watch(connection).await;
+}
+
 /// Let connections and owned broker operations finish until one deadline, then abort the rest and wait until every
 /// connection and operation has ended.
 async fn drain(
@@ -114,8 +141,10 @@ async fn drain(
         graceful.shutdown().await;
         application.oauth().drained().await;
     };
-    if tokio::time::timeout(deadline, finished).await.is_err() {
-        connections.abort_all();
+    let timed_out = tokio::time::timeout(deadline, finished).await.is_err();
+    // Whatever is left is past the deadline or still in its TLS handshake, never serving a request.
+    connections.abort_all();
+    if timed_out {
         application.oauth().abort();
     }
     while connections.join_next().await.is_some() {}

@@ -40,6 +40,7 @@ async fn started(bounds: Bounds) -> (SocketAddr, oneshot::Sender<()>, JoinHandle
             let _ = stopped.await;
         },
         bounds,
+        None,
     ));
     (address, stop, server)
 }
@@ -187,6 +188,7 @@ async fn an_aborted_accept_is_skipped_and_another_failure_pauses_the_loop() {
         application(),
         async move { stopped.await.unwrap() },
         bounds(1_000, 1_000),
+        None,
     ));
     let mut client = client;
     client

@@ -3,8 +3,10 @@
 
 pub mod catalog;
 pub mod clock;
+pub mod command;
 pub mod config;
 pub mod date;
+pub mod healthcheck;
 pub mod log;
 pub mod oauth;
 pub mod policy;
@@ -15,6 +17,7 @@ pub mod route;
 pub mod security;
 pub mod serve;
 pub mod static_files;
+pub mod tls;
 
 use std::{ffi::OsString, net::SocketAddr, process::ExitCode, sync::Arc};
 
@@ -26,11 +29,13 @@ use tokio::{
     net::TcpListener,
     signal::unix::{SignalKind, signal},
 };
+use tokio_rustls::TlsAcceptor;
 
 use crate::{
     catalog::Catalog,
     clock::Clock,
     clock::SystemClock,
+    command::{Command, TlsFiles},
     config::Settings,
     oauth::{
         body::Body,
@@ -44,8 +49,6 @@ use crate::{
     serve::{Bounds, serve},
     static_files::Site,
 };
-
-const USAGE: &str = "usage: shimpz-store";
 
 /// One Store: its page policy and the state its routes share.
 pub struct Application {
@@ -192,39 +195,68 @@ fn html_navigation(headers: &HeaderMap) -> bool {
     })
 }
 
-/// Run the `shimpz-store` command: with no argument, serve until SIGTERM; anything else is a usage error (exit 2).
+/// Run the `shimpz-store` command ([`command`]): serve until SIGTERM, plainly or over TLS, or check the local
+/// Store's health (exit 0 when healthy, 1 otherwise); any other command line is a usage error (exit 2).
 ///
 /// # Panics
 ///
 /// When the process cannot start its runtime or install its SIGTERM handler.
 #[must_use]
 pub fn run(arguments: &[OsString], settings: &Settings) -> ExitCode {
-    if !arguments.is_empty() {
-        eprintln!("{{\"level\":\"ERROR\",\"msg\":\"{USAGE}\"}}");
-        return ExitCode::from(2);
-    }
-    log::install_panic_hook();
-    let application = match Application::new(settings) {
-        Ok(application) => application,
-        Err(refusal) => {
-            log::event(
-                log::Level::Error,
-                "startup_failed",
-                &[("error", refusal.code())],
-            );
-            return ExitCode::FAILURE;
+    let tls = match command::parse(arguments) {
+        None => {
+            eprintln!("{{\"level\":\"ERROR\",\"msg\":\"{}\"}}", command::USAGE);
+            return ExitCode::from(2);
         }
+        Some(Command::Healthcheck) => {
+            return if healthcheck::healthy(settings.listen.port()) {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            };
+        }
+        Some(Command::Serve(tls)) => tls,
     };
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .expect("the Store runtime starts");
-    runtime.block_on(serve_until_terminated(settings, Arc::new(application)))
+    log::install_panic_hook();
+    match start(settings, tls.as_ref()) {
+        Ok((application, acceptor)) => {
+            let runtime = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("the Store runtime starts");
+            runtime.block_on(serve_until_terminated(
+                settings,
+                Arc::new(application),
+                acceptor,
+            ))
+        }
+        Err(code) => {
+            log::event(log::Level::Error, "startup_failed", &[("error", code)]);
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// The application and, when TLS files are given, its acceptor; or the closed code of the startup refusal.
+fn start(
+    settings: &Settings,
+    tls: Option<&TlsFiles>,
+) -> Result<(Application, Option<TlsAcceptor>), &'static str> {
+    let application = Application::new(settings).map_err(StartupError::code)?;
+    let acceptor = tls
+        .map(tls::acceptor)
+        .transpose()
+        .or(Err("tls_material_invalid"))?;
+    Ok((application, acceptor))
 }
 
 /// Serve until SIGTERM; the signal handler is registered before the listener binds, so a peer that can connect
 /// can also stop the Store.
-async fn serve_until_terminated(settings: &Settings, application: Arc<Application>) -> ExitCode {
+async fn serve_until_terminated(
+    settings: &Settings,
+    application: Arc<Application>,
+    tls: Option<TlsAcceptor>,
+) -> ExitCode {
     let mut terminate = signal(SignalKind::terminate()).expect("the SIGTERM handler installs");
     let Ok(listener) = TcpListener::bind(settings.listen).await else {
         log::event(
@@ -243,6 +275,7 @@ async fn serve_until_terminated(settings: &Settings, application: Arc<Applicatio
         application,
         async move { terminate.recv().await.unwrap_or_default() },
         bounds,
+        tls,
     )
     .await;
     ExitCode::SUCCESS

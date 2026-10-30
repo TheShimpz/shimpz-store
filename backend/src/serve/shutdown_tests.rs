@@ -48,6 +48,7 @@ async fn served() -> (
             let _ = stopped.await;
         },
         bounds,
+        None,
     ));
     (fake, application, address, stop, server)
 }
