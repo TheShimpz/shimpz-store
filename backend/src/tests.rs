@@ -27,10 +27,16 @@ pub(crate) fn settings() -> Settings {
     }
 }
 
-async fn answer(application: &Application, method: Method, target: &str) -> (StatusCode, String) {
+async fn answer(
+    application: &Application,
+    method: Method,
+    target: &str,
+    accept: &str,
+) -> (StatusCode, String) {
     let request = Request::builder()
         .method(method)
         .uri(target)
+        .header("accept", accept)
         .body(())
         .unwrap();
     let response = application
@@ -41,31 +47,76 @@ async fn answer(application: &Application, method: Method, target: &str) -> (Sta
     (status, String::from_utf8(body.to_vec()).unwrap())
 }
 
+/// A page whose build policy names no script, as the not-found pages carry.
+const PAGE: &str = "<meta http-equiv=\"content-security-policy\" content=\"script-src 'self'; \
+                    require-trusted-types-for 'script'; trusted-types svelte-trusted-html\">";
+
+fn site_application() -> (tempfile::TempDir, Application) {
+    let build = tempfile::tempdir().unwrap();
+    std::fs::write(build.path().join("en.html"), format!("{PAGE}english-home")).unwrap();
+    std::fs::create_dir(build.path().join("en")).unwrap();
+    std::fs::write(
+        build.path().join("en/404.html"),
+        format!("{PAGE}english-not-found"),
+    )
+    .unwrap();
+    let settings = Settings {
+        build: build.path().to_path_buf(),
+        ..settings()
+    };
+    let application = Application::new(&settings).unwrap();
+    (build, application)
+}
+
 #[tokio::test]
 async fn the_dispatcher_answers_health_refusals_and_misses_through_the_security_layer() {
-    let application = Application::new(&settings()).unwrap();
+    let (_build, application) = site_application();
+    let ok = (StatusCode::OK, String::from("{\"status\":\"ok\"}"));
     assert_eq!(
-        answer(&application, Method::GET, "/api/health?x=1").await,
-        (StatusCode::OK, "{\"status\":\"ok\"}".into())
+        answer(&application, Method::GET, "/api/health?x=1", "").await,
+        ok
     );
     assert_eq!(
-        answer(&application, Method::GET, "/api/health%0a").await.0,
-        StatusCode::OK
+        answer(&application, Method::GET, "/api/health%0a", "").await,
+        ok
     );
     assert_eq!(
-        answer(&application, Method::POST, "/api/health").await,
+        answer(&application, Method::POST, "/api/health", "").await,
         (
             StatusCode::METHOD_NOT_ALLOWED,
             "{\"detail\":\"Method Not Allowed\"}".into()
         )
     );
     assert_eq!(
-        answer(&application, Method::GET, "/a%0Ab").await,
+        answer(&application, Method::GET, "/a%0Ab", "").await,
         (StatusCode::NOT_FOUND, "{\"detail\":\"Not Found\"}".into())
     );
+    let start = answer(&application, Method::GET, "/api/oauth/cloudflare/start", "").await;
+    assert_eq!(start.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn the_dispatcher_serves_the_root_redirect_pages_and_localized_misses() {
+    let (_build, application) = site_application();
+    for method in [Method::GET, Method::HEAD] {
+        assert_eq!(
+            answer(&application, method, "/", "").await.0,
+            StatusCode::PERMANENT_REDIRECT
+        );
+    }
+    let page = answer(&application, Method::GET, "/%65n", "").await;
+    assert!(
+        page.0 == StatusCode::OK && page.1.ends_with("english-home"),
+        "{page:?}"
+    );
+    let navigation = answer(&application, Method::GET, "/missing", "TEXT/HTML").await;
+    assert!(
+        navigation.0 == StatusCode::NOT_FOUND && navigation.1.ends_with("english-not-found"),
+        "{navigation:?}"
+    );
     assert_eq!(
-        answer(&application, Method::GET, "/en").await.0,
-        StatusCode::NOT_FOUND
+        answer(&application, Method::GET, "/missing", "application/json").await,
+        (StatusCode::NOT_FOUND, "not found".into())
     );
 }
 

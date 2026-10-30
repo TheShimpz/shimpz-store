@@ -10,11 +10,12 @@ pub mod response;
 pub mod route;
 pub mod security;
 pub mod serve;
+pub mod static_files;
 
 use std::{ffi::OsString, net::SocketAddr, process::ExitCode, sync::Arc};
 
 use bytes::Bytes;
-use http::{HeaderValue, Method, Request, Response, StatusCode};
+use http::{HeaderMap, HeaderValue, Method, Request, Response, StatusCode, header};
 use http_body_util::Full;
 use tokio::{
     net::TcpListener,
@@ -27,6 +28,7 @@ use crate::{
     response::{Reply, not_allowed, not_found},
     route::{Outcome, Route},
     serve::{Bounds, serve},
+    static_files::Site,
 };
 
 const USAGE: &str = "usage: shimpz-store";
@@ -34,6 +36,7 @@ const USAGE: &str = "usage: shimpz-store";
 /// One Store: its page policy and the state its routes share.
 pub struct Application {
     page_policy: HeaderValue,
+    site: Arc<Site>,
 }
 
 impl Application {
@@ -45,6 +48,7 @@ impl Application {
     pub fn new(settings: &Settings) -> Result<Self, PolicyError> {
         Ok(Self {
             page_policy: page_policy(&settings.build)?,
+            site: Arc::new(Site::new(settings.build.clone())),
         })
     }
 
@@ -53,20 +57,41 @@ impl Application {
         let path = query::unquote(request.uri().path()).into_owned();
         let id = security::request_id(request.headers());
         let method = request.method().clone();
-        let reply = security::guarded(&path, Box::pin(async { dispatch(&method, &path) })).await;
+        let navigation = html_navigation(request.headers());
+        let reply =
+            security::guarded(&path, Box::pin(self.dispatch(method, &path, navigation))).await;
         security::secure(reply, &path, &id, &self.page_policy)
+    }
+
+    /// The reply of the route a request's method and decoded path select.
+    async fn dispatch(&self, method: Method, path: &str, navigation: bool) -> Reply {
+        match route::route(&method, path) {
+            Outcome::Matched(Route::Health) => {
+                Reply::json(StatusCode::OK, &b"{\"status\":\"ok\"}"[..], Vec::new())
+            }
+            Outcome::Matched(Route::Root) => static_files::root_redirect(),
+            Outcome::Matched(Route::Site { path }) => {
+                let site = Arc::clone(&self.site);
+                let path = path.to_owned();
+                tokio::task::spawn_blocking(move || site.reply(&path, navigation))
+                    .await
+                    .expect("a build file read never panics outside the reply")
+            }
+            Outcome::Matched(_) | Outcome::NotFound => not_found(),
+            Outcome::NotAllowed(allow) => not_allowed(allow),
+        }
     }
 }
 
-/// The reply of the route a request's method and decoded path select.
-fn dispatch(method: &Method, path: &str) -> Reply {
-    match route::route(method, path) {
-        Outcome::Matched(Route::Health) => {
-            Reply::json(StatusCode::OK, &b"{\"status\":\"ok\"}"[..], Vec::new())
-        }
-        Outcome::Matched(_) | Outcome::NotFound => not_found(),
-        Outcome::NotAllowed(allow) => not_allowed(allow),
-    }
+/// Whether the request's first `Accept` header names `text/html`, case-insensitively: an HTML navigation.
+fn html_navigation(headers: &HeaderMap) -> bool {
+    headers.get(header::ACCEPT).is_some_and(|accept| {
+        accept
+            .as_bytes()
+            .to_ascii_lowercase()
+            .windows(9)
+            .any(|window| window == b"text/html")
+    })
 }
 
 /// Run the `shimpz-store` command: with no argument, serve until SIGTERM; anything else is a usage error (exit 2).
