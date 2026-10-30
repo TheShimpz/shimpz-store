@@ -231,3 +231,38 @@ async fn icons_are_read_two_at_a_time_and_kept_within_their_budget() {
     }
     assert!(fake.peak.load(std::sync::atomic::Ordering::SeqCst) <= 2);
 }
+
+#[tokio::test]
+async fn an_invalid_icon_head_is_refused_without_waiting_for_its_held_body() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    for head in [
+        &b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 10\r\n\r\n"[..],
+        b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 99999999\r\n\r\n",
+        b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 0\r\n\r\n",
+        b"HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\nno",
+    ] {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let held = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = [0; 1024];
+            let _ = stream.read(&mut request).await.unwrap();
+            stream.write_all(head).await.unwrap();
+            tokio::time::sleep(Duration::from_secs(30)).await;
+        });
+        let developers = crate::catalog::upstream::Developers {
+            host: "127.0.0.1".into(),
+            port,
+            timeout: Duration::from_secs(5),
+        };
+        let icons = Arc::new(Icons::new(developers, Duration::from_secs(5)));
+        let started = std::time::Instant::now();
+        assert_eq!(icons.icon(&source(1), &digest(b"x")).await, None);
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "{:?}",
+            started.elapsed()
+        );
+        held.abort();
+    }
+}

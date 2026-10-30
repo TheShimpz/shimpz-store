@@ -116,7 +116,7 @@ impl Icons {
         let path = format!("/api/v1/assistant-publications/sha256:{source}/icon.png");
         let fetched = match self
             .developers
-            .get(&path, Some("image/png"), MAX_ASSET_BYTES)
+            .get_if(&path, Some("image/png"), MAX_ASSET_BYTES, head_admitted)
             .await
         {
             Ok(fetched) => fetched,
@@ -130,23 +130,47 @@ impl Icons {
     }
 }
 
-/// The body of a `200 image/png` reply whose `Content-Length` is 1 to 1 MiB in ASCII digits and equals its length.
-fn admitted(fetched: Fetched) -> Option<Bytes> {
-    if fetched.status != http::StatusCode::OK {
-        return None;
-    }
-    let content_type = fetched.content_type.unwrap_or_default();
-    let media_type =
-        team_protocol::python::text::strip(content_type.split(';').next().unwrap_or_default());
-    let length = fetched.content_length.filter(|length| {
+/// Whether a reply head admits reading the body, as the Python Store checked the head before reading: any status but
+/// 200 (whose bounded body is read and discarded), or a 200 `image/png` with an admitted `Content-Length`.
+fn head_admitted(
+    status: http::StatusCode,
+    content_type: Option<&str>,
+    content_length: Option<&str>,
+) -> bool {
+    status != http::StatusCode::OK || expected_length(content_type, content_length).is_some()
+}
+
+/// The length an `image/png` reply declares: 1 to 1 MiB in ASCII digits, no more of them than the largest has.
+fn expected_length(content_type: Option<&str>, content_length: Option<&str>) -> Option<usize> {
+    let media_type = team_protocol::python::text::strip(
+        content_type
+            .unwrap_or_default()
+            .split(';')
+            .next()
+            .unwrap_or_default(),
+    );
+    let length = content_length.filter(|length| {
         length.len() <= MAX_LENGTH_DIGITS
             && !length.is_empty()
             && length.bytes().all(|byte| byte.is_ascii_digit())
     })?;
     let expected: usize = length.parse().ok()?;
+    let admitted =
+        media_type.to_lowercase() == "image/png" && (1..=MAX_ASSET_BYTES).contains(&expected);
+    admitted.then_some(expected)
+}
+
+/// The body of a `200 image/png` reply whose `Content-Length` is admitted and equals its length.
+fn admitted(fetched: Fetched) -> Option<Bytes> {
+    if fetched.status != http::StatusCode::OK {
+        return None;
+    }
+    let expected = expected_length(
+        fetched.content_type.as_deref(),
+        fetched.content_length.as_deref(),
+    )?;
     let body = fetched.body?;
-    let fits = (1..=MAX_ASSET_BYTES).contains(&expected) && body.len() == expected;
-    (media_type.to_lowercase() == "image/png" && fits).then_some(body)
+    (body.len() == expected).then_some(body)
 }
 
 /// The lowercase hexadecimal form of a digest.

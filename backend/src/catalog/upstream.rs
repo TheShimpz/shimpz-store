@@ -38,6 +38,9 @@ pub struct Developers {
     pub timeout: Duration,
 }
 
+/// Whether a reply head (status, joined `Content-Type`, joined `Content-Length`) admits reading its body.
+pub type Head = fn(StatusCode, Option<&str>, Option<&str>) -> bool;
+
 /// One reply Developers gave: its status, the headers the caller reads, and its body within the bound.
 #[derive(Debug)]
 pub struct Fetched {
@@ -86,6 +89,22 @@ impl Developers {
         accept: Option<&'static str>,
         limit: usize,
     ) -> Result<Fetched, Failure> {
+        self.get_if(path, accept, limit, |_, _, _| true).await
+    }
+
+    /// [`Developers::get`], reading the body only when `read_body` admits the reply's status, `Content-Type`, and
+    /// `Content-Length`; a refused head leaves the body unread and `None`, so a dripped body cannot hold the read.
+    ///
+    /// # Errors
+    ///
+    /// The connection, a socket operation, or HTTP/1.1 framing failed.
+    pub async fn get_if(
+        &self,
+        path: &str,
+        accept: Option<&'static str>,
+        limit: usize,
+        read_body: Head,
+    ) -> Result<Fetched, Failure> {
         let connect = tokio::time::timeout(
             self.timeout,
             TcpStream::connect((self.host.as_str(), self.port)),
@@ -115,6 +134,14 @@ impl Developers {
         let (content_type, content_length) =
             (joined(header::CONTENT_TYPE), joined(header::CONTENT_LENGTH));
         let status = response.status();
+        if !read_body(status, content_type.as_deref(), content_length.as_deref()) {
+            return Ok(Fetched {
+                status,
+                content_type,
+                content_length,
+                body: None,
+            });
+        }
         let body = match Limited::new(response.into_body(), limit).collect().await {
             Ok(collected) => Some(collected.to_bytes()),
             Err(error) if error.is::<http_body_util::LengthLimitError>() => None,
