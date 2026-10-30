@@ -696,10 +696,12 @@ async fn an_aborted_operation_restores_the_broker_and_a_panic_answers_500() {
         StatusCode::INTERNAL_SERVER_ERROR
     );
     fake.held.send_replace(false);
-    assert_eq!(
-        start(&oauth, &state, "loopback").await.status,
-        StatusCode::SEE_OTHER
+    assert!(
+        oauth.idle(),
+        "the aborted start released its authorization and local state"
     );
+    // Shutdown aborts every operation from then on, so the panic is proved on routes that never shut down.
+    let (_fake, oauth) = routes(neuron_answer).await;
     let panicked = oauth
         .owned(
             "/x",
