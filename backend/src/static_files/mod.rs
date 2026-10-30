@@ -3,16 +3,18 @@
 //! page for an HTML navigation and plain `not found` otherwise.
 
 pub mod headers;
+pub mod realpath;
 
 use std::{
-    fs::{self, File},
+    fs::File,
     io::Read,
-    os::unix::fs::MetadataExt,
+    os::unix::{ffi::OsStrExt, fs::MetadataExt},
     path::{Path, PathBuf},
 };
 
 use http::{HeaderName, HeaderValue, StatusCode, header};
 
+use self::realpath::realpath;
 use crate::response::Reply;
 
 /// The cache policy of every page and mutable file: revalidate before each use.
@@ -38,19 +40,17 @@ impl Site {
     /// The reply to `GET /{path}`, for an HTML navigation or not.
     #[must_use]
     pub fn reply(&self, path: &str, navigation: bool) -> Reply {
-        let root = fs::canonicalize(&self.build).ok();
-        let hit = root.as_deref().and_then(|root| resolve(root, path));
-        if let (Some(root), Some(hit)) = (root.as_deref(), hit.as_deref()) {
-            if !not_found_document(root, hit) {
+        let root = realpath(self.build.as_os_str());
+        let hit = resolve(&root, path);
+        if let Some(hit) = hit.as_deref() {
+            if !not_found_document(&root, hit) {
                 return file(hit, StatusCode::OK, cache_control(path, hit));
             }
             if navigation {
                 return file(hit, StatusCode::NOT_FOUND, HTML_CACHE);
             }
         }
-        if let (true, Some(root)) = (navigation, root.as_deref())
-            && let Some(document) = localized_not_found(root, path)
-        {
+        if navigation && let Some(document) = localized_not_found(&root, path) {
             return file(&document, StatusCode::NOT_FOUND, HTML_CACHE);
         }
         Reply::new(
@@ -93,10 +93,12 @@ fn resolve(root: &Path, path: &str) -> Option<PathBuf> {
         .find_map(|candidate| inside(root, candidate))
 }
 
-/// `root/candidate`, symbolic links resolved, when it is a regular file strictly inside `root`.
+/// `root/candidate` as Python's `os.path.realpath` resolves it, when that names a regular file under `root`.
 fn inside(root: &Path, candidate: &str) -> Option<PathBuf> {
-    let resolved = fs::canonicalize(root.join(candidate)).ok()?;
-    let within = resolved.starts_with(root) && resolved != root;
+    let resolved = realpath(root.join(candidate).as_os_str());
+    let mut prefix = root.as_os_str().as_bytes().to_vec();
+    prefix.push(b'/');
+    let within = resolved.as_os_str().as_bytes().starts_with(&prefix);
     (within && resolved.is_file()).then_some(resolved)
 }
 
