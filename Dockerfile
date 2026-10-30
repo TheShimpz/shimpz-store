@@ -28,6 +28,52 @@ RUN pnpm run build \
  && find /w/build -depth -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} + \
  && rm -rf /root/.cache/pnpm /root/.local/share/pnpm /root/.npm
 
+# ── Rust stages (ADR-0123 R3): the Rust Store, built as the named target `rust` ───────────────────
+# Until the swap these stages precede the Python ones, so the default (last) stage, every gate lane, and production
+# stay Python while the black-box suite runs against `docker build --target rust`. The packages as the dependency build
+# sees them: every manifest and lockfile, and a stub in place of each library and binary root, so a source edit leaves
+# the dependency layer unchanged.
+FROM docker.io/library/rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181 AS rust-skeleton
+WORKDIR /workspace
+COPY backend/Cargo.toml backend/Cargo.lock ./backend/
+COPY backend/src ./backend/src
+COPY vendor/strict-json ./vendor/strict-json
+COPY protocol/team/http ./protocol/team/http
+RUN find . -type f -regextype posix-extended \
+        ! -regex '.*/(Cargo\.toml|Cargo\.lock)' ! -regex '.*/src/(lib|main)\.rs' -delete \
+    && find . -depth -type d -empty -delete \
+    && for root in $(find . -path '*/src/lib.rs' -o -path '*/src/main.rs'); do \
+        printf '//! Dependency stub.\n' > "${root}"; \
+        if test "${root##*/}" = main.rs; then printf 'fn main() {}\n' >> "${root}"; fi; \
+    done
+
+# The builder's Debian 13 (trixie) glibc matches the distroless cc-debian13 runtime the binary runs on. Every
+# dependency is compiled here with the release profile, pinned by backend/Cargo.lock; the stub packages' artifacts are
+# then removed, so the real sources always compile.
+FROM docker.io/library/rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181 AS rust-dependencies
+WORKDIR /workspace
+COPY --from=rust-skeleton /workspace ./
+RUN cd backend \
+    && cargo build --release --locked --bin shimpz-store \
+    && cargo clean --release --locked --package store-backend --package strict-json --package team-protocol
+
+FROM rust-dependencies AS rust-build
+COPY backend/Cargo.toml backend/Cargo.lock ./backend/
+COPY backend/src ./backend/src
+COPY vendor/strict-json ./vendor/strict-json
+COPY protocol/team/http ./protocol/team/http
+ARG SOURCE_DATE_EPOCH=0
+RUN cd backend && cargo build --release --locked --bin shimpz-store
+
+# One root-owned binary and the root-owned prerendered build; the runtime identity can modify neither, and the root
+# filesystem is read-only anyway. uid 10008 needs no passwd entry. The healthcheck subcommand needs no shell.
+FROM gcr.io/distroless/cc-debian13@sha256:ed7c407fd64eb0af9dddb9456b94cee188a40a7f53cf38c9836e1e9ae14fca02 AS rust
+COPY --link --from=rust-build --chmod=0555 /workspace/backend/target/release/shimpz-store /usr/local/bin/shimpz-store
+COPY --link --from=web /w/build /app/build
+USER 10008:10008
+EXPOSE 3200
+ENTRYPOINT ["/usr/local/bin/shimpz-store"]
+
 # ── stage 3: resolve target-platform Python dependencies ─────────────────────────────────────────
 # This layer is the runtime's base and a pure function of the pinned base, uv, and the lock (Shimpz ADR-0098): no ARG
 # SOURCE_DATE_EPOCH, WORKDIR, COPY, or ADD here, uv and the lock arrive as read-only mounts on a discarded tmpfs, the uv
