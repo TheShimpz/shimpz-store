@@ -1,5 +1,5 @@
-//! Replays every case of `tests/corpus/` that reached a new line of the Python Store in the seeded differential, and
-//! requires the Rust Store's answer to equal the Python Store's recorded one.
+//! Replays every case of `tests/corpus/`: the seeded differential against the Python Store (ADR-0123 R3) kept each
+//! case that reached a new line of it, with its answer, and the Rust Store must still give exactly that answer.
 
 #[path = "support/decide.rs"]
 mod decide;

@@ -5,8 +5,8 @@ Its public SvelteKit frontend exposes the homepage, Assistant catalog and disclo
 and the branded not-found experience. It exposes no Account, login, Team, chat, model-provider, or
 Assistant-installation API or page.
 
-The FastAPI backend projects the public Developers catalog and its icons, serves the prerendered site, and brokers
-Cloudflare OAuth for Local Spaces. It starts with only Developers and its OAuth secrets. Store is an unprivileged
+The Rust backend (`backend/`, one `shimpz-store` binary) projects the public Developers catalog and its icons, serves
+the prerendered site, and brokers Cloudflare OAuth for Local Spaces. It starts with only Developers and its OAuth secrets. Store is an unprivileged
 gateway, not publication, Account, Team, or installation authority; it has no Docker socket, provider admin key, or
 Team bearer.
 
@@ -21,9 +21,10 @@ Team bearer.
 - Static files resolve beneath the built application root; unknown API paths do not fall through to the
   SPA, and private JSON responses are non-cacheable.
 
-The production image runs non-root with a read-only filesystem, fixed dependency locks, and only the
-compiled frontend plus explicitly copied backend modules. Backend and frontend contracts live under
-their respective `tests/` directories; built-browser behavior is exercised from the umbrella repository.
+The production image is distroless and runs non-root with a read-only filesystem: one root-owned binary built from
+the locked dependency graph and the compiled frontend, with no shell or interpreter. Backend unit and corpus tests
+live beside the Rust sources and in `backend/tests/`, frontend contracts in `frontend/`; the image's black-box
+contract and built-browser behavior are exercised from the umbrella repository.
 
 ## Frontend commands
 
@@ -41,4 +42,4 @@ pnpm build
 ```
 
 `test` runs the dependency-free frontend contracts with half of the host processors. `check` validates
-the Svelte application, and `build` produces the static application consumed by the FastAPI image.
+the Svelte application, and `build` produces the static application the Rust image serves.

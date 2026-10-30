@@ -20,19 +20,17 @@
   mutable install fallbacks, or earlier repository-state cleanup.
 - Preserve no Docker socket, exact source digests, non-cacheable private data, file-backed capabilities, and secret
   redaction.
-- Use Python 3.14, and Node.js 26 for every Node.js workload this repository runs. User-visible Svelte behavior
-  requires Playwright against the built application.
+- The backend is the Rust package `backend/` (ADR-0123); use Node.js 26 for every Node.js workload this repository
+  runs. User-visible Svelte behavior requires Playwright against the built application.
 - Tests that support workers use half of local processors and all GitHub Actions runner processors. Do not add
   Cypress or an experimental component-test runner.
 
 ## Validation
 
-- From the umbrella root, run `ruff check --config ruff.toml store` and `ruff format --config ruff.toml --check store`;
-  the umbrella `ruff.toml` is the only ruff configuration.
-- Run backend tests from `backend/` with
-  `uv run --python 3.14 --locked --with coverage==7.15.2 sh -c "coverage run
-  --branch --source=app --omit='app/protocol/*' -m pytest -q tests && coverage report --skip-empty
-  --fail-under=100"` (the generated Team-protocol mirror is proven by its producer and byte-identity checks).
+- From the umbrella root, run `.scripts/gate/rust crate store/backend` for the backend (fmt, clippy pedantic,
+  cargo-deny, 100% line, branch, and function coverage, and its fuzz targets) and `.scripts/gate/live store-contract`
+  for the black-box contract of the built image. The vendored strict-JSON and Team-protocol mirrors are proven by
+  their producers and byte-identity checks.
 - Run frontend tests/check/build from `frontend/` with the pnpm release `frontend/bootstrap-pnpm.sh` installs.
 - `egress/` is a Rust package built with the umbrella `.egress/transport` crate; from the umbrella root run
   `.scripts/gate/rust crate store/egress` (100% line, branch, and function coverage).

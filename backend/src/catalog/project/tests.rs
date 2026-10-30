@@ -329,7 +329,7 @@ fn actions_are_unique_and_at_most_one_hundred_twenty_eight() {
 }
 
 /// The Python catalog tests' cases of `test`, each with the bytes the Python Store projected or null for a refusal,
-/// as `oracle/catalog_vectors.py` wrote them; every case must project to exactly those bytes here.
+/// recorded before the Python Store was deleted; every case must project to exactly those bytes here.
 fn python_cases(test: &str) -> usize {
     let Value::Array(entries) = strict_json::parse(include_bytes!("vectors.json")).unwrap() else {
         panic!("the vectors are an array");

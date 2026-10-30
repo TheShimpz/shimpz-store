@@ -1,5 +1,5 @@
-//! The Rust side of `oracle/differential.py` and of the corpus replay: one canonical answer per case, formatted as
-//! the oracle formats the Python Store's.
+//! The corpus replay's decider: one canonical answer per recorded case, formatted exactly as the Python Store's
+//! answers were recorded when the seeded differential ran (ADR-0123 R3).
 
 use std::{
     ffi::OsStr,
