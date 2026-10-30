@@ -1,10 +1,16 @@
 //! The Cloudflare OAuth broker: its routes' shared refusal, and the capacity every broker operation runs within.
 
 pub mod admission;
+pub mod lease;
+pub mod secret;
 
 use http::{HeaderName, HeaderValue, StatusCode, header};
 
 use crate::{log, response::Reply};
+
+/// A broker operation failed; it carries nothing, so no private value can reach a reply or a log.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BrokerError;
 
 /// The cache policy of every broker reply: never stored.
 pub const PRIVATE_NO_STORE: HeaderValue = HeaderValue::from_static("private, no-store");

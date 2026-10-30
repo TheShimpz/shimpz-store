@@ -16,21 +16,25 @@ name = "shimpz-store"
 path = "src/main.rs"
 
 [dependencies]
+base64 = { version = "=0.23.1", default-features = false, features = ["std"] }
 bytes = "=1.12.1"
 futures-util = { version = "=0.3.34", default-features = false, features = ["std"] }
 http = "=1.5.0"
+hmac = "=0.13.0"
 http-body-util = "=0.1.5"
 hyper = { version = "=1.12.0", default-features = false, features = ["client", "http1", "server"] }
 hyper-util = { version = "=0.1.21", default-features = false, features = ["http1", "server", "server-graceful", "tokio"] }
+rustix = { version = "=1.1.5", default-features = false, features = ["std", "fs", "process"] }
+sha2 = "=0.11.0"
+subtle = "=2.6.1"
 tokio = { version = "=1.53.3", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 uuid = { version = "=1.28.0", features = ["v4"] }
+zeroize = "=1.9.1"
 
-sha2 = "=0.11.0"
 strict-json = { path = "../vendor/strict-json" }
 team-protocol = { path = "../protocol/team/http" }
 
 [dev-dependencies]
-rustix = { version = "=1.1.5", default-features = false, features = ["std", "process"] }
 tempfile = "=3.27.0"
 tokio = { version = "=1.53.3", features = ["test-util"] }
 
