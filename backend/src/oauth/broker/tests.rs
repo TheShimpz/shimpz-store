@@ -174,7 +174,7 @@ fn fill_authorizations(broker: &Broker, count: usize) {
 async fn broker_retries_binding_and_cleans_failed_authorization() {
     let mut draws = vec!["second".to_owned(), "first".to_owned()];
     assert_eq!(
-        unused(&|key| key == "first", &mut || draws.pop().unwrap()),
+        unused(|key| key == "first", || draws.pop().unwrap()),
         "second"
     );
     let (_fake, broker, _clock) =
@@ -450,7 +450,7 @@ async fn a_panicking_operation_restores_reservations_and_local_state() {
 #[tokio::test]
 async fn broker_callback_retries_claim_collision_and_claim_rejects_shape() {
     let mut draws = vec!["fresh".to_owned(), "taken".to_owned()];
-    let key = unused(&|key| key == "taken", &mut || draws.pop().unwrap());
+    let key = unused(|key| key == "taken", || draws.pop().unwrap());
     assert_eq!(key, "fresh");
     let (_fake, broker, _clock) = broker(neuron_answer).await;
     assert!(broker.claim("bad", &local_state('S'), VERIFIER).is_err());

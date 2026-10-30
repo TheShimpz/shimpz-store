@@ -204,10 +204,7 @@ impl Broker {
             if state.authorizations.len() >= CAPACITY || state.active.contains(local_state) {
                 return Err(BrokerError);
             }
-            let broker_state = unused(
-                &|key| state.authorizations.contains_key(key),
-                &mut random_binding,
-            );
+            let broker_state = unused(|key| state.authorizations.contains_key(key), random_binding);
             state.authorizations.insert(
                 broker_state.clone(),
                 PendingAuthorization {
@@ -423,7 +420,7 @@ impl ReservationGuard<'_> {
         state.expire(now);
         state.reservations -= 1;
         self.armed = false;
-        let claim = unused(&|key| state.grants.contains_key(key), &mut random_claim);
+        let claim = unused(|key| state.grants.contains_key(key), random_claim);
         let token_expires_at =
             now + Duration::from_secs(u64::try_from(tokens.expires_in).unwrap_or_default());
         state.grants.insert(
@@ -452,7 +449,7 @@ impl Drop for ReservationGuard<'_> {
 }
 
 /// A key `generate` yields that `taken` does not hold, drawing again on a collision.
-fn unused(taken: &dyn Fn(&str) -> bool, generate: &mut dyn FnMut() -> String) -> String {
+fn unused(taken: impl Fn(&str) -> bool, mut generate: impl FnMut() -> String) -> String {
     loop {
         let candidate = generate();
         if !taken(&candidate) {
